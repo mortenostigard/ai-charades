@@ -1,0 +1,79 @@
+---
+description: Mobile-first development standards for party game
+globs: 
+alwaysApply: true
+---
+# Mobile-First Development Standards
+
+## Core Requirements
+This is a **mobile-first party game** for friends drinking on Friday night. Every UI element must work perfectly on mobile devices.
+
+## Touch Target Standards
+- **Minimum size**: 44px x 44px for all interactive elements
+- **Spacing**: 8px minimum between touch targets
+- **Primary actions**: 56px x 56px (thumbs-friendly)
+- **Secondary actions**: 44px x 44px minimum
+
+## Responsive Design Breakpoints
+```css
+/* Primary target - Mobile Portrait */
+@media (min-width: 320px) { /* 320px - 768px */ }
+
+/* Secondary - Mobile Landscape */
+@media (min-width: 768px) and (orientation: landscape) { /* Game acting mode */ }
+
+/* Bonus - Tablet/Desktop */
+@media (min-width: 1024px) { /* Shared device scenarios */ }
+```
+
+## Required Mobile Optimizations
+- **Haptic feedback**: Use `navigator.vibrate()` for sabotage notifications
+- **Audio context**: Handle mobile audio restrictions properly
+- **Viewport meta**: `<meta name="viewport" content="width=device-width, initial-scale=1">`
+- **Touch-friendly**: No hover states, focus on tap interactions
+- **Thumb zones**: Important controls within thumb reach (bottom 1/3 of screen)
+
+## Performance Requirements
+- **Bundle size**: Keep minimal, only essential dependencies
+- **Lazy loading**: Load game views on demand
+- **Connection handling**: Graceful degradation for poor networks
+- **Battery optimization**: Minimize background processing
+
+## UI/UX Guidelines
+- **Large typography**: Readable in various lighting conditions
+- **High contrast**: Ensure accessibility in party environments
+- **Simple navigation**: One-handed operation preferred
+- **Visual feedback**: Clear state changes and loading indicators
+- **Error states**: User-friendly messages with suggested actions
+
+## Testing Requirements
+- Test with Chrome DevTools mobile simulation
+- Verify touch targets are large enough
+- Test with slow/flaky network conditions
+- Ensure one-handed navigation works
+- Test in both portrait and landscape orientations
+
+## Common Mobile Patterns to Use
+```tsx
+// Touch-friendly button
+<Button 
+  className="min-h-[44px] min-w-[44px] text-lg"
+  onClick={handleAction}
+>
+  Action
+</Button>
+
+// Thumb-friendly layout
+<div className="pb-safe-area-inset-bottom">
+  <div className="fixed bottom-4 left-4 right-4">
+    {/* Primary actions here */}
+  </div>
+</div>
+
+// Mobile-optimized input
+<Input 
+  className="text-lg p-4" 
+  autoComplete="off"
+  autoCapitalize="none"
+/>
+

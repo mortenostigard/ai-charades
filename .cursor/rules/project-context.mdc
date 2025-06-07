@@ -1,0 +1,28 @@
+---
+description: AI Charades project context and core requirements
+globs: 
+alwaysApply: true
+---
+# AI Charades: Director's Cut - Project Context
+
+You are working on **AI Charades: Director's Cut**, a real-time multiplayer party game where one player acts out prompts while another player can deploy sabotage actions.
+
+## Key Constraints
+- **Timeline**: 3 days total development time
+- **Quality**: Production-ready code quality required
+- **Audience**: Friends drinking on Friday night (mobile-first, simple UX)
+- **Tech Stack**: Next.js 14, Socket.io, TypeScript, Zustand, Tailwind CSS + shadcn/ui
+
+## Development Priorities
+1. Socket.io real-time communication
+2. Mobile-first responsive design
+3. TypeScript strict mode
+4. Error handling and reconnection logic
+5. Production-ready deployment on Vercel
+
+**IMPORTANT**: Always reference the specification documents for detailed requirements. Do not duplicate their content in code - reference them instead.
+
+@docs/game_spec.md
+@docs/api_spec.md
+@docs/tech_spec.md
+

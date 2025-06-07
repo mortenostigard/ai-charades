@@ -1,0 +1,104 @@
+---
+description: Socket.io event handling patterns and standards
+globs: **/socket**, **/api/**, **/*socket*, **/hooks/useSocket*
+alwaysApply: false
+---
+# Socket.io Event Handling Standards
+
+## Event Naming Convention
+- Use exact event names from api_spec.md (DO NOT duplicate the events here - reference the spec)
+- Client to Server: `'action-name'`
+- Server to Client: `'event-name'`
+- Errors: `'error-type'`
+
+## Client-Side Event Handler Pattern
+```tsx
+const handleSocketEvent = useCallback(
+  (payload: EventPayload) => {
+    try {
+      // 1. Optimistic update (if applicable)
+      setGameState(draft => {
+        // Update local state immediately
+      });
+      
+      // 2. Emit to server
+      socket.emit('event-name', payload);
+      
+    } catch (error) {
+      // 3. Error handling
+      console.error('Socket event error:', error);
+      // Revert optimistic update if needed
+    }
+  },
+  [socket, dependencies]
+);
+```
+
+## Server-Side Event Handler Pattern
+```typescript
+socket.on('event-name', async (payload: EventPayload) => {
+  try {
+    // 1. Validate payload
+    if (!isValidPayload(payload)) {
+      socket.emit('game-error', { 
+        code: 'INVALID_PAYLOAD', 
+        message: 'Invalid event data' 
+      });
+      return;
+    }
+    
+    // 2. Business logic
+    const result = await handleGameLogic(payload);
+    
+    // 3. Broadcast to room
+    io.to(roomId).emit('event-response', result);
+    
+  } catch (error) {
+    // 4. Error response
+    socket.emit('game-error', {
+      code: 'SERVER_ERROR',
+      message: error.message
+    });
+  }
+});
+```
+
+## Event Categories (see api_spec.md for complete list):
+- Room Management: join/create/leave operations
+- Game Flow: round lifecycle and player actions
+- Real-time Updates: timer and game state changes
+- Error Handling: comprehensive error responses
+
+**Reference @docs/api_spec.md for exact event names and payloads**
+
+## Socket Hook Pattern
+```tsx
+export function useSocket() {
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [connected, setConnected] = useState(false);
+  
+  useEffect(() => {
+    // Connection logic
+    const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL);
+    
+    // Event listeners
+    newSocket.on('connect', () => setConnected(true));
+    newSocket.on('disconnect', () => setConnected(false));
+    
+    // Cleanup
+    return () => newSocket.close();
+  }, []);
+  
+  return { socket, connected };
+}
+```
+
+## Error Handling Requirements:
+- Always handle socket errors gracefully
+- Implement reconnection logic
+- Show user-friendly error messages
+- Log errors for debugging
+- Request game state resync on major errors
+
+@docs/api_spec.md
+

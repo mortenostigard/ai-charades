@@ -1,0 +1,99 @@
+---
+description: TypeScript patterns and architecture standards
+globs: **/*.ts, **/*.tsx
+alwaysApply: false
+---
+# TypeScript & Architecture Standards
+
+## TypeScript Configuration
+- **Strict mode**: Always enabled, no implicit any
+- **Interfaces over types**: Use interfaces for object shapes
+- **Proper generics**: Type custom hooks and utility functions
+- **No any**: Use unknown or proper typing instead
+
+## State Management with Zustand
+```tsx
+interface GameStore {
+  // State
+  gameState: GameState | null;
+  loading: boolean;
+  error: string | null;
+  
+  // Actions
+  setGameState: (state: GameState) => void;
+  updatePlayer: (playerId: string, updates: Partial<Player>) => void;
+  deployS abotage: (sabotage: SabotageAction) => void;
+  
+  // Computed selectors
+  getCurrentRole: () => 'actor' | 'director' | 'audience' | null;
+  canDeploySabotage: () => boolean;
+}
+
+const useGameStore = create<GameStore>((set, get) => ({
+  // Implementation
+}));
+```
+
+## Custom Hook Patterns
+```tsx
+interface UseSocketReturn {
+  socket: Socket | null;
+  connected: boolean;
+  error: string | null;
+  emit: <T>(event: string, data: T) => void;
+  subscribe: <T>(event: string, callback: (data: T) => void) => () => void;
+}
+
+export function useSocket(): UseSocketReturn {
+  // Implementation with proper cleanup
+}
+```
+
+## File Naming & Organization
+- **Components**: PascalCase (`GameRoom.tsx`, `SabotageButton.tsx`)
+- **Hooks**: camelCase with 'use' prefix (`useGameState.ts`, `useSocket.ts`)
+- **Utils**: camelCase (`formatTime.ts`, `generateRoomCode.ts`)
+- **Types**: PascalCase with `.types.ts` extension (`game.types.ts`)
+- **Stores**: camelCase with Store suffix (`gameStore.ts`)
+
+## Error Handling Patterns
+```tsx
+// Component error handling
+try {
+  await risky Operation();
+} catch (error) {
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+  setError(errorMessage);
+  console.error('Operation failed:', error);
+}
+
+// Hook error handling
+const [data, setData] = useState<DataType | null>(null);
+const [loading, setLoading] = useState(false);
+const [error, setError] = useState<string | null>(null);
+```
+
+## Required Type Definitions
+Import types from the centralized type definitions (see @docs/api_spec.md for complete interface definitions):
+- Core game entities: `Player`, `Room`, `GameState`, `CurrentRound`
+- Sabotage system: `SabotageAction`, `ActiveSabotage`
+- Game content: `GamePrompt`, `ScoreUpdate`, `CompletedRound`, `GameConfig`
+
+**Do not redefine these types - import from the single source of truth**
+
+## Performance Optimization
+- **useCallback**: For event handlers passed to children
+- **useMemo**: For expensive calculations
+- **React.memo**: For pure components that re-render often
+- **Lazy loading**: Use React.lazy for route components
+
+## Architecture Patterns
+- **Container/Presentation**: Separate data logic from UI
+- **Custom hooks**: Extract logic into reusable hooks
+- **Single responsibility**: Each component/hook has one clear purpose
+- **Dependency injection**: Pass dependencies via props/context
+- **Immutable updates**: Use immer for complex state updates
+
+@docs/api_spec.md
+@docs/tech_spec.md
+

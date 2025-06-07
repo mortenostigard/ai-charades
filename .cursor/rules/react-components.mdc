@@ -1,0 +1,66 @@
+---
+description: React component patterns and standards for AI Charades
+globs: src/components/**/*.tsx, src/app/**/*.tsx
+alwaysApply: false
+---
+# React Component Standards
+
+## Component Structure Pattern
+Always use this structure for components:
+
+```tsx
+interface ComponentProps {
+  // Required props
+  required: string;
+  // Optional props with defaults
+  optional?: boolean;
+}
+
+export function Component({ required, optional = false }: ComponentProps) {
+  // 1. Hooks at top
+  const gameState = useGameState();
+  const { socket } = useSocket();
+  
+  // 2. Event handlers
+  const handleAction = useCallback(() => {
+    // Event logic
+  }, [dependencies]);
+  
+  // 3. Early returns for loading/error states
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage error={error} />;
+  
+  // 4. Main render
+  return (
+    <div className="mobile-friendly-class">
+      {/* Content */}
+    </div>
+  );
+}
+```
+
+## Requirements for ALL Components:
+- TypeScript interface for props (even if empty)
+- Mobile-first responsive design (min 44px touch targets)
+- Error handling (try-catch or error boundaries)
+- Loading states for async operations
+- Proper cleanup in useEffect hooks
+- Use shadcn/ui components when possible
+
+## Game-Specific Component Categories:
+- **Views**: `ActorView`, `DirectorView`, `AudienceView` (role-specific UIs)
+- **Shared**: `GameTimer`, `ScoreBoard`, `PromptDisplay` (common elements)
+- **Layout**: `GameRoom`, `WaitingRoom` (containers)
+- **Interactive**: `SabotageButton`, `GuessInput` (user actions)
+
+## Import Order:
+1. React/Next imports
+2. Third-party libraries (socket.io, zustand)
+3. Custom hooks
+4. Components (UI, then game-specific)
+5. Utils/lib
+6. Types
+7. Styles (if any)
+
+@docs/tech_spec.md
+
