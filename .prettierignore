@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.*
+
+# Production builds
+.next/
+out/
+build/
+dist/
+
+# Environment files
+.env*
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Coverage
+coverage/
+
+# TypeScript
+*.tsbuildinfo
+
+# Package manager lock files (optional - you may want to format these)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated files
+next-env.d.ts
+
+# Documentation that might have specific formatting
+CHANGELOG.md
+LICENSE
+
+# Vercel
+.vercel/
+
+# Public assets (images, icons, etc.)
+public/ 
