@@ -3,96 +3,108 @@
 ## TypeScript Interfaces
 
 ### Core Data Types
+
 ```typescript
 interface Player {
-  id: string
-  name: string
-  connected: boolean
-  joinedAt: number
+  id: string;
+  name: string;
+  connected: boolean;
+  joinedAt: number;
 }
 
 interface Room {
-  id: string
-  code: string
-  players: Player[]
-  status: 'waiting' | 'playing' | 'paused' | 'complete'
-  createdAt: number
-  maxPlayers: number
+  id: string;
+  code: string;
+  players: Player[];
+  status: 'waiting' | 'playing' | 'paused' | 'complete';
+  createdAt: number;
+  maxPlayers: number;
 }
 
 interface GameState {
-  room: Room
-  currentRound: CurrentRound | null
-  scores: Record<string, number>
-  gameConfig: GameConfig
-  roundHistory: CompletedRound[]
+  room: Room;
+  currentRound: CurrentRound | null;
+  scores: Record<string, number>;
+  gameConfig: GameConfig;
+  roundHistory: CompletedRound[];
 }
 
 interface CurrentRound {
-  number: number
-  actorId: string
-  directorId: string
-  prompt: GamePrompt
-  startTime: number
-  duration: number
-  activeSabotages: ActiveSabotage[]
-  guesses: Guess[]
-  status: 'active' | 'complete'
+  number: number;
+  actorId: string;
+  directorId: string;
+  prompt: GamePrompt;
+  startTime: number;
+  duration: number;
+  activeSabotages: ActiveSabotage[];
+  guesses: Guess[];
+  status: 'active' | 'complete';
 }
 
 interface GamePrompt {
-  id: string
-  text: string
-  category: 'movie' | 'song' | 'celebrity' | 'book'
-  difficulty: 'easy' | 'medium' | 'hard'
+  id: string;
+  text: string;
+  category: 'movie' | 'song' | 'celebrity' | 'book';
+  difficulty: 'easy' | 'medium' | 'hard';
 }
 
 interface SabotageAction {
-  id: string
-  name: string
-  description: string
-  duration: number
-  category: 'movement' | 'timing' | 'style'
-  compatibleWith: string[]
+  id: string;
+  name: string;
+  description: string;
+  duration: number;
+  category: 'movement' | 'timing' | 'style';
+  compatibleWith: string[];
 }
 
 interface ActiveSabotage {
-  action: SabotageAction
-  deployedAt: number
-  endsAt: number
-  deployedBy: string
+  action: SabotageAction;
+  deployedAt: number;
+  endsAt: number;
+  deployedBy: string;
 }
 
 interface Guess {
-  playerId: string
-  text: string
-  timestamp: number
-  isCorrect?: boolean
+  playerId: string;
+  text: string;
+  timestamp: number;
+  isCorrect?: boolean;
 }
 
 interface GameConfig {
-  roundDuration: number
-  gracePeriod: number
-  maxSabotages: number
-  sabotageTypes: SabotageAction[]
+  roundDuration: number;
+  gracePeriod: number;
+  maxSabotages: number;
+  sabotageTypes: SabotageAction[];
 }
 
 interface CompletedRound {
-  roundNumber: number
-  actorId: string
-  directorId: string
-  prompt: GamePrompt
-  winner: string | null
-  sabotagesUsed: number
-  completedAt: number
-  finalGuess: Guess | null
+  roundNumber: number;
+  actorId: string;
+  directorId: string;
+  prompt: GamePrompt;
+  winner: string | null;
+  sabotagesUsed: number;
+  completedAt: number;
+  finalGuess: Guess | null;
+}
+
+interface EmojiReaction {
+  fromPlayerId: string;
+  toPlayerId: string; // The Actor
+  emoji: '😂' | '🔥' | '🤔' | '😴'; // Example set
+  timestamp: number;
 }
 
 interface ScoreUpdate {
-  playerId: string
-  pointsAwarded: number
-  reason: 'correct_guess' | 'successful_acting' | 'successful_direction' | 'failed_direction'
-  totalScore: number
+  playerId: string;
+  pointsAwarded: number;
+  reason:
+    | 'correct_guess'
+    | 'successful_acting'
+    | 'successful_direction'
+    | 'failed_direction';
+  totalScore: number;
 }
 ```
 
@@ -101,6 +113,7 @@ interface ScoreUpdate {
 ### Room Management Events
 
 #### Client → Server
+
 ```typescript
 // Join existing room
 'join-room': {
@@ -108,7 +121,7 @@ interface ScoreUpdate {
   playerName: string
 }
 
-// Create new room  
+// Create new room
 'create-room': {
   playerName: string
   gameConfig?: Partial<GameConfig>
@@ -127,6 +140,7 @@ interface ScoreUpdate {
 ```
 
 #### Server → Client
+
 ```typescript
 // Successfully joined room
 'room-joined': {
@@ -169,6 +183,7 @@ interface ScoreUpdate {
 ### Game Flow Events
 
 #### Client → Server
+
 ```typescript
 // Start new round
 'start-round': {
@@ -190,6 +205,12 @@ interface ScoreUpdate {
   timestamp: number
 }
 
+// Send emoji reaction (Audience only)
+'send-reaction': {
+  emoji: '😂' | '🔥' | '🤔' | '😴'
+  targetActorId: string
+}
+
 // End round early
 'end-round': {
   roomId: string
@@ -205,6 +226,7 @@ interface ScoreUpdate {
 ```
 
 #### Server → Client
+
 ```typescript
 // Round started successfully
 'round-started': {
@@ -222,10 +244,15 @@ interface ScoreUpdate {
   targetPlayerId: string // Only sent to actor
 }
 
-// Sabotage ended notification  
+// Sabotage ended notification
 'sabotage-ended': {
   sabotageId: string
   endedAt: number
+}
+
+// Audience reaction was sent
+'reaction-sent': {
+  reaction: EmojiReaction
 }
 
 // Guess submitted
@@ -260,6 +287,7 @@ interface ScoreUpdate {
 ### Error Events
 
 #### Server → Client
+
 ```typescript
 // General game error
 'game-error': {
@@ -275,6 +303,12 @@ interface ScoreUpdate {
   attemptedSabotageId: string
 }
 
+// Emoji reaction error
+'reaction-error': {
+  code: 'REACTION_LIMIT_REACHED' | 'INVALID_TARGET'
+  message: string
+}
+
 // Connection issues
 'connection-error': {
   code: 'RECONNECTION_FAILED' | 'ROOM_EXPIRED' | 'SERVER_ERROR'
@@ -286,6 +320,7 @@ interface ScoreUpdate {
 ## Event Flow Patterns
 
 ### Typical Round Flow
+
 ```
 1. Client: 'start-round'
 2. Server: 'round-started' (to all)
@@ -298,6 +333,7 @@ interface ScoreUpdate {
 ```
 
 ### Error Handling Flow
+
 ```
 1. Client: Invalid action
 2. Server: Appropriate error event
@@ -306,6 +342,7 @@ interface ScoreUpdate {
 ```
 
 ### Reconnection Flow
+
 ```
 1. Client: Detects disconnection
 2. Client: Attempts reconnection
@@ -316,11 +353,13 @@ interface ScoreUpdate {
 ## Data Validation
 
 ### Client-Side Validation
+
 - Room codes: 4 digits, numeric only
 - Player names: 2-20 characters, alphanumeric + spaces
 - Guesses: 1-50 characters, sanitized input
 
 ### Server-Side Validation
+
 - All client inputs validated and sanitized
 - Rate limiting on room creation and guesses
 - Authorization checks for role-specific actions
@@ -329,12 +368,14 @@ interface ScoreUpdate {
 ## Rate Limiting
 
 ### Per Client Limits
+
 - Room creation: 3 per minute
 - Guess submission: 1 per 2 seconds
 - Sabotage deployment: 1 per 5 seconds
 - Reconnection attempts: 10 per minute
 
 ### Per Room Limits
+
 - Maximum players: 8
 - Room lifetime: 2 hours
 - Rounds per game: No limit (until players leave)

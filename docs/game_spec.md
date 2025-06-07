@@ -92,3 +92,10 @@ Traditional charades with a twist: one player acts while another player (the Dir
 5. **Resolution**: Round ends on a correct guess or timeout.
 6. **Round Summary**: Scores are awarded and displayed based on the outcome.
 7. **Rotation**: Roles shift for the next round, returning to step 3.
+
+### End of Game
+
+- The game concludes when each player has acted once
+- The player with the highest total score is declared the winner.
+- A final "Audience Favorite" bonus of +2 points is awarded to the player who received the most positive emoji reactions throughout the game while acting.
+- A "Most Confusing" penalty of -2 points is given to the player who received the most negative emoji reactions.
