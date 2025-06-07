@@ -15,10 +15,19 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@eslint/eslintrc": "^3",
+    "@radix-ui/react-avatar": "^1.1.10",
+    "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/themes": "^3.2.1",
+    "@tailwindcss/postcss": "^4",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.3",
+    "framer-motion": "^12.16.0",
+    "husky": "^9.1.4",
+    "lint-staged": "^16.1.0",
     "lucide-react": "^0.513.0",
     "nanoid": "^5.1.5",
     "next": "15.3.3",
@@ -28,14 +37,8 @@
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "tailwind-merge": "^3.3.0",
-    "zustand": "^5.0.5",
-    "@tailwindcss/postcss": "^4",
     "tailwindcss": "^4",
-    "eslint": "^9",
-    "eslint-config-next": "15.3.3",
-    "@eslint/eslintrc": "^3",
-    "husky": "^9.1.4",
-    "lint-staged": "^16.1.0"
+    "zustand": "^5.0.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
