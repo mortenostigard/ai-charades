@@ -12,7 +12,7 @@ This document outlines the tasks required to complete the Minimum Viable Product
 - `src/app/api/socket/route.ts` - Main Socket.io server endpoint for real-time communication ✅
 - `src/app/api/socket/handlers.ts` - Server-side Socket.io event handlers ✅
 - `src/game/room-manager.ts` - Core game logic for room and player management ✅
-- `src/stores/gameStore.ts` - Zustand store for global client-side state management
+- `src/stores/gameStore.ts` - Zustand store for global client-side state management ✅
 - `src/hooks/useSocket.ts` - Custom hook to manage the client's Socket.io connection
 - `src/app/page.tsx` - The main home page component for creating or joining a room
 - `src/app/room/[code]/page.tsx` - The room lobby component where players wait before the game starts
@@ -54,8 +54,8 @@ To keep the 3-day MVP focused, we're intentionally deferring these features, but
   - [x] 6.5 Implement broadcasting for `player-joined` and `player-left` events to keep clients in sync.
   - [x] 6.6 Add basic `room-error` event handling for scenarios like "room not found" or "room full".
 - [ ] 7.0 **Build Client-Side State Management**
-  - [ ] 7.1 Install `zustand` and `immer`.
-  - [ ] 7.2 Create `src/stores/gameStore.ts` with the `GameState` interface and associated actions.
+  - [x] 7.1 Install `zustand` and `immer`.
+  - [x] 7.2 Create `src/stores/gameStore.ts` with the `GameState` interface and associated actions.
   - [ ] 7.3 Create the `useSocket` custom hook in `src/hooks/useSocket.ts` to initialize and manage the socket connection.
   - [ ] 7.4 Integrate the `useSocket` hook with the `gameStore` to update the client's state based on server events.
   - [ ] 7.5 Add connection error handling and reconnection logic.
