@@ -34,9 +34,9 @@ _This section will be populated as we create and modify files._
 
 ### Day 2: Backend, State & Lobby
 
-- [ ] 5.0 **Establish Core TypeScript Types**
-  - [ ] 5.1 Create `src/types/index.ts` and add all interfaces from `docs/api_spec.md`.
-  - [ ] 5.2 Export all types to ensure they are available across the application.
+- [x] 5.0 **Establish Core TypeScript Types**
+  - [x] 5.1 Create `src/types/index.ts` and add all interfaces from `docs/api_spec.md`.
+  - [x] 5.2 Export all types to ensure they are available across the application.
 - [ ] 6.0 **Implement Socket.io Server**
   - [ ] 6.1 Install `socket.io`.
   - [ ] 6.2 Create the initial server setup in `src/app/api/socket/route.ts`.
