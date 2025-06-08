@@ -1,3 +1,5 @@
+'use client';
+
 import { useEffect, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 
@@ -38,7 +40,7 @@ export const useSocket = () => {
       const { playerId } = useGameStore.getState();
       if (playerId) {
         console.log('Requesting game state resync...');
-        socket.emit('request-game-state', { playerId });
+        socket.emit('request_game_state', { playerId });
       }
     }
   }, []);

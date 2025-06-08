@@ -10,7 +10,7 @@ export function handleCreateRoom(socket: Socket) {
   }) => {
     try {
       if (!data.playerName || data.playerName.trim().length < 2) {
-        socket.emit('room-error', {
+        socket.emit('room_error', {
           code: 'INVALID_PLAYER_NAME',
           message: 'Player name must be at least 2 characters long.',
         });
@@ -28,7 +28,7 @@ export function handleCreateRoom(socket: Socket) {
       // Join the socket room
       await socket.join(room.code);
 
-      socket.emit('room-created', {
+      socket.emit('room_created', {
         room,
         playerId,
         gameState,
@@ -39,7 +39,7 @@ export function handleCreateRoom(socket: Socket) {
       );
     } catch (error) {
       console.error('Error creating room:', error);
-      socket.emit('room-error', {
+      socket.emit('room_error', {
         code: 'SERVER_ERROR',
         message: 'Failed to create room. Please try again.',
       });
@@ -51,7 +51,7 @@ export function handleJoinRoom(socket: Socket) {
   return async (data: { roomCode: string; playerName: string }) => {
     try {
       if (!data.roomCode || !data.playerName) {
-        socket.emit('room-error', {
+        socket.emit('room_error', {
           code: 'INVALID_DATA',
           message: 'Room code and player name are required.',
         });
@@ -62,7 +62,7 @@ export function handleJoinRoom(socket: Socket) {
       const playerName = data.playerName.trim();
 
       if (!/^\d{4}$/.test(roomCode)) {
-        socket.emit('room-error', {
+        socket.emit('room_error', {
           code: 'INVALID_CODE',
           message: roomManager.getErrorMessage('INVALID_CODE'),
         });
@@ -70,7 +70,7 @@ export function handleJoinRoom(socket: Socket) {
       }
 
       if (playerName.length < 2) {
-        socket.emit('room-error', {
+        socket.emit('room_error', {
           code: 'INVALID_PLAYER_NAME',
           message: 'Player name must be at least 2 characters long.',
         });
@@ -88,7 +88,7 @@ export function handleJoinRoom(socket: Socket) {
       // Join the socket room
       await socket.join(roomCode);
 
-      socket.emit('room-joined', {
+      socket.emit('room_joined', {
         room,
         playerId,
         gameState,
@@ -97,7 +97,7 @@ export function handleJoinRoom(socket: Socket) {
       // Notify other players in the room
       const newPlayer = room.players.find(p => p.id === playerId);
       if (newPlayer) {
-        socket.to(roomCode).emit('player-joined', {
+        socket.to(roomCode).emit('player_joined', {
           player: newPlayer,
           room,
         });
@@ -106,7 +106,7 @@ export function handleJoinRoom(socket: Socket) {
       console.log(`${playerName} (${playerId}) joined room ${roomCode}`);
     } catch (error) {
       const errorCode = error instanceof Error ? error.message : 'SERVER_ERROR';
-      socket.emit('room-error', {
+      socket.emit('room_error', {
         code: errorCode,
         message: roomManager.getErrorMessage(errorCode),
       });
@@ -132,7 +132,7 @@ export function handleLeaveRoom(socket: Socket) {
 
         if (updatedRoom) {
           // Notify remaining players
-          socket.to(playerRoomCode).emit('player-left', {
+          socket.to(playerRoomCode).emit('player_left', {
             playerId,
             room: updatedRoom,
           });
@@ -161,7 +161,7 @@ export function handleRequestGameState(socket: Socket) {
           console.log(
             `Resyncing game state for player ${playerId} in room ${roomCode}`
           );
-          socket.emit('game-state-update', { gameState });
+          socket.emit('game_state_update', { gameState });
         }
       }
     } catch (error) {
@@ -169,7 +169,7 @@ export function handleRequestGameState(socket: Socket) {
         `Error resyncing game state for player ${data.playerId}:`,
         error
       );
-      socket.emit('game-error', {
+      socket.emit('game_error', {
         code: 'STATE_SYNC_ERROR',
         message: 'Could not retrieve the latest game state.',
       });
@@ -190,7 +190,7 @@ export function handleDisconnect(socket: Socket) {
           roomManager.playerSockets.delete(playerId);
 
           if (updatedRoom) {
-            socket.to(roomCode).emit('player-left', {
+            socket.to(roomCode).emit('player_left', {
               playerId,
               room: updatedRoom,
             });
@@ -202,7 +202,7 @@ export function handleDisconnect(socket: Socket) {
   };
 }
 
-export function registerSocketEvents(io: Server) {
+export function initializeSocketHandlers(io: Server) {
   io.on('connection', (socket: Socket) => {
     console.log(`Client connected: ${socket.id}`);
 

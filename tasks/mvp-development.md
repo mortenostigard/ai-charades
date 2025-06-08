@@ -9,13 +9,14 @@ This document outlines the tasks required to complete the Minimum Viable Product
 ## Relevant Files
 
 - `src/types/index.ts` - Centralized TypeScript interfaces for all game entities ✅
-- `src/app/api/socket/route.ts` - Main Socket.io server endpoint for real-time communication ✅
-- `src/app/api/socket/handlers.ts` - Server-side Socket.io event handlers ✅
+- `src/pages/api/socket.ts` - Main Socket.io server endpoint (local development) ✅
+- `src/lib/socket/handlers.ts` - Server-side Socket.io event handlers ✅
 - `src/game/room-manager.ts` - Core game logic for room and player management ✅
 - `src/stores/gameStore.ts` - Zustand store for global client-side state management ✅
 - `src/hooks/useSocket.ts` - Custom hook to manage the client's Socket.io connection ✅
-- `src/app/page.tsx` - The main home page component for creating or joining a room
+- `src/app/page.tsx` - The main home page component for creating or joining a room ✅
 - `src/app/room/[code]/page.tsx` - The room lobby component where players wait before the game starts
+- `src/components/game/home-screen.tsx` - The UI component for the home screen ✅
 
 ### Notes
 
@@ -48,9 +49,9 @@ To keep the 3-day MVP focused, we're intentionally deferring these features, but
   - [x] 5.2 Export all types to ensure they are available across the application.
 - [x] 6.0 **Implement Socket.io Server**
   - [x] 6.1 Install `socket.io`.
-  - [x] 6.2 Create the initial server se tup in `src/app/api/socket/route.ts`.
+  - [x] 6.2 Create the initial server setup in `src/pages/api/socket.ts`.
   - [x] 6.3 Implement in-memory data structures for managing rooms and players.
-  - [x] 6.4 Implement `create-room`, `join-room`, and `leave-room` event handlers.
+  - [x] 6.4 Implement `create-room`, `join-room`, and `leave-room` event handlers in `src/lib/socket/handlers.ts`.
   - [x] 6.5 Implement broadcasting for `player-joined` and `player-left` events to keep clients in sync.
   - [x] 6.6 Add basic `room-error` event handling for scenarios like "room not found" or "room full".
 - [ ] 7.0 **Build Client-Side State Management**
@@ -59,10 +60,8 @@ To keep the 3-day MVP focused, we're intentionally deferring these features, but
   - [x] 7.3 Create the `useSocket` custom hook in `src/hooks/useSocket.ts` to initialize and manage the socket connection.
   - [x] 7.4 Integrate the `useSocket` hook with the `gameStore` to update the client's state based on server events.
   - [x] 7.5 Add connection error handling and reconnection logic.
-  - [ ] 7.6 Implement optimistic updates for better UX (join room, etc.).
-  - [ ] 7.7 Add computed selectors for role detection and permissions.
 - [ ] 8.0 **Build Core UI Components & Navigation**
-  - [ ] 8.1 Create the home page `src/app/page.tsx` with mobile-first design and create/join room functionality.
+  - [x] 8.1 Create the home page `src/app/page.tsx` with mobile-first design and create/join room functionality by implementing `src/components/game/home-screen.tsx`.
   - [ ] 8.2 Build reusable UI components: `RoomCodeInput`, `PlayerNameInput`, `LoadingSpinner`, `ErrorMessage` following design-system-spec.md patterns.
   - [ ] 8.3 Implement client-side room actions: create room, join room, and form validation.
   - [ ] 8.4 Create the lobby page `src/app/room/[code]/page.tsx` with real-time player list.
