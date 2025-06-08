@@ -24,8 +24,9 @@
   /components
     /ui                    # shadcn/ui base components
     /game                  # Game-specific components
+  /game                    # Pure game logic and engine
   /hooks                   # Custom hooks
-  /lib                     # Utilities and game engine
+  /lib                     # General utilities and helpers
   /stores                  # Zustand stores
   /types                   # TypeScript interfaces
 /docs                      # Documentation
@@ -48,6 +49,19 @@
 ### Design & Component Reference
 
 The `/design-reference/screens` directory contains high-fidelity, functional React components that serve as the primary visual and interactive reference for implementing the application's UI. These references should be consulted to ensure the final components built in `/src/components/game` match the project's design and UX goals.
+
+### Game Engine Architecture
+
+The `/src/game/` directory contains pure game logic, separated from UI and infrastructure concerns:
+
+- **`room-manager.ts`** - Room creation, player management, state storage
+- **`round-manager.ts`** - Round lifecycle, timer management, role rotation
+- **`scoring-engine.ts`** - Risk/reward calculations, point distribution
+- **`sabotage-manager.ts`** - Sabotage deployment, timing constraints, compatibility
+- **`prompt-manager.ts`** - Game prompts selection and categorization
+- **`game-rules.ts`** - Core game constants and validation rules
+
+This separation allows the game logic to be tested independently and potentially reused across different interfaces.
 
 ### State Management Strategy
 

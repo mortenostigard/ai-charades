@@ -8,15 +8,14 @@ This document outlines the tasks required to complete the Minimum Viable Product
 
 ## Relevant Files
 
-_This section will be populated as we create and modify files._
-
-- `src/types/index.ts` - Centralized TypeScript interfaces for all game entities.
-- `src/app/api/socket/route.ts` - Main Socket.io server endpoint for real-time communication.
-- `src/lib/socket/handler.ts` - Server-side Socket.io event handlers and game logic.
-- `src/stores/gameStore.ts` - Zustand store for global client-side state management.
-- `src/hooks/useSocket.ts` - Custom hook to manage the client's Socket.io connection.
-- `src/app/page.tsx` - The main home page component for creating or joining a room.
-- `src/app/room/[code]/page.tsx` - The room lobby component where players wait before the game starts.
+- `src/types/index.ts` - Centralized TypeScript interfaces for all game entities ✅
+- `src/app/api/socket/route.ts` - Main Socket.io server endpoint for real-time communication ✅
+- `src/app/api/socket/handlers.ts` - Server-side Socket.io event handlers ✅
+- `src/game/room-manager.ts` - Core game logic for room and player management ✅
+- `src/stores/gameStore.ts` - Zustand store for global client-side state management
+- `src/hooks/useSocket.ts` - Custom hook to manage the client's Socket.io connection
+- `src/app/page.tsx` - The main home page component for creating or joining a room
+- `src/app/room/[code]/page.tsx` - The room lobby component where players wait before the game starts
 
 ### Notes
 
@@ -37,13 +36,13 @@ _This section will be populated as we create and modify files._
 - [x] 5.0 **Establish Core TypeScript Types**
   - [x] 5.1 Create `src/types/index.ts` and add all interfaces from `docs/api_spec.md`.
   - [x] 5.2 Export all types to ensure they are available across the application.
-- [ ] 6.0 **Implement Socket.io Server**
-  - [ ] 6.1 Install `socket.io`.
-  - [ ] 6.2 Create the initial server setup in `src/app/api/socket/route.ts`.
-  - [ ] 6.3 Implement in-memory data structures for managing rooms and players.
-  - [ ] 6.4 Implement `create-room`, `join-room`, and `leave-room` event handlers.
-  - [ ] 6.5 Implement broadcasting for `player-joined` and `player-left` events to keep clients in sync.
-  - [ ] 6.6 Add basic `room-error` event handling for scenarios like "room not found" or "room full".
+- [x] 6.0 **Implement Socket.io Server**
+  - [x] 6.1 Install `socket.io`.
+  - [x] 6.2 Create the initial server setup in `src/app/api/socket/route.ts`.
+  - [x] 6.3 Implement in-memory data structures for managing rooms and players.
+  - [x] 6.4 Implement `create-room`, `join-room`, and `leave-room` event handlers.
+  - [x] 6.5 Implement broadcasting for `player-joined` and `player-left` events to keep clients in sync.
+  - [x] 6.6 Add basic `room-error` event handling for scenarios like "room not found" or "room full".
 - [ ] 7.0 **Build Client-Side State Management**
   - [ ] 7.1 Install `zustand` and `immer`.
   - [ ] 7.2 Create `src/stores/gameStore.ts` with the `GameState` interface and associated actions.

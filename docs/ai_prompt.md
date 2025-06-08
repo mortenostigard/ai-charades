@@ -185,7 +185,7 @@ const handleEvent = useCallback(
 );
 
 // Server side
-socket.on("event-name", async (payload) => {
+socket.on('event-name', async payload => {
   // Validation
   // Business logic
   // Broadcast to room
