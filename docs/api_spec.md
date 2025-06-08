@@ -107,24 +107,24 @@ interface ScoreUpdate {
 
 ```typescript
 // Join existing room
-'join-room': {
+'join_room': {
   roomCode: string
   playerName: string
 }
 
 // Create new room
-'create-room': {
+'create_room': {
   playerName: string
   gameConfig?: Partial<GameConfig>
 }
 
 // Leave current room
-'leave-room': {
+'leave_room': {
   playerId: string
 }
 
 // Update player info
-'update-player': {
+'update_player': {
   playerId: string
   name?: string
 }
@@ -134,39 +134,39 @@ interface ScoreUpdate {
 
 ```typescript
 // Successfully joined room
-'room-joined': {
+'room_joined': {
   room: Room
   playerId: string
   gameState: GameState
 }
 
 // Room created successfully
-'room-created': {
+'room_created': {
   room: Room
   playerId: string
   gameState: GameState
 }
 
 // Error joining/creating room
-'room-error': {
+'room_error': {
   code: 'ROOM_NOT_FOUND' | 'ROOM_FULL' | 'INVALID_CODE' | 'PLAYER_NAME_TAKEN'
   message: string
 }
 
 // Player joined the room
-'player-joined': {
+'player_joined': {
   player: Player
   room: Room
 }
 
 // Player left the room
-'player-left': {
+'player_left': {
   playerId: string
   room: Room
 }
 
 // Room state changed
-'room-updated': {
+'room_updated': {
   room: Room
 }
 ```
@@ -177,33 +177,33 @@ interface ScoreUpdate {
 
 ```typescript
 // Start new round
-'start-round': {
+'start_round': {
   roomId: string
   requestedBy: string
 }
 
 // Deploy sabotage (Director only)
-'deploy-sabotage': {
+'deploy_sabotage': {
   sabotageId: string
   directorId: string
   timestamp: number
 }
 
 // Send emoji reaction (Audience only)
-'send-reaction': {
+'send_reaction': {
   emoji: '😂' | '🔥' | '🤔' | '😴'
   targetActorId: string
 }
 
 // End round (Director confirms a correct guess)
-'end-round': {
+'end_round': {
   roomId: string
   directorId: string
   winnerId: string // The player who guessed correctly
 }
 
 // Start new game
-'start-game': {
+'start_game': {
   roomId: string
   requestedBy: string
   roles: {
@@ -218,7 +218,7 @@ interface ScoreUpdate {
 
 ```typescript
 // Round started successfully
-'round-started': {
+'round_started': {
   round: CurrentRound
   roles: {
     actorId: string
@@ -228,7 +228,7 @@ interface ScoreUpdate {
 }
 
 // Sabotage deployed notification
-'sabotage-deployed': {
+'sabotage_deployed': {
   sabotage: ActiveSabotage
   targetPlayerId: string // Only sent to actor
   sabotageId: string
@@ -236,31 +236,31 @@ interface ScoreUpdate {
 }
 
 // Sabotage ended notification
-'sabotage-ended': {
+'sabotage_ended': {
   sabotageId: string
   endedAt: number
 }
 
 // Game timer update
-'timer-update': {
+'timer_update': {
   timeRemaining: number
   roundStatus: 'grace_period' | 'sabotage_allowed' | 'ending_soon'
 }
 
 // Game state synchronized
-'game-state-update': {
+'game_state_update': {
   gameState: GameState
   message: string
   shouldReconnect: boolean
 }
 
 // Audience reaction was sent
-'reaction-sent': {
+'reaction_sent': {
   reaction: EmojiReaction
 }
 
 // Round completed
-'round-complete': {
+'round_complete': {
   round: CompletedRound
   scores: ScoreUpdate[]
   nextRoles?: {
@@ -277,27 +277,27 @@ interface ScoreUpdate {
 
 ```typescript
 // General game error
-'game-error': {
+'game_error': {
   code: 'INVALID_ACTION' | 'PLAYER_NOT_FOUND' | 'ROUND_NOT_ACTIVE' | 'UNAUTHORIZED'
   message: string
   details?: any
 }
 
 // Sabotage deployment error
-'sabotage-error': {
+'sabotage_error': {
   code: 'SABOTAGE_NOT_FOUND' | 'INCOMPATIBLE_SABOTAGE' | 'MAX_SABOTAGES_REACHED' | 'GRACE_PERIOD_ACTIVE'
   message: string
   attemptedSabotageId: string
 }
 
 // Emoji reaction error
-'reaction-error': {
+'reaction_error': {
   code: 'REACTION_LIMIT_REACHED' | 'INVALID_TARGET'
   message: string
 }
 
 // Connection issues
-'connection-error': {
+'connection_error': {
   code: 'RECONNECTION_FAILED' | 'ROOM_EXPIRED' | 'SERVER_ERROR'
   message: string
   shouldReconnect: boolean
@@ -309,13 +309,13 @@ interface ScoreUpdate {
 ### Typical Round Flow
 
 ```
-1. Client: 'start-round'
-2. Server: 'round-started' (to all)
-3. Server: 'timer-update' (periodic)
-4. Client: 'deploy-sabotage' (Director)
-5. Server: 'sabotage-deployed' (to Actor)
-6. Client: 'end-round' (Director, declaring a winner)
-7. Server: 'round-complete' (to all, triggered by either Director's action or server-side timeout)
+1. Client: 'start_round'
+2. Server: 'round_started' (to all)
+3. Server: 'timer_update' (periodic)
+4. Client: 'deploy_sabotage' (Director)
+5. Server: 'sabotage_deployed' (to Actor)
+6. Client: 'end_round' (Director, declaring a winner)
+7. Server: 'round_complete' (to all, triggered by either Director's action or server-side timeout)
 ```
 
 ### Error Handling Flow
@@ -332,7 +332,7 @@ interface ScoreUpdate {
 ```
 1. Client: Detects disconnection
 2. Client: Attempts reconnection
-3. Server: 'room-joined' with current state
+3. Server: 'room_joined' with current state
 4. Client: Syncs UI with current game state
 ```
 

@@ -149,6 +149,34 @@ export function handleLeaveRoom(socket: Socket) {
   };
 }
 
+export function handleRequestGameState(socket: Socket) {
+  return (data: { playerId: string }) => {
+    try {
+      const { playerId } = data;
+      const roomCode = roomManager.findRoomByPlayerId(playerId);
+
+      if (roomCode) {
+        const gameState = roomManager.getGameState(roomCode);
+        if (gameState) {
+          console.log(
+            `Resyncing game state for player ${playerId} in room ${roomCode}`
+          );
+          socket.emit('game-state-update', { gameState });
+        }
+      }
+    } catch (error) {
+      console.error(
+        `Error resyncing game state for player ${data.playerId}:`,
+        error
+      );
+      socket.emit('game-error', {
+        code: 'STATE_SYNC_ERROR',
+        message: 'Could not retrieve the latest game state.',
+      });
+    }
+  };
+}
+
 export function handleDisconnect(socket: Socket) {
   return async () => {
     console.log(`Client disconnected: ${socket.id}`);
@@ -178,9 +206,10 @@ export function registerSocketEvents(io: Server) {
   io.on('connection', (socket: Socket) => {
     console.log(`Client connected: ${socket.id}`);
 
-    socket.on('create-room', handleCreateRoom(socket));
-    socket.on('join-room', handleJoinRoom(socket));
-    socket.on('leave-room', handleLeaveRoom(socket));
+    socket.on('create_room', handleCreateRoom(socket));
+    socket.on('join_room', handleJoinRoom(socket));
+    socket.on('leave_room', handleLeaveRoom(socket));
+    socket.on('request_game_state', handleRequestGameState(socket));
     socket.on('disconnect', handleDisconnect(socket));
   });
 }
