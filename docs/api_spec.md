@@ -37,7 +37,6 @@ interface CurrentRound {
   startTime: number;
   duration: number;
   activeSabotages: ActiveSabotage[];
-  guesses: Guess[];
   status: 'active' | 'complete';
 }
 
@@ -64,13 +63,6 @@ interface ActiveSabotage {
   deployedBy: string;
 }
 
-interface Guess {
-  playerId: string;
-  text: string;
-  timestamp: number;
-  isCorrect?: boolean;
-}
-
 interface GameConfig {
   roundDuration: number;
   gracePeriod: number;
@@ -86,7 +78,6 @@ interface CompletedRound {
   winner: string | null;
   sabotagesUsed: number;
   completedAt: number;
-  finalGuess: Guess | null;
 }
 
 interface EmojiReaction {
@@ -191,13 +182,6 @@ interface ScoreUpdate {
   requestedBy: string
 }
 
-// Submit guess
-'submit-guess': {
-  playerId: string
-  guess: string
-  timestamp: number
-}
-
 // Deploy sabotage (Director only)
 'deploy-sabotage': {
   sabotageId: string
@@ -211,17 +195,22 @@ interface ScoreUpdate {
   targetActorId: string
 }
 
-// End round early
+// End round (Director confirms a correct guess)
 'end-round': {
   roomId: string
-  requestedBy: string
-  reason: 'timeout' | 'correct_guess' | 'manual'
+  directorId: string
+  winnerId: string // The player who guessed correctly
 }
 
 // Start new game
 'start-game': {
   roomId: string
   requestedBy: string
+  roles: {
+    actorId: string
+    directorId: string
+    audienceIds: string[]
+  }
 }
 ```
 
@@ -242,34 +231,14 @@ interface ScoreUpdate {
 'sabotage-deployed': {
   sabotage: ActiveSabotage
   targetPlayerId: string // Only sent to actor
+  sabotageId: string
+  endedAt: number
 }
 
 // Sabotage ended notification
 'sabotage-ended': {
   sabotageId: string
   endedAt: number
-}
-
-// Audience reaction was sent
-'reaction-sent': {
-  reaction: EmojiReaction
-}
-
-// Guess submitted
-'guess-submitted': {
-  guess: Guess
-  isCorrect: boolean
-}
-
-// Round completed
-'round-complete': {
-  round: CompletedRound
-  scores: ScoreUpdate[]
-  nextRoles?: {
-    actorId: string
-    directorId: string
-    audienceIds: string[]
-  }
 }
 
 // Game timer update
@@ -281,6 +250,24 @@ interface ScoreUpdate {
 // Game state synchronized
 'game-state-update': {
   gameState: GameState
+  message: string
+  shouldReconnect: boolean
+}
+
+// Audience reaction was sent
+'reaction-sent': {
+  reaction: EmojiReaction
+}
+
+// Round completed
+'round-complete': {
+  round: CompletedRound
+  scores: ScoreUpdate[]
+  nextRoles?: {
+    actorId: string
+    directorId: string
+    audienceIds: string[]
+  }
 }
 ```
 
@@ -327,9 +314,8 @@ interface ScoreUpdate {
 3. Server: 'timer-update' (periodic)
 4. Client: 'deploy-sabotage' (Director)
 5. Server: 'sabotage-deployed' (to Actor)
-6. Client: 'submit-guess' (Audience)
-7. Server: 'guess-submitted' (to all)
-8. Server: 'round-complete' (to all)
+6. Client: 'end-round' (Director, declaring a winner)
+7. Server: 'round-complete' (to all, triggered by either Director's action or server-side timeout)
 ```
 
 ### Error Handling Flow
@@ -338,7 +324,7 @@ interface ScoreUpdate {
 1. Client: Invalid action
 2. Server: Appropriate error event
 3. Client: Display error + retry logic
-4. Client: Request 'game-state-update' if needed
+4. Client: Syncs UI with current game state
 ```
 
 ### Reconnection Flow
@@ -356,12 +342,11 @@ interface ScoreUpdate {
 
 - Room codes: 4 digits, numeric only
 - Player names: 2-20 characters, alphanumeric + spaces
-- Guesses: 1-50 characters, sanitized input
 
 ### Server-Side Validation
 
 - All client inputs validated and sanitized
-- Rate limiting on room creation and guesses
+- Rate limiting on room creation
 - Authorization checks for role-specific actions
 - Game state consistency validation
 
@@ -370,7 +355,6 @@ interface ScoreUpdate {
 ### Per Client Limits
 
 - Room creation: 3 per minute
-- Guess submission: 1 per 2 seconds
 - Sabotage deployment: 1 per 5 seconds
 - Reconnection attempts: 10 per minute
 

@@ -30,7 +30,6 @@ export interface CurrentRound {
   startTime: number;
   duration: number;
   activeSabotages: ActiveSabotage[];
-  guesses: Guess[];
   status: 'active' | 'complete';
 }
 
@@ -57,13 +56,6 @@ export interface ActiveSabotage {
   deployedBy: string;
 }
 
-export interface Guess {
-  playerId: string;
-  text: string;
-  timestamp: number;
-  isCorrect?: boolean;
-}
-
 export interface GameConfig {
   roundDuration: number;
   gracePeriod: number;
@@ -79,7 +71,6 @@ export interface CompletedRound {
   winner: string | null;
   sabotagesUsed: number;
   completedAt: number;
-  finalGuess: Guess | null;
 }
 
 export interface EmojiReaction {

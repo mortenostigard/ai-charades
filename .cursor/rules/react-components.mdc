@@ -51,7 +51,7 @@ export function Component({ required, optional = false }: ComponentProps) {
 - **Views**: `ActorView`, `DirectorView`, `AudienceView` (role-specific UIs)
 - **Shared**: `GameTimer`, `ScoreBoard`, `PromptDisplay` (common elements)
 - **Layout**: `GameRoom`, `WaitingRoom` (containers)
-- **Interactive**: `SabotageButton`, `GuessInput` (user actions)
+- **Interactive**: `SabotageButton` (user actions)
 
 ## Import Order:
 1. React/Next imports

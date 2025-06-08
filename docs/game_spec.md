@@ -50,13 +50,13 @@ Traditional charades with a twist: one player acts while another player (the Dir
 
 ## Scoring System (Risk/Reward)
 
-### If Someone Guesses Correctly:
+### If the Audience Guesses Correctly:
 
 - **Actor**: +2 points
 - **Director**: -1 point per sabotage used
-- **Correct Guesser**: +1 point
+- **Correct Guesser**: +1 point (as chosen by the Director)
 
-### If No One Guesses:
+### If No One Guesses Correctly (Timeout):
 
 - **Director**: +2 points (successful sabotage)
 - **Actor**: 0 points
@@ -81,6 +81,18 @@ Traditional charades with a twist: one player acts while another player (the Dir
 - **Director Timing**: Cannot deploy sabotage during active constraint countdown
 - **Equal Opportunity**: Game tracks that everyone gets equal director turns
 
+## Director's Verdict Mechanic
+
+To keep players engaged with the performance and not their phones, guessing is verbal. The Director is responsible for judging the outcome.
+
+- **Verbal Guessing**: Audience members shout their guesses as the Actor performs.
+- **Director's Control**: When the Director hears the correct answer, they tap a `✅ Correct Guess` button on their screen.
+- **Awarding a Correct Guess**:
+  - Tapping the button prompts the Director to select the winning player from a list of audience members.
+  - Confirming the winner ends the round immediately and triggers scoring.
+- **Ending the Round Without a Winner**:
+  - If the timer expires before a correct guess is confirmed, the round ends automatically.
+
 ## Game Flow Summary
 
 1. **Home**: Player lands on the home screen to create or join a room.
@@ -89,7 +101,8 @@ Traditional charades with a twist: one player acts while another player (the Dir
 4. **Round Start**: The 90-second round begins.
    - **Grace Period**: Actor performs normally for the first 20 seconds.
    - **Sabotage Phase**: Director can deploy constraints for the remaining 70 seconds.
-5. **Resolution**: Round ends on a correct guess or timeout.
+   - **Verbal Guessing**: Audience shouts guesses throughout the round.
+5. **Resolution**: Round ends when the Director confirms a correct guess or the timer expires.
 6. **Round Summary**: Scores are awarded and displayed based on the outcome.
 7. **Rotation**: Roles shift for the next round, returning to step 3.
 

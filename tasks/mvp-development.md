@@ -26,11 +26,11 @@ This document outlines the tasks required to complete the Minimum Viable Product
 
 To keep the 3-day MVP focused, we're intentionally deferring these features, but will implement if there is extra time left:
 
-- **Advanced sabotage**: Complex compatibility rules and multiple simultaneous sabotages
-- **Emoji reactions**: Audience emoji feedback system
-- **Reconnection recovery**: Full game state recovery on reconnect
-- **Room persistence**: Rooms expire on server restart
-- **Advanced error recovery**: Detailed error states and recovery flows
+- **Advanced sabotage**: Complex compatibility rules (as defined in `docs/game_spec.md`) and multiple simultaneous sabotages.
+- **Emoji reactions**: Audience emoji feedback system, including the `'send-reaction'` event and "Audience Favorite" scoring logic from the game and API specs.
+- **Reconnection recovery**: Full game state recovery on reconnect as outlined in the "Reconnection Flow" in `docs/api_spec.md`. Basic reconnection will be handled, but full state restoration is deferred.
+- **Room persistence**: Rooms expire on server restart.
+- **Advanced error recovery**: Detailed error states and recovery flows.
 
 ## Tasks
 
@@ -66,25 +66,29 @@ To keep the 3-day MVP focused, we're intentionally deferring these features, but
   - [ ] 8.2 Build reusable UI components: `RoomCodeInput`, `PlayerNameInput`, `LoadingSpinner`, `ErrorMessage` following design-system-spec.md patterns.
   - [ ] 8.3 Implement client-side room actions: create room, join room, and form validation.
   - [ ] 8.4 Create the lobby page `src/app/room/[code]/page.tsx` with real-time player list.
-  - [ ] 8.5 Add room management UI: display room code, player count, host controls (start game).
+  - [ ] 8.5 Add room management UI: display room code, player count, and host controls.
+  - [ ] 8.5.1 Implement host controls (e.g., "Start Game" button) that emit the 'start-game' event.
   - [ ] 8.6 Implement navigation and route protection (redirect if not in room).
   - [ ] 8.7 Add mobile-optimized error states and loading indicators.
 
 ### Day 3: Game Loop & Polish
 
 - [ ] 9.0 **Implement Game Engine Components**
-  - [ ] 9.1 Create `src/game/round-manager.ts` for round lifecycle and role rotation.
+  - [ ] 9.1 Create `src/game/round-manager.ts` for round lifecycle, role rotation, and tracking overall game completion (e.g., all players have a turn as actor).
   - [ ] 9.2 Create `src/game/prompt-manager.ts` with initial game prompts data.
   - [ ] 9.3 Create `src/game/sabotage-manager.ts` with 10-20 basic sabotage actions
-  - [ ] 9.4 Add round-related socket events: `start-round`, `round-started`, `timer-update`, `deploy-sabotage`.
-  - [ ] 9.5 Implement role assignment logic (actor, director, audience rotation).
+  - [ ] 9.4 Create `src/game/scoring-engine.ts` to implement the risk/reward logic from `docs/game_spec.md`.
+  - [ ] 9.5 Add game and round socket event handlers: `start-game`, `start-round`, `round-started`, `timer-update`, `deploy-sabotage`, `round-complete`.
+  - [ ] 9.6 Implement role assignment logic (actor, director, audience rotation).
 - [ ] 10.0 **Build Game Views & Basic Mechanics**
   - [ ] 10.1 Create role-specific view components: `ActorView`, `DirectorView`, `AudienceView` with role-based color schemes.
   - [ ] 10.2 Implement game timer with real-time countdown display and warning states.
-  - [ ] 10.3 Add prompt display and basic guess submission functionality.
-  - [ ] 10.4 Implement basic sabotage deployment UI (Director) and notification display (Actor).
-  - [ ] 10.5 Build round completion and score display components.
-  - [ ] 10.6 Add haptic feedback for sabotage notifications on mobile devices.
+  - [ ] 10.3 Add prompt display for the Actor.
+  - [ ] 10.4 Implement "Correct Guess" UI on the Director's view, allowing them to select a winner and end the round.
+  - [ ] 10.5 Implement basic sabotage deployment UI (Director) and notification display (Actor).
+  - [ ] 10.6 Build round completion and score display components.
+  - [ ] 10.7 Add haptic feedback for sabotage notifications on mobile devices.
+  - [ ] 10.8 Build a `GameCompleteScreen` to display final scores and winner, as defined in `docs/game_spec.md`.
 - [ ] 11.0 **MVP Polish & Testing**
   - [ ] 11.1 Add comprehensive error handling and user feedback.
   - [ ] 11.2 Implement graceful disconnection/reconnection handling.

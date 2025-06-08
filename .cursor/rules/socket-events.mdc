@@ -50,11 +50,14 @@ socket.on('event-name', async (payload: EventPayload) => {
     // 2. Business logic
     const result = await handleGameLogic(payload);
     
-    // 3. Broadcast to room
-    io.to(roomId).emit('event-response', result);
+    // 3. Broadcast to room (notify others, not sender)
+    socket.to(roomId).emit('event-response', result);
+    
+    // 4. Respond to sender separately if needed
+    socket.emit('action-confirmed', result);
     
   } catch (error) {
-    // 4. Error response
+    // 5. Error response
     socket.emit('game-error', {
       code: 'SERVER_ERROR',
       message: error.message
@@ -62,6 +65,13 @@ socket.on('event-name', async (payload: EventPayload) => {
   }
 });
 ```
+
+## Broadcasting Patterns
+- **`socket.to(roomId).emit()`**: Send to everyone in room EXCEPT sender (preferred for most cases)
+- **`io.to(roomId).emit()`**: Send to everyone in room INCLUDING sender (use for server-initiated updates)
+- **`socket.emit()`**: Send only to the sender (confirmations, errors)
+
+**Best Practice**: Use `socket.to()` for player actions to avoid echo effects, use `io.to()` for timer updates and game state changes.
 
 ## Event Categories (see api_spec.md for complete list):
 - Room Management: join/create/leave operations
@@ -101,4 +111,3 @@ export function useSocket() {
 - Request game state resync on major errors
 
 @docs/api_spec.md
-
