@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
+import { useSocket } from '@/hooks/useSocket';
+import { useGameStore } from '@/stores/gameStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PlayerNameInput } from '@/components/ui/player-name-input';
@@ -10,37 +13,43 @@ import { RoomCodeInput } from '@/components/ui/room-code-input';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { ErrorMessage } from '@/components/ui/error-message';
 
-type Mode = 'initial' | 'create' | 'join';
-
 export function HomeScreen() {
-  const [mode, setMode] = useState<Mode>('initial');
+  const router = useRouter();
+  const { emit } = useSocket();
+
+  const gameState = useGameStore(state => state.gameState);
+  const error = useGameStore(state => state.error);
+  const loading = useGameStore(state => state.loading);
+  const setLoading = useGameStore(state => state.setLoading);
+  const setError = useGameStore(state => state.setError);
+
+  const [mode, setMode] = useState<'initial' | 'create' | 'join'>('initial');
   const [playerName, setPlayerName] = useState('');
   const [roomCode, setRoomCode] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const isPlayerNameValid = playerName.length >= 2 && playerName.length <= 20;
   const isRoomCodeValid = /^\d{4}$/.test(roomCode);
+
+  useEffect(() => {
+    // If we successfully joined a room, the gameState will be updated.
+    // We can then navigate to the room lobby.
+    if (gameState?.room?.code) {
+      router.push(`/room/${gameState.room.code}`);
+    }
+  }, [gameState, router]);
 
   const handleCreateRoom = () => {
     if (!isPlayerNameValid) return;
     setLoading(true);
     setError(null);
-    console.log('Creating room for player:', playerName);
-    // TODO: Implement socket logic
-    // Faking a delay for now
-    setTimeout(() => {
-      setLoading(false);
-      // setError("Could not connect to server.");
-    }, 2000);
+    emit('create_room', { playerName });
   };
 
   const handleJoinRoom = () => {
     if (!isPlayerNameValid || !isRoomCodeValid) return;
     setLoading(true);
     setError(null);
-    console.log(`Player ${playerName} joining room ${roomCode}`);
-    // TODO: Implement socket logic
+    emit('join_room', { playerName, roomCode });
   };
 
   const cardVariants = {

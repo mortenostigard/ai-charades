@@ -64,8 +64,8 @@ To keep the 3-day MVP focused, we're intentionally deferring these features, but
   - [x] 7.5 Add connection error handling and reconnection logic.
 - [ ] 8.0 **Build Core UI Components & Navigation**
   - [x] 8.1 Create the home page `src/app/page.tsx` with mobile-first design and create/join room functionality by implementing `src/components/game/home-screen.tsx`.
-  - [x] 8.2 Build reusable UI components: `PlayerNameInput`, `RoomCodeInput` created.
-  - [ ] 8.3 Implement client-side room actions: create room, join room, and form validation.
+  - [x] 8.2 Build reusable UI components: `PlayerNameInput`, `RoomCodeInput`, `LoadingSpinner`, `ErrorMessage`.
+  - [x] 8.3 Implement client-side room actions: create room, join room, and form validation.
   - [ ] 8.4 Create the lobby page `src/app/room/[code]/page.tsx` with real-time player list.
   - [ ] 8.5 Add room management UI: display room code, player count, and host controls.
   - [ ] 8.5.1 Implement host controls (e.g., "Start Game" button) that emit the 'start-game' event.
