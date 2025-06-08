@@ -97,6 +97,8 @@
 
 ## Animation Standards
 
+- **Primary Library**: **`framer-motion`** is the sole animation library for this project. It should be used for all animations, from complex screen transitions to simple UI feedback. Do not add or use other animation libraries (e.g., `animate.css`) to maintain consistency and minimize bundle size.
+
 ### Framer Motion Physics
 
 - **Spring Transition**: `{ type: "spring", stiffness: 400, damping: 17 }`

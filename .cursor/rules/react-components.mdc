@@ -5,32 +5,39 @@ alwaysApply: false
 ---
 # React Component Standards
 
-## Component Structure Pattern
-Always use this structure for components:
+## Component Structure
+Always use the following structure for new components.
 
 ```tsx
+// 1. Imports in the correct order (see below)
+import { useCallback } from 'react';
+import { useGameState } from '@/hooks/useGameState';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { ErrorMessage } from '@/components/ui/error-message';
+
+// 2. Props interface (if props are accepted)
 interface ComponentProps {
   // Required props
-  required: string;
+  readonly required: string;
   // Optional props with defaults
-  optional?: boolean;
+  readonly optional?: boolean;
 }
 
+// 3. Component definition
 export function Component({ required, optional = false }: ComponentProps) {
-  // 1. Hooks at top
-  const gameState = useGameState();
-  const { socket } = useSocket();
-  
-  // 2. Event handlers
+  // 4. Hooks at the top
+  const { loading, error } = useGameState();
+
+  // 5. Event handlers memoized with useCallback to prevent unnecessary re-renders
   const handleAction = useCallback(() => {
     // Event logic
   }, [dependencies]);
-  
-  // 3. Early returns for loading/error states
+
+  // 6. Early returns for loading/error states
   if (loading) return <LoadingSpinner />;
-  if (error) return <ErrorMessage error={error} />;
-  
-  // 4. Main render
+  if (error) return <ErrorMessage message={error} />;
+
+  // 7. Main render
   return (
     <div className="mobile-friendly-class">
       {/* Content */}
@@ -39,28 +46,33 @@ export function Component({ required, optional = false }: ComponentProps) {
 }
 ```
 
-## Requirements for ALL Components:
-- TypeScript interface for props (even if empty)
-- Mobile-first responsive design (min 44px touch targets)
-- Error handling (try-catch or error boundaries)
-- Loading states for async operations
-- Proper cleanup in useEffect hooks
-- Use shadcn/ui components when possible
+## Core Requirements
+- **Props Definition**: Components accepting props **MUST** have a TypeScript `interface`. Components that take no props do not need one.
+- **Read-only Props**: All properties within a props `interface` **MUST** be marked as `readonly`.
+- **Mobile-First**: All components must be designed for mobile, with minimum 44px touch targets.
+- **State Handling**: Components with async operations **MUST** handle and display loading and error states.
+- **Dependencies**: Hooks like `useEffect` and `useCallback` **MUST** have a complete and correct dependency array.
+- **Styling**: Use `shadcn/ui` components and `tailwind-css` classes as the default.
 
-## Game-Specific Component Categories:
+## Game-Specific Component Categories
 - **Views**: `ActorView`, `DirectorView`, `AudienceView` (role-specific UIs)
 - **Shared**: `GameTimer`, `ScoreBoard`, `PromptDisplay` (common elements)
 - **Layout**: `GameRoom`, `WaitingRoom` (containers)
-- **Interactive**: `SabotageButton` (user actions)
+- **UI**: `PlayerNameInput`, `SabotageButton` (interactive elements)
 
-## Import Order:
-1. React/Next imports
-2. Third-party libraries (socket.io, zustand)
-3. Custom hooks
-4. Components (UI, then game-specific)
-5. Utils/lib
-6. Types
-7. Styles (if any)
+## Iconography
+- **Primary Source**: Use icons from the `lucide-react` library whenever possible.
+- **Consistency**: Avoid custom SVGs for icons that have a suitable equivalent in the library to maintain visual consistency.
+- **Animation**: Use `tailwind-css` classes (e.g., `animate-spin`) to animate icons.
+
+## Import Order
+1.  React & Next.js imports (`react`, `next/router`, etc.)
+2.  Third-party library imports (`framer-motion`, `socket.io-client`, `zustand`)
+3.  Custom hook imports (`@/hooks/...`)
+4.  Component imports (`@/components/ui/...`, `@/components/game/...`)
+5.  Utility & Lib imports (`@/lib/...`)
+6.  Type imports (`@/types`)
+7.  Local styles or assets (if any)
 
 @docs/tech_spec.md
 

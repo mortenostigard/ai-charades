@@ -17,6 +17,8 @@ This document outlines the tasks required to complete the Minimum Viable Product
 - `src/app/page.tsx` - The main home page component for creating or joining a room ✅
 - `src/app/room/[code]/page.tsx` - The room lobby component where players wait before the game starts
 - `src/components/game/home-screen.tsx` - The UI component for the home screen ✅
+- `src/components/ui/player-name-input.tsx` - Reusable player name input component ✅
+- `src/components/ui/room-code-input.tsx` - Reusable room code input component ✅
 
 ### Notes
 
@@ -62,7 +64,7 @@ To keep the 3-day MVP focused, we're intentionally deferring these features, but
   - [x] 7.5 Add connection error handling and reconnection logic.
 - [ ] 8.0 **Build Core UI Components & Navigation**
   - [x] 8.1 Create the home page `src/app/page.tsx` with mobile-first design and create/join room functionality by implementing `src/components/game/home-screen.tsx`.
-  - [ ] 8.2 Build reusable UI components: `RoomCodeInput`, `PlayerNameInput`, `LoadingSpinner`, `ErrorMessage` following design-system-spec.md patterns.
+  - [x] 8.2 Build reusable UI components: `PlayerNameInput`, `RoomCodeInput` created.
   - [ ] 8.3 Implement client-side room actions: create room, join room, and form validation.
   - [ ] 8.4 Create the lobby page `src/app/room/[code]/page.tsx` with real-time player list.
   - [ ] 8.5 Add room management UI: display room code, player count, and host controls.

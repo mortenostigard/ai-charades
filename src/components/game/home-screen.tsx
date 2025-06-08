@@ -4,8 +4,11 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PlayerNameInput } from '@/components/ui/player-name-input';
+import { RoomCodeInput } from '@/components/ui/room-code-input';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { ErrorMessage } from '@/components/ui/error-message';
 
 type Mode = 'initial' | 'create' | 'join';
 
@@ -13,18 +16,29 @@ export function HomeScreen() {
   const [mode, setMode] = useState<Mode>('initial');
   const [playerName, setPlayerName] = useState('');
   const [roomCode, setRoomCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isPlayerNameValid = playerName.length >= 2 && playerName.length <= 20;
   const isRoomCodeValid = /^\d{4}$/.test(roomCode);
 
   const handleCreateRoom = () => {
     if (!isPlayerNameValid) return;
+    setLoading(true);
+    setError(null);
     console.log('Creating room for player:', playerName);
     // TODO: Implement socket logic
+    // Faking a delay for now
+    setTimeout(() => {
+      setLoading(false);
+      // setError("Could not connect to server.");
+    }, 2000);
   };
 
   const handleJoinRoom = () => {
     if (!isPlayerNameValid || !isRoomCodeValid) return;
+    setLoading(true);
+    setError(null);
     console.log(`Player ${playerName} joining room ${roomCode}`);
     // TODO: Implement socket logic
   };
@@ -54,32 +68,32 @@ export function HomeScreen() {
                 </CardTitle>
               </CardHeader>
               <CardContent className='space-y-6'>
-                <Input
-                  type='text'
-                  placeholder='Your Name'
+                <PlayerNameInput
                   value={playerName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    setPlayerName(e.target.value)
-                  }
-                  className='h-14 text-lg text-center bg-gray-800 border-gray-700 text-white placeholder:text-gray-400'
-                  maxLength={20}
+                  onChange={e => setPlayerName(e.target.value)}
+                  disabled={loading}
                 />
                 <div className='space-y-2'>
                   <Button
                     onClick={handleCreateRoom}
-                    disabled={!isPlayerNameValid}
+                    disabled={!isPlayerNameValid || loading}
                     className='w-full h-14 text-lg font-bold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50'
                   >
-                    Create Room
+                    {loading ? <LoadingSpinner /> : 'Create Room'}
                   </Button>
                   <Button
                     variant='ghost'
-                    onClick={() => setMode('initial')}
+                    onClick={() => {
+                      setMode('initial');
+                      setError(null);
+                    }}
                     className='w-full h-14 text-lg text-gray-300 hover:bg-gray-800 hover:text-white'
+                    disabled={loading}
                   >
                     Back
                   </Button>
                 </div>
+                <ErrorMessage message={error || ''} />
               </CardContent>
             </Card>
           </motion.div>
@@ -102,43 +116,38 @@ export function HomeScreen() {
               </CardHeader>
               <CardContent className='space-y-6'>
                 <div className='space-y-4'>
-                  <Input
-                    type='text'
-                    placeholder='Your Name'
+                  <PlayerNameInput
                     value={playerName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setPlayerName(e.target.value)
-                    }
-                    className='h-14 text-lg text-center bg-gray-800 border-gray-700 text-white placeholder:text-gray-400'
-                    maxLength={20}
+                    onChange={e => setPlayerName(e.target.value)}
+                    disabled={loading}
                   />
-                  <Input
-                    type='text'
-                    placeholder='4-Digit Room Code'
+                  <RoomCodeInput
                     value={roomCode}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      setRoomCode(e.target.value.replace(/\D/g, ''))
-                    }
-                    className='h-14 text-lg text-center font-mono bg-gray-800 border-gray-700 text-white placeholder:text-gray-400'
-                    maxLength={4}
+                    onChange={e => setRoomCode(e.target.value)}
+                    disabled={loading}
                   />
                 </div>
                 <div className='space-y-2'>
                   <Button
                     onClick={handleJoinRoom}
-                    disabled={!isPlayerNameValid || !isRoomCodeValid}
+                    disabled={!isPlayerNameValid || !isRoomCodeValid || loading}
                     className='w-full h-14 text-lg font-bold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50'
                   >
-                    Join Room
+                    {loading ? <LoadingSpinner /> : 'Join Room'}
                   </Button>
                   <Button
                     variant='ghost'
-                    onClick={() => setMode('initial')}
+                    onClick={() => {
+                      setMode('initial');
+                      setError(null);
+                    }}
                     className='w-full h-14 text-lg text-gray-300 hover:bg-gray-800 hover:text-white'
+                    disabled={loading}
                   >
                     Back
                   </Button>
                 </div>
+                <ErrorMessage message={error || ''} />
               </CardContent>
             </Card>
           </motion.div>
@@ -157,12 +166,14 @@ export function HomeScreen() {
             <Button
               onClick={() => setMode('create')}
               className='w-full h-16 text-xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
+              disabled={loading}
             >
               Create Room
             </Button>
             <Button
               onClick={() => setMode('join')}
               className='w-full h-16 text-xl font-bold bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600'
+              disabled={loading}
             >
               Join Room
             </Button>
