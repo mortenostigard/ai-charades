@@ -52,6 +52,7 @@ export function Component({ required, optional = false }: ComponentProps) {
 - **Mobile-First**: All components must be designed for mobile, with minimum 44px touch targets.
 - **State Handling**: Components with async operations **MUST** handle and display loading and error states.
 - **Dependencies**: Hooks like `useEffect` and `useCallback` **MUST** have a complete and correct dependency array.
+- **Zustand Optimization**: Use specific property selectors instead of entire state objects in dependencies to prevent unnecessary re-renders. Example: `const roomCode = useGameStore(state => state.gameState?.room.code)` instead of depending on the full `gameState`.
 - **Styling**: Use `shadcn/ui` components and `tailwind-css` classes as the default.
 
 ## Game-Specific Component Categories
