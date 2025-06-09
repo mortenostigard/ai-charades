@@ -1,6 +1,7 @@
 'use client';
 
 import { useGameStore } from '@/stores/gameStore';
+import { useSocket } from '@/hooks/useSocket';
 
 import ActorView from './ActorView';
 import DirectorView from './DirectorView';
@@ -15,7 +16,9 @@ export function GameRoom({ roomCode }: GameRoomProps) {
   const roomStatus = useGameStore(state => state.gameState?.room.status);
   const currentRole = useGameStore(state => state.getCurrentRole());
   const round = useGameStore(state => state.gameState?.currentRound);
+  const players = useGameStore(state => state.gameState?.room.players ?? []);
   const getPlayerById = useGameStore(state => state.getPlayerById);
+  const { emit } = useSocket();
 
   if (roomStatus === 'playing' && round) {
     const actor = getPlayerById(round.actorId);
@@ -27,6 +30,10 @@ export function GameRoom({ roomCode }: GameRoomProps) {
       console.warn('Actor or Director not found, rendering lobby.');
       return <RoomLobby roomCode={roomCode} />;
     }
+
+    const audience = players.filter(
+      p => p.id !== round.actorId && p.id !== round.directorId
+    );
 
     switch (currentRole) {
       case 'actor':
@@ -41,8 +48,11 @@ export function GameRoom({ roomCode }: GameRoomProps) {
           <DirectorView
             activeSabotage={round.currentSabotage}
             onDeploySabotageAction={sabotage => {
-              // TODO: wire up to socket emit
-              console.log('Deploying sabotage', sabotage.id);
+              emit('deploy_sabotage', { roomCode, sabotageId: sabotage.id });
+            }}
+            audience={audience}
+            onSelectWinner={winnerId => {
+              emit('end_round', { roomCode, winnerId });
             }}
           />
         );

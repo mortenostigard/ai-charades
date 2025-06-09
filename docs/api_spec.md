@@ -36,6 +36,7 @@ interface CurrentRound {
   startTime: number;
   duration: number;
   currentSabotage: ActiveSabotage | null;
+  sabotagesDeployedCount: number;
   status: 'active' | 'complete';
 }
 
@@ -210,7 +211,6 @@ interface ScoreUpdate {
 // End round (Director confirms a correct guess)
 'end_round': {
   roomCode: string
-  directorId: string
   winnerId: string // The player who guessed correctly
 }
 

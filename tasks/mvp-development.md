@@ -91,8 +91,8 @@ To keep the 3-day MVP focused, we're intentionally deferring these features, but
   - [x] 10.1.1 Implement client-side routing in `GameRoom` to display the correct view based on game state (`waiting`, `playing`).
   - [x] 10.1.2 Create `JoinGate` component and update `RoomPage` to handle direct URL entry and page refreshes, prompting new users to join.
   - [x] 10.2 Implement game timer with real-time countdown display and warning states.
-  - [ ] 10.3 Add prompt display for the Actor.
-  - [ ] 10.4 Implement "Correct Guess" UI on the Director's view, allowing them to select a winner and end the round.
+  - [x] 10.3 Add prompt display for the Actor.
+  - [x] 10.4 Implement "Correct Guess" UI on the Director's view, allowing them to select a winner and end the round.
   - [ ] 10.5 Implement basic sabotage deployment UI (Director) and notification display (Actor).
   - [ ] 10.6 Build round completion and score display components.
   - [ ] 10.7 Add haptic feedback for sabotage notifications on mobile devices.

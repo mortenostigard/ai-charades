@@ -4,7 +4,10 @@ import {
   GamePrompt,
   GameState,
   Player,
+  ScoreUpdate,
 } from '../types';
+
+import { ScoringEngine } from './scoring-engine';
 
 /**
  * Manages the lifecycle of rounds within a game, including role rotation
@@ -58,6 +61,45 @@ export class RoundManager {
       currentRound: newRound,
       room: { ...this.gameState.room, status: 'playing' },
     };
+  }
+
+  /**
+   * Ends the current round, calculates scores, and returns the new state.
+   * @param winnerId The ID of the player who won the round, if any.
+   * @returns An object containing the updated GameState and the specific score changes for the round.
+   */
+  public endRound(winnerId?: string): {
+    newGameState: GameState;
+    scoreUpdates: ScoreUpdate[];
+  } {
+    if (!this.gameState.currentRound) {
+      // This should ideally not be reached if called correctly
+      throw new Error('No active round to end.');
+    }
+
+    const completedRound: CompletedRound = {
+      roundNumber: this.gameState.currentRound.number,
+      actorId: this.gameState.currentRound.actorId,
+      directorId: this.gameState.currentRound.directorId,
+      prompt: this.gameState.currentRound.prompt,
+      winner: winnerId || null,
+      sabotagesUsed: this.gameState.currentRound.sabotagesDeployedCount,
+      completedAt: Date.now(),
+    };
+
+    const { newScores, scoreUpdates } = ScoringEngine.calculateScores(
+      this.gameState.scores,
+      { winnerId: winnerId || null, completedRound }
+    );
+
+    const newGameState: GameState = {
+      ...this.gameState,
+      currentRound: null,
+      roundHistory: [...this.gameState.roundHistory, completedRound],
+      scores: newScores,
+    };
+
+    return { newGameState, scoreUpdates };
   }
 
   /**

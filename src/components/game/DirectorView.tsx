@@ -1,20 +1,30 @@
 'use client';
 
-import { SabotageAction, ActiveSabotage } from '@/types';
+import { useState } from 'react';
+
+import { SabotageAction, ActiveSabotage, Player } from '@/types';
 
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui/button';
 
 import { GameTimer } from './game-timer';
 
 interface DirectorViewProps {
   readonly activeSabotage: ActiveSabotage | null;
   readonly onDeploySabotageAction: (sabotage: SabotageAction) => void;
+  readonly audience: Player[];
+  readonly onSelectWinner: (playerId: string) => void;
 }
 
 export default function DirectorView({
   activeSabotage,
   onDeploySabotageAction,
+  audience,
+  onSelectWinner,
 }: DirectorViewProps) {
+  const [isSelectingWinner, setIsSelectingWinner] = useState(false);
+  const [selectedWinnerId, setSelectedWinnerId] = useState<string | null>(null);
+
   // TODO: Replace with actual sabotages from game state
   const sabotages: SabotageAction[] = [
     {
@@ -98,6 +108,55 @@ export default function DirectorView({
             ))}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Footer Section - Correct Guess Button */}
+      <div className='flex-shrink-0 pt-4 pb-8 text-center'>
+        {!isSelectingWinner ? (
+          <Button
+            size='lg'
+            className='min-w-[200px] bg-green-600 hover:bg-green-700 text-white font-bold'
+            onClick={() => setIsSelectingWinner(true)}
+          >
+            Correct Guess!
+          </Button>
+        ) : (
+          <div className='w-full max-w-md mx-auto'>
+            <h3 className='text-lg font-bold text-gray-300 mb-4'>
+              Who guessed correctly?
+            </h3>
+            <div className='grid grid-cols-2 gap-3 mb-4'>
+              {audience.map(player => (
+                <Button
+                  key={player.id}
+                  variant={
+                    selectedWinnerId === player.id ? 'default' : 'outline'
+                  }
+                  className={`w-full ${
+                    selectedWinnerId === player.id
+                      ? 'bg-green-500 border-green-400'
+                      : 'border-gray-600'
+                  }`}
+                  onClick={() => setSelectedWinnerId(player.id)}
+                >
+                  {player.name}
+                </Button>
+              ))}
+            </div>
+            <Button
+              size='lg'
+              className='w-full bg-purple-600 hover:bg-purple-700'
+              disabled={!selectedWinnerId}
+              onClick={() => {
+                if (selectedWinnerId) {
+                  onSelectWinner(selectedWinnerId);
+                }
+              }}
+            >
+              Confirm Winner & End Round
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
