@@ -22,7 +22,7 @@ This document outlines the tasks required to complete the Minimum Viable Product
 
 ### Notes
 
-- This plan focuses on building the core infrastructure. UI components will be implemented by referencing the examples in `/design-reference/screens`.
+- This plan focuses on building the core infrastructure. UI components will be implemented by referencing the examples in `/design-mockups/screens`.
 - Server-side logic will start with in-memory storage for simplicity, with the option to scale to Redis later.
 
 ### MVP Scope - Deferred to Post-Launch

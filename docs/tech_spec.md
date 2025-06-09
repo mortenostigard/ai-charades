@@ -48,9 +48,9 @@
 - `GameCompleteScreen` (final scores and end-of-game options)
 - `SharedGameInfo` (reusable components like timer, scores, prompt)
 
-### Design & Component Reference
+### Design & Component Mockups
 
-The `/design-reference/screens` directory contains high-fidelity, functional React components that serve as the primary visual and interactive reference for implementing the application's UI. These references should be consulted to ensure the final components built in `/src/components/game` match the project's design and UX goals.
+The `/design-mockups/screens` directory contains high-fidelity, functional React component mockups that serve as the primary visual and interactive reference for implementing the application's UI. These references should be consulted to ensure the final components built in `/src/components/game` match the project's design and UX goals.
 
 ### Game Engine Architecture
 
