@@ -87,7 +87,7 @@ To keep the 3-day MVP focused, we're intentionally deferring these features, but
     - [x] 9.6.2 Update `endRound` handler to trigger the next round with rotated roles.
     - [x] 9.6.3 Update `endRound` handler to trigger game completion.
 - [ ] 10.0 **Build Game Views & Basic Mechanics**
-  - [ ] 10.1 Create role-specific view components: `ActorView`, `DirectorView`, `AudienceView` with role-based color schemes.
+  - [x] 10.1 Create role-specific view components: `ActorView`, `DirectorView`, `AudienceView` with role-based color schemes.
   - [ ] 10.2 Implement game timer with real-time countdown display and warning states.
   - [ ] 10.3 Add prompt display for the Actor.
   - [ ] 10.4 Implement "Correct Guess" UI on the Director's view, allowing them to select a winner and end the round.

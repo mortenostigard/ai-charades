@@ -337,9 +337,9 @@ export function handleDisconnect(socket: Socket) {
 }
 
 export function handleStartGame(io: Server, socket: Socket) {
-  return (data: { roomId: string; requestedBy: string }) => {
+  return (data: { roomCode: string; requestedBy: string }) => {
     try {
-      const roomCode = data.roomId;
+      const { roomCode } = data;
       const gameState = gameStates.get(roomCode);
 
       if (!gameState) {
@@ -452,9 +452,9 @@ export function handleDeploySabotage(io: Server, socket: Socket) {
 }
 
 export function handleEndRound(io: Server, socket: Socket) {
-  return (data: { roomId: string; directorId: string; winnerId: string }) => {
+  return (data: { roomCode: string; directorId: string; winnerId: string }) => {
     try {
-      const roomCode = data.roomId;
+      const { roomCode } = data;
       const gameState = gameStates.get(roomCode);
 
       if (!gameState || !gameState.currentRound) {

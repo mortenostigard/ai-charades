@@ -13,7 +13,6 @@ interface Player {
 }
 
 interface Room {
-  id: string;
   code: string;
   players: Player[];
   status: 'waiting' | 'playing' | 'paused' | 'complete';
@@ -190,7 +189,7 @@ interface ScoreUpdate {
 ```typescript
 // Start new round
 'start_round': {
-  roomId: string
+  roomCode: string
   requestedBy: string
 }
 
@@ -198,6 +197,7 @@ interface ScoreUpdate {
 'deploy_sabotage': {
   sabotageId: string
   directorId: string
+  roomCode: string
   timestamp: number
 }
 
@@ -209,14 +209,14 @@ interface ScoreUpdate {
 
 // End round (Director confirms a correct guess)
 'end_round': {
-  roomId: string
+  roomCode: string
   directorId: string
   winnerId: string // The player who guessed correctly
 }
 
 // Start new game
 'start_game': {
-  roomId: string
+  roomCode: string
   requestedBy: string
 }
 ```

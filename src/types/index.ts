@@ -6,7 +6,6 @@ export interface Player {
 }
 
 export interface Room {
-  id: string;
   code: string;
   players: Player[];
   status: 'waiting' | 'playing' | 'paused' | 'complete';

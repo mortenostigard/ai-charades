@@ -29,7 +29,6 @@ export function RoomLobby({ roomCode }: RoomLobbyProps) {
   const canStartGame = useGameStore(state => state.canStartGame());
   const myPlayer = useGameStore(state => state.getMyPlayer());
   const error = useGameStore(state => state.error);
-  const roomId = useGameStore(state => state.gameState?.room.id);
 
   // Redirect if not in a room or gameState is missing
   useEffect(() => {
@@ -55,11 +54,11 @@ export function RoomLobby({ roomCode }: RoomLobbyProps) {
   }, [gameState?.room.code]);
 
   const handleStartGame = useCallback(() => {
-    if (canStartGame && roomId) {
-      console.log("Emitting 'start_game'", { roomId });
-      emit('start_game', { roomId });
+    if (canStartGame && roomCode) {
+      console.log("Emitting 'start_game'", { roomCode });
+      emit('start_game', { roomCode, requestedBy: playerId });
     }
-  }, [canStartGame, roomId, emit]);
+  }, [canStartGame, roomCode, playerId, emit]);
 
   if (error) {
     return (

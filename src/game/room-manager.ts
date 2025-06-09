@@ -64,7 +64,6 @@ export class RoomManager {
     };
 
     const room: Room = {
-      id: `room_${roomCode}`,
       code: roomCode,
       players: [hostPlayer],
       status: 'waiting',
