@@ -52,7 +52,6 @@ export const useSocket = () => {
       process.env.NEXT_PUBLIC_SOCKET_URL || window.location.origin;
 
     socket = io(socketUrl, {
-      path: '/api/socket',
       addTrailingSlash: false,
       reconnection: true,
       reconnectionAttempts: 5,
@@ -224,6 +223,14 @@ export const useSocket = () => {
 // A wrapper component to initialize the socket hook for the entire app.
 // This should be placed in your main layout file (e.g., `src/app/layout.tsx`).
 export function SocketInitializer() {
+  // This effect will run once on component mount, "waking up" the
+  // Next.js API route that hosts the Socket.IO server. This is necessary
+  // to prevent a race condition where the client tries to connect before
+  // the server is fully initialized.
+  useEffect(() => {
+    fetch('/api/socket');
+  }, []);
+
   useSocket();
   return null; // This component doesn't render anything.
 }

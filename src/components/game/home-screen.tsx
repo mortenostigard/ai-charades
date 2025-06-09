@@ -20,6 +20,7 @@ export function HomeScreen() {
   const gameState = useGameStore(state => state.gameState);
   const error = useGameStore(state => state.error);
   const loading = useGameStore(state => state.loading);
+  const connected = useGameStore(state => state.connected);
   const setLoading = useGameStore(state => state.setLoading);
   const setError = useGameStore(state => state.setError);
 
@@ -85,10 +86,12 @@ export function HomeScreen() {
                 <div className='space-y-2'>
                   <Button
                     onClick={handleCreateRoom}
-                    disabled={!isPlayerNameValid || loading}
+                    disabled={!isPlayerNameValid || loading || !connected}
                     className='w-full h-14 text-lg font-bold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50'
                   >
-                    {loading ? <LoadingSpinner /> : 'Create Room'}
+                    {loading && <LoadingSpinner />}
+                    {!loading && !connected && 'Connecting...'}
+                    {!loading && connected && 'Create Room'}
                   </Button>
                   <Button
                     variant='ghost'
@@ -139,10 +142,17 @@ export function HomeScreen() {
                 <div className='space-y-2'>
                   <Button
                     onClick={handleJoinRoom}
-                    disabled={!isPlayerNameValid || !isRoomCodeValid || loading}
+                    disabled={
+                      !isPlayerNameValid ||
+                      !isRoomCodeValid ||
+                      loading ||
+                      !connected
+                    }
                     className='w-full h-14 text-lg font-bold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50'
                   >
-                    {loading ? <LoadingSpinner /> : 'Join Room'}
+                    {loading && <LoadingSpinner />}
+                    {!loading && !connected && 'Connecting...'}
+                    {!loading && connected && 'Join Room'}
                   </Button>
                   <Button
                     variant='ghost'
@@ -175,16 +185,16 @@ export function HomeScreen() {
             <Button
               onClick={() => setMode('create')}
               className='w-full h-16 text-xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
-              disabled={loading}
+              disabled={loading || !connected}
             >
-              Create Room
+              {connected ? 'Create Room' : 'Connecting...'}
             </Button>
             <Button
               onClick={() => setMode('join')}
               className='w-full h-16 text-xl font-bold bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600'
-              disabled={loading}
+              disabled={loading || !connected}
             >
-              Join Room
+              {connected ? 'Join Room' : 'Connecting...'}
             </Button>
           </motion.div>
         );

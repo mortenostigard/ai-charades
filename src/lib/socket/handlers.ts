@@ -3,10 +3,22 @@ import { Server, Socket } from 'socket.io';
 import { GameState, GameConfig } from '@/types';
 import { RoomManager, getErrorMessage } from '@/game/room-manager';
 
-// In-memory storage for game states and player-socket mappings.
-// This is now the single source of truth for the application's state.
-const gameStates = new Map<string, GameState>();
-const playerSockets = new Map<string, string>(); // playerId -> socketId
+// --- In-memory state management with HMR (Hot Module Replacement) support ---
+
+// In development, we use a global variable to preserve state across hot reloads.
+// In production, this is just a regular variable.
+const globalForState = globalThis as unknown as {
+  gameStates: Map<string, GameState>;
+  playerSockets: Map<string, string>;
+};
+
+const gameStates = globalForState.gameStates || new Map<string, GameState>();
+const playerSockets = globalForState.playerSockets || new Map<string, string>();
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForState.gameStates = gameStates;
+  globalForState.playerSockets = playerSockets;
+}
 
 // Helper function to find which room a player is in.
 function findRoomCodeByPlayerId(playerId: string): string | undefined {
