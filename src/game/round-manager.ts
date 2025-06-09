@@ -123,7 +123,10 @@ export class RoundManager {
    * @returns The Player objects for the new Actor and new Director.
    */
   private getNextRoles(): { newActor: Player; newDirector: Player } {
-    const lastRound = this.gameState.currentRound;
+    const lastRound =
+      this.roundHistory.length > 0
+        ? this.roundHistory[this.roundHistory.length - 1]
+        : null;
 
     // Case 1: This is the first round of the game.
     if (!lastRound) {

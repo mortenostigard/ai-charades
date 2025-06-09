@@ -51,9 +51,10 @@ export function GameRoom({ roomCode }: GameRoomProps) {
               emit('deploy_sabotage', { roomCode, sabotageId: sabotage.id });
             }}
             audience={audience}
-            onSelectWinner={winnerId => {
+            onSelectWinnerAction={winnerId => {
               emit('end_round', { roomCode, winnerId });
             }}
+            roundNumber={round.number}
           />
         );
       case 'audience':

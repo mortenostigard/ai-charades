@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { SabotageAction, ActiveSabotage, Player } from '@/types';
 
@@ -13,17 +13,25 @@ interface DirectorViewProps {
   readonly activeSabotage: ActiveSabotage | null;
   readonly onDeploySabotageAction: (sabotage: SabotageAction) => void;
   readonly audience: Player[];
-  readonly onSelectWinner: (playerId: string) => void;
+  readonly onSelectWinnerAction: (playerId: string) => void;
+  readonly roundNumber: number;
 }
 
 export default function DirectorView({
   activeSabotage,
   onDeploySabotageAction,
   audience,
-  onSelectWinner,
+  onSelectWinnerAction,
+  roundNumber,
 }: DirectorViewProps) {
   const [isSelectingWinner, setIsSelectingWinner] = useState(false);
   const [selectedWinnerId, setSelectedWinnerId] = useState<string | null>(null);
+
+  // Reset the winner selection UI whenever a new round begins.
+  useEffect(() => {
+    setIsSelectingWinner(false);
+    setSelectedWinnerId(null);
+  }, [roundNumber]);
 
   // TODO: Replace with actual sabotages from game state
   const sabotages: SabotageAction[] = [
@@ -149,7 +157,7 @@ export default function DirectorView({
               disabled={!selectedWinnerId}
               onClick={() => {
                 if (selectedWinnerId) {
-                  onSelectWinner(selectedWinnerId);
+                  onSelectWinnerAction(selectedWinnerId);
                 }
               }}
             >
