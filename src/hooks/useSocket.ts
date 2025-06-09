@@ -27,7 +27,6 @@ export const useSocket = () => {
     addPlayer,
     removePlayer,
     updateRoom,
-    setCurrentRound,
     updateScores,
     deployActiveSabotage,
     removeActiveSabotage,
@@ -140,16 +139,11 @@ export const useSocket = () => {
     });
 
     // --- Game Flow Events ---
-    socket.on('round_started', (data: { round: CurrentRound }) => {
-      setCurrentRound(data.round);
-    });
-
     socket.on(
       'round_complete',
       (data: { round: CurrentRound; scores: ScoreUpdate[] }) => {
         // Update the completed round history in the store and clear the current round
         // This logic will be more complex, for now we just clear the round
-        setCurrentRound(null);
         updateScores(data.scores);
       }
     );
@@ -198,7 +192,6 @@ export const useSocket = () => {
     addPlayer,
     removePlayer,
     updateRoom,
-    setCurrentRound,
     updateScores,
     deployActiveSabotage,
     removeActiveSabotage,

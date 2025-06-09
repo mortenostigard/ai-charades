@@ -96,26 +96,13 @@ async function endRound(io: Server, roomCode: string, winnerId?: string) {
         currentGameState.roundHistory.map(r => r.prompt.id)
       );
       const nextPrompt = promptManager.getRandomPrompt();
-      const nextRoundGameState = roundManager.startNextRound(nextPrompt);
+      const nextRoundGameState = roundManager.startRound(nextPrompt);
 
       gameStates.set(roomCode, nextRoundGameState);
       gameLoopManager.createLoop(roomCode, nextRoundGameState);
 
-      const audienceIds = nextRoundGameState.room.players
-        .map(p => p.id)
-        .filter(
-          id =>
-            id !== nextRoundGameState.currentRound?.actorId &&
-            id !== nextRoundGameState.currentRound?.directorId
-        );
-
-      io.to(roomCode).emit('round_started', {
-        round: nextRoundGameState.currentRound,
-        roles: {
-          actorId: nextRoundGameState.currentRound?.actorId,
-          directorId: nextRoundGameState.currentRound?.directorId,
-          audienceIds,
-        },
+      io.to(roomCode).emit('game_state_update', {
+        gameState: nextRoundGameState,
       });
       console.log(`Starting next round in room ${roomCode}`);
     }
@@ -347,30 +334,18 @@ export function handleStartGame(io: Server, socket: Socket) {
       }
       // TODO: Add validation to ensure only host can start
 
-      const promptManager = new PromptManager();
-      const firstPrompt = promptManager.getRandomPrompt();
+      // Game is ready to start
       const roundManager = new RoundManager(gameState);
-      const newGameState = roundManager.startFirstRound(firstPrompt);
+      const promptManager = new PromptManager(
+        gameState.roundHistory.map(r => r.prompt.id)
+      );
+      const prompt = promptManager.getRandomPrompt();
+      const newGameState = roundManager.startRound(prompt);
 
       gameStates.set(roomCode, newGameState);
       gameLoopManager.createLoop(roomCode, newGameState);
 
-      const audienceIds = newGameState.room.players
-        .map(p => p.id)
-        .filter(
-          id =>
-            id !== newGameState.currentRound?.actorId &&
-            id !== newGameState.currentRound?.directorId
-        );
-
-      io.to(roomCode).emit('round_started', {
-        round: newGameState.currentRound,
-        roles: {
-          actorId: newGameState.currentRound?.actorId,
-          directorId: newGameState.currentRound?.directorId,
-          audienceIds,
-        },
-      });
+      io.to(roomCode).emit('game_state_update', { gameState: newGameState });
 
       console.log(`Game started in room ${roomCode}`);
     } catch (error) {
@@ -517,26 +492,13 @@ export function handleEndRound(io: Server, socket: Socket) {
             currentGameState.roundHistory.map(r => r.prompt.id)
           );
           const nextPrompt = promptManager.getRandomPrompt();
-          const nextRoundGameState = roundManager.startNextRound(nextPrompt);
+          const nextRoundGameState = roundManager.startRound(nextPrompt);
 
           gameStates.set(roomCode, nextRoundGameState);
           gameLoopManager.createLoop(roomCode, nextRoundGameState);
 
-          const audienceIds = nextRoundGameState.room.players
-            .map(p => p.id)
-            .filter(
-              id =>
-                id !== nextRoundGameState.currentRound?.actorId &&
-                id !== nextRoundGameState.currentRound?.directorId
-            );
-
-          io.to(roomCode).emit('round_started', {
-            round: nextRoundGameState.currentRound,
-            roles: {
-              actorId: nextRoundGameState.currentRound?.actorId,
-              directorId: nextRoundGameState.currentRound?.directorId,
-              audienceIds,
-            },
+          io.to(roomCode).emit('game_state_update', {
+            gameState: nextRoundGameState,
           });
           console.log(`Starting next round in room ${roomCode}`);
         }

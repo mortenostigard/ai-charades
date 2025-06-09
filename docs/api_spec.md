@@ -224,16 +224,6 @@ interface ScoreUpdate {
 #### Server → Client
 
 ```typescript
-// Round started successfully
-'round_started': {
-  round: CurrentRound
-  roles: {
-    actorId: string
-    directorId: string
-    audienceIds: string[]
-  }
-}
-
 // Sabotage deployed notification
 'sabotage_deployed': {
   sabotage: ActiveSabotage;
@@ -318,8 +308,8 @@ interface ScoreUpdate {
 ### Typical Round Flow
 
 ```
-1. Client: 'start_round'
-2. Server: 'round_started' (to all)
+1. Client: 'start_game'
+2. Server: 'game_state_update' (to all)
 3. Server: 'timer_update' (periodic)
 4. Client: 'deploy_sabotage' (Director)
 5. Server: 'sabotage_deployed' (to Actor)

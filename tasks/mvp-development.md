@@ -81,7 +81,7 @@ To keep the 3-day MVP focused, we're intentionally deferring these features, but
   - [x] 9.2 Create `src/game/prompt-manager.ts` with initial game prompts data.
   - [x] 9.3 Create `src/game/sabotage-manager.ts` with 10-20 basic sabotage actions
   - [x] 9.4 Create `src/game/scoring-engine.ts` to implement the risk/reward logic from `docs/game_spec.md`.
-  - [x] 9.5 Add game and round socket event handlers: `start_game`, `start_round`, `round_started`, `timer_update`, `deploy_sabotage`, `round_complete`.
+  - [x] 9.5 Add game and round socket event handlers: `start_game`, `timer_update`, `deploy_sabotage`, `round_complete`.
   - [x] 9.6 Implement role assignment logic (actor, director, audience rotation).
     - [x] 9.6.1 Enhance `RoundManager` to determine the next action (continue or end game).
     - [x] 9.6.2 Update `endRound` handler to trigger the next round with rotated roles.

@@ -184,9 +184,10 @@ export const useGameStore = create<GameStore>()(
 
     // Reset state (for leaving room, etc.)
     resetState: () =>
-      set(() => ({
+      set(state => ({
         ...initialState,
-        connected: get().connected, // Keep connection status
+        // Persist connection status across resets
+        connected: state.connected,
       })),
 
     // Computed selectors

@@ -25,50 +25,12 @@ export class RoundManager {
   }
 
   /**
-   * Starts the very first round of the game.
-   * Assigns the first player in the list as the Director and the second as the Actor.
-   * Throws an error if there are not enough players to start.
-   * @param firstPrompt The prompt for the first round.
-   * @returns The updated GameState with the first round started.
-   */
-  public startFirstRound(firstPrompt: GamePrompt): GameState {
-    if (this.players.length < 2) {
-      throw new Error('Not enough players to start the game.');
-    }
-
-    const director = this.players[0];
-    const actor = this.players[1];
-
-    const newRound: CurrentRound = {
-      number: 1,
-      actorId: actor.id,
-      directorId: director.id,
-      prompt: firstPrompt,
-      startTime: Date.now(),
-      duration: this.gameState.gameConfig.roundDuration,
-      currentSabotage: null,
-      sabotagesDeployedCount: 0,
-      status: 'active',
-    };
-
-    return {
-      ...this.gameState,
-      currentRound: newRound,
-      room: {
-        ...this.gameState.room,
-        status: 'playing',
-      },
-    };
-  }
-
-  /**
-   * Starts the next round of the game based on the previous round's state.
-   * It rotates roles and provides a new prompt.
-   * If all players have had a turn as the Actor, it marks the game as complete.
-   * @param nextPrompt The prompt for the new round.
+   * Starts a new round of the game, handling both the initial round and subsequent rounds.
+   * It determines the correct Actor and Director, assigns a new prompt, and returns the updated state.
+   * @param newPrompt The prompt for the new round.
    * @returns The updated GameState.
    */
-  public startNextRound(nextPrompt: GamePrompt): GameState {
+  public startRound(newPrompt: GamePrompt): GameState {
     if (this.isGameComplete()) {
       return {
         ...this.gameState,
@@ -83,7 +45,7 @@ export class RoundManager {
       number: (this.gameState.currentRound?.number ?? 0) + 1,
       actorId: newActor.id,
       directorId: newDirector.id,
-      prompt: nextPrompt,
+      prompt: newPrompt,
       startTime: Date.now(),
       duration: this.gameState.gameConfig.roundDuration,
       currentSabotage: null,
@@ -94,6 +56,7 @@ export class RoundManager {
     return {
       ...this.gameState,
       currentRound: newRound,
+      room: { ...this.gameState.room, status: 'playing' },
     };
   }
 
@@ -119,10 +82,19 @@ export class RoundManager {
    */
   private getNextRoles(): { newActor: Player; newDirector: Player } {
     const lastRound = this.gameState.currentRound;
+
+    // Case 1: This is the first round of the game.
     if (!lastRound) {
-      throw new Error('Cannot start next round without a previous round.');
+      if (this.players.length < 2) {
+        throw new Error('Not enough players to start the game.');
+      }
+      // Assign the first player as Director and the second as Actor.
+      const newDirector = this.players[0];
+      const newActor = this.players[1];
+      return { newActor, newDirector };
     }
 
+    // Case 2: This is a subsequent round. Rotate roles.
     const lastActorIndex = this.players.findIndex(
       p => p.id === lastRound.actorId
     );
