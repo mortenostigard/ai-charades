@@ -165,6 +165,7 @@ This separation allows the game logic to be tested independently and potentially
 ### Current (MVP) Limitations
 
 - **In-Memory Storage**: Rooms and player state are lost on server restart. This is an accepted trade-off for the MVP's scope.
+- **Client State**: Similarly, all client-side state (managed by Zustand) is in-memory and will be lost on a page refresh. Users who refresh the page will be prompted to rejoin the room.
 - **Single Server**: The architecture is designed for a single, standalone Socket.IO server and does not support horizontal scaling without moving to a centralized data store like Redis.
 - **Deployment Model**: The hybrid setup (`/pages/api/socket.ts`) is for local development only. The production deployment uses `server.ts`.
 
