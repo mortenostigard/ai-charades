@@ -3,40 +3,25 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { Card, CardContent } from '@/components/ui/card';
+import { Player } from '@/types';
+
+import { GameTimer } from './game-timer';
 
 interface AudienceViewProps {
-  readonly actorName: string;
-  readonly promptCategory: string;
-  readonly timeRemaining: number;
-  readonly maxReactions?: number;
-  readonly onReactionAction?: (emoji: string) => void;
+  readonly actor: Player;
+  readonly director: Player;
 }
 
-export default function AudienceView({
-  actorName = 'Alex',
-  promptCategory = 'MOVIE',
-  timeRemaining = 45,
-  maxReactions = 3,
-  onReactionAction = () => {},
-}: AudienceViewProps) {
+export default function AudienceView({ actor, director }: AudienceViewProps) {
   const [reactionsUsed, setReactionsUsed] = useState(0);
   const [recentReaction, setRecentReaction] = useState<string | null>(null);
 
-  // Format time function
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   // Handle reaction button click
   const handleReaction = (emoji: string) => {
-    if (reactionsUsed >= maxReactions) return;
+    if (reactionsUsed >= 3) return;
 
     setReactionsUsed(prev => prev + 1);
     setRecentReaction(emoji);
-    onReactionAction(emoji);
 
     // Clear recent reaction after animation
     setTimeout(() => setRecentReaction(null), 1000);
@@ -50,27 +35,8 @@ export default function AudienceView({
     { emoji: '😴', label: 'Boring', type: 'negative' },
   ];
 
-  const reactionsLeft = maxReactions - reactionsUsed;
-  const allReactionsUsed = reactionsUsed >= maxReactions;
-
-  // Timer styling
-  const getTimerClasses = () => {
-    if (timeRemaining <= 5) {
-      return 'text-4xl font-black text-transparent bg-gradient-to-r from-red-400 to-red-600 bg-clip-text tracking-wider';
-    } else if (timeRemaining <= 15) {
-      return 'text-4xl font-black text-transparent bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text tracking-wider';
-    }
-    return 'text-4xl font-black text-transparent bg-gradient-to-r from-fuchsia-400 to-purple-500 bg-clip-text tracking-wider';
-  };
-
-  const getTimerBgClasses = () => {
-    if (timeRemaining <= 5) {
-      return 'bg-gradient-to-r from-red-900/30 to-red-800/30 border-red-600/50';
-    } else if (timeRemaining <= 15) {
-      return 'bg-gradient-to-r from-orange-900/30 to-red-900/30 border-orange-600/50';
-    }
-    return 'bg-gradient-to-r from-fuchsia-900/30 to-purple-900/30 border-fuchsia-600/50';
-  };
+  const reactionsLeft = 3 - reactionsUsed;
+  const allReactionsUsed = reactionsUsed >= 3;
 
   return (
     <div className='min-h-screen bg-gray-950 text-white flex flex-col p-4'>
@@ -80,46 +46,34 @@ export default function AudienceView({
           <h1 className='text-3xl font-bold text-white'>Game in Progress</h1>
         </div>
         <div className='flex items-center justify-between max-w-md mx-auto'>
-          <h1 className='text-xl font-bold text-transparent bg-gradient-to-r from-fuchsia-300 to-purple-500 bg-clip-text'>
+          <h1 className='text-xl font-bold text-transparent bg-gradient-to-r from-fuchsia-400 to-purple-500 bg-clip-text'>
             AUDIENCE
           </h1>
 
-          <motion.div
-            className={`px-4 py-2 rounded-xl border-2 ${getTimerBgClasses()}`}
-            animate={timeRemaining <= 5 ? { scale: [1, 1.05, 1] } : {}}
-            transition={
-              timeRemaining <= 5
-                ? { repeat: Number.POSITIVE_INFINITY, duration: 0.5 }
-                : {}
-            }
-          >
-            <div className={getTimerClasses()}>{formatTime(timeRemaining)}</div>
-          </motion.div>
+          <GameTimer role='audience' />
         </div>
       </div>
 
-      {/* Main Content Section - Actor Info Card */}
-      <div className='flex-1 flex items-center justify-center px-2'>
-        <Card className='w-full max-w-md bg-gray-900 border-gray-800 rounded-2xl shadow-2xl'>
-          <CardContent className='p-8 text-center'>
-            <motion.div
-              className='space-y-4'
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-            >
-              <div className='text-sm font-medium text-gray-400 uppercase tracking-wide'>
-                Guess What
-              </div>
-              <div className='text-2xl md:text-3xl font-bold text-white leading-tight tracking-tight'>
-                {actorName} is acting out
-              </div>
-              <div className='text-4xl md:text-5xl font-black text-transparent bg-gradient-to-r from-fuchsia-400 to-purple-500 bg-clip-text'>
-                {promptCategory}
-              </div>
-            </motion.div>
-          </CardContent>
-        </Card>
+      {/* Main Content Section - Watching the Actor */}
+      <div className='flex-1 flex flex-col items-center justify-center space-y-8'>
+        <div className='w-full max-w-md bg-gray-900 border border-gray-800 rounded-xl p-8 text-center'>
+          <h2 className='text-2xl font-bold text-gray-300'>
+            Now Watching:
+            <span className='block text-4xl font-black text-transparent bg-gradient-to-r from-yellow-300 to-yellow-500 bg-clip-text mt-2'>
+              {actor.name}
+            </span>
+          </h2>
+          <p className='text-gray-400 mt-4'>
+            Directed by{' '}
+            <span className='font-bold text-transparent bg-gradient-to-r from-cyan-300 to-blue-400 bg-clip-text'>
+              {director.name}
+            </span>
+          </p>
+        </div>
+
+        <div className='text-gray-500'>
+          Your turn will come up soon. Enjoy the show!
+        </div>
       </div>
 
       {/* Bottom Section - Reaction Zone */}

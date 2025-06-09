@@ -17,6 +17,7 @@ interface GameStore {
   connected: boolean;
   loading: boolean;
   error: string | null;
+  timeRemaining: number;
 
   // Actions - Room Management
   setGameState: (state: GameState) => void;
@@ -24,6 +25,7 @@ interface GameStore {
   setConnected: (connected: boolean) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  setTimeRemaining: (time: number) => void;
 
   // Actions - Player Management
   addPlayer: (player: Player) => void;
@@ -59,6 +61,7 @@ const initialState = {
   connected: false,
   loading: false,
   error: null,
+  timeRemaining: 0,
 };
 
 export const useGameStore = create<GameStore>()(
@@ -96,6 +99,11 @@ export const useGameStore = create<GameStore>()(
         if (error) {
           draft.loading = false;
         }
+      }),
+
+    setTimeRemaining: (time: number) =>
+      set(draft => {
+        draft.timeRemaining = time;
       }),
 
     // Player management

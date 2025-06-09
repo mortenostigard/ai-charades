@@ -1,57 +1,23 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ActiveSabotage } from '@/types';
 
+import { GameTimer } from './game-timer';
+
 interface ActorViewProps {
   readonly prompt: string;
-  readonly timeRemaining: number;
   readonly activeSabotage: ActiveSabotage | null;
 }
 
-export default function ActorView({
-  prompt = 'Playing tennis',
-  timeRemaining = 45,
-  activeSabotage = null,
-}: ActorViewProps) {
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const [isLowTime, setIsLowTime] = useState(false);
-  const [isCriticalTime, setIsCriticalTime] = useState(false);
+export default function ActorView({ prompt, activeSabotage }: ActorViewProps) {
   const prevSabotageRef = useRef<ActiveSabotage | null>(null);
-  const isFirstRender = useRef(true);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    audioRef.current = new Audio('/sabotage-alert.mp3');
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    setIsLowTime(timeRemaining <= 15 && timeRemaining > 5);
-    setIsCriticalTime(timeRemaining <= 5);
-  }, [timeRemaining]);
-
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      prevSabotageRef.current = activeSabotage;
-      return;
-    }
-
     if (activeSabotage && !prevSabotageRef.current) {
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
@@ -64,23 +30,17 @@ export default function ActorView({
     prevSabotageRef.current = activeSabotage;
   }, [activeSabotage]);
 
-  const getTimerClasses = () => {
-    if (isCriticalTime) {
-      return 'text-4xl font-black text-transparent bg-gradient-to-r from-red-400 to-red-600 bg-clip-text tracking-wider';
-    } else if (isLowTime) {
-      return 'text-4xl font-black text-transparent bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text tracking-wider';
-    }
-    return 'text-4xl font-black text-transparent bg-gradient-to-r from-yellow-300 to-yellow-500 bg-clip-text tracking-wider';
-  };
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const getTimerBgClasses = () => {
-    if (isCriticalTime) {
-      return 'bg-gradient-to-r from-red-900/30 to-red-800/30 border-red-600/50';
-    } else if (isLowTime) {
-      return 'bg-gradient-to-r from-orange-900/30 to-red-900/30 border-orange-600/50';
-    }
-    return 'bg-gradient-to-r from-yellow-900/20 to-yellow-800/20 border-yellow-600/30';
-  };
+  useEffect(() => {
+    audioRef.current = new Audio('/sabotage-alert.mp3');
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   return (
     <div className='min-h-screen bg-gray-950 text-white flex flex-col p-4'>
@@ -94,17 +54,7 @@ export default function ActorView({
             ACTOR
           </h1>
 
-          <motion.div
-            className={`px-4 py-2 rounded-xl border-2 ${getTimerBgClasses()}`}
-            animate={isCriticalTime ? { scale: [1, 1.05, 1] } : {}}
-            transition={
-              isCriticalTime
-                ? { repeat: Number.POSITIVE_INFINITY, duration: 0.5 }
-                : {}
-            }
-          >
-            <div className={getTimerClasses()}>{formatTime(timeRemaining)}</div>
-          </motion.div>
+          <GameTimer role='actor' />
         </div>
       </div>
 
@@ -131,52 +81,50 @@ export default function ActorView({
 
       {/* Active Sabotages Section - Better Integration */}
       <div className='flex-shrink-0 pb-8'>
-        <AnimatePresence>
-          {activeSabotage && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className='max-w-md mx-auto'
-            >
-              <div className='text-center mb-4'>
-                <h2 className='text-lg font-bold text-transparent bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text'>
-                  Active Sabotage
-                </h2>
-              </div>
+        {activeSabotage && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className='max-w-md mx-auto'
+          >
+            <div className='text-center mb-4'>
+              <h2 className='text-lg font-bold text-transparent bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text'>
+                Active Sabotage
+              </h2>
+            </div>
 
-              <div className='grid grid-cols-1'>
-                <motion.div
-                  key={activeSabotage.action.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 400,
-                    damping: 17,
-                  }}
-                >
-                  <div className='bg-gradient-to-r from-red-900/40 to-red-800/40 border border-red-600/50 rounded-xl p-3'>
-                    <div className='flex items-center justify-between'>
-                      <span className='font-bold text-red-200 text-sm'>
-                        {activeSabotage.action.name}
-                      </span>
-                      <Badge
-                        variant='outline'
-                        className='bg-red-500/20 border-red-400/50 text-red-300 text-xs px-2 py-1'
-                      >
-                        NEW
-                      </Badge>
-                    </div>
-                    <p className='text-red-300/80 text-xs mt-1'>
-                      {activeSabotage.action.description}
-                    </p>
+            <div className='grid grid-cols-1'>
+              <motion.div
+                key={activeSabotage.action.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{
+                  type: 'spring',
+                  stiffness: 400,
+                  damping: 17,
+                }}
+              >
+                <div className='bg-gradient-to-r from-red-900/40 to-red-800/40 border border-red-600/50 rounded-xl p-3'>
+                  <div className='flex items-center justify-between'>
+                    <span className='font-bold text-red-200 text-sm'>
+                      {activeSabotage.action.name}
+                    </span>
+                    <Badge
+                      variant='outline'
+                      className='bg-red-500/20 border-red-400/50 text-red-300 text-xs px-2 py-1'
+                    >
+                      NEW
+                    </Badge>
                   </div>
-                </motion.div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                  <p className='text-red-300/80 text-xs mt-1'>
+                    {activeSabotage.action.description}
+                  </p>
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );
