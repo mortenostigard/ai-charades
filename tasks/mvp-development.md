@@ -19,6 +19,8 @@ This document outlines the tasks required to complete the Minimum Viable Product
 - `src/components/game/home-screen.tsx` - The UI component for the home screen ✅
 - `src/components/ui/player-name-input.tsx` - Reusable player name input component ✅
 - `src/components/ui/room-code-input.tsx` - Reusable room code input component ✅
+- `src/game/round-manager.ts` - Manages round lifecycle and role rotation.
+- `server.ts` - Standalone Socket.IO server for production deployment.
 
 ### Notes
 
@@ -75,7 +77,7 @@ To keep the 3-day MVP focused, we're intentionally deferring these features, but
 ### Day 3: Game Loop & Polish
 
 - [ ] 9.0 **Implement Game Engine Components**
-  - [ ] 9.1 Create `src/game/round-manager.ts` for round lifecycle, role rotation, and tracking overall game completion (e.g., all players have a turn as actor).
+  - [x] 9.1 Create `src/game/round-manager.ts` for round lifecycle, role rotation, and tracking overall game completion (e.g., all players have a turn as actor).
   - [ ] 9.2 Create `src/game/prompt-manager.ts` with initial game prompts data.
   - [ ] 9.3 Create `src/game/sabotage-manager.ts` with 10-20 basic sabotage actions
   - [ ] 9.4 Create `src/game/scoring-engine.ts` to implement the risk/reward logic from `docs/game_spec.md`.

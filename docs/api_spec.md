@@ -36,7 +36,7 @@ interface CurrentRound {
   prompt: GamePrompt;
   startTime: number;
   duration: number;
-  activeSabotages: ActiveSabotage[];
+  deployedSabotages: ActiveSabotage[];
   status: 'active' | 'complete';
 }
 
@@ -206,11 +206,6 @@ interface ScoreUpdate {
 'start_game': {
   roomId: string
   requestedBy: string
-  roles: {
-    actorId: string
-    directorId: string
-    audienceIds: string[]
-  }
 }
 ```
 

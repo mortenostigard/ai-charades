@@ -29,7 +29,7 @@ export interface CurrentRound {
   prompt: GamePrompt;
   startTime: number;
   duration: number;
-  activeSabotages: ActiveSabotage[];
+  deployedSabotages: ActiveSabotage[];
   status: 'active' | 'complete';
 }
 

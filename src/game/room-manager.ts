@@ -1,12 +1,5 @@
 import { Room, Player, GameState, GameConfig } from '@/types';
 
-// In-memory storage for rooms and game states.
-// WARNING: This is not suitable for production on serverless environments like Vercel.
-// A persistent store like Vercel KV (Redis) should be used instead.
-const rooms = new Map<string, Room>();
-const gameStates = new Map<string, GameState>();
-export const playerSockets = new Map<string, string>(); // playerId -> socketId mapping
-
 // Default game configuration
 const DEFAULT_CONFIG: GameConfig = {
   roundDuration: 90000, // 90 seconds in milliseconds
@@ -15,129 +8,153 @@ const DEFAULT_CONFIG: GameConfig = {
   sabotageTypes: [], // Will be populated with actual sabotage actions later
 };
 
-// Generate 4-digit room code
-function generateRoomCode(): string {
-  return Math.floor(1000 + Math.random() * 9000).toString();
+/**
+ * Manages the creation and state of game rooms using pure, static methods.
+ * This class is designed to be stateless. It takes the current state and returns
+ * a new, updated state without causing side effects.
+ */
+export class RoomManager {
+  /**
+   * Generates a 4-digit room code.
+   */
+  private static generateRoomCode(): string {
+    return Math.floor(1000 + Math.random() * 9000).toString();
+  }
+
+  /**
+   * Generates a unique room code that is not present in the provided list.
+   * @param existingCodes An array of room codes that are already in use.
+   */
+  private static generateUniqueRoomCode(existingCodes: string[]): string {
+    let code: string;
+    let attempts = 0;
+    do {
+      code = this.generateRoomCode();
+      attempts++;
+    } while (existingCodes.includes(code) && attempts < 20);
+
+    if (attempts >= 20) {
+      throw new Error('Unable to generate unique room code');
+    }
+    return code;
+  }
+
+  /**
+   * Creates a new room and its initial game state.
+   * @param hostPlayerName The name of the host player.
+   * @param existingRoomCodes A list of all current room codes to ensure uniqueness.
+   * @param config Optional custom game configuration.
+   * @returns The newly created Room, the host's player ID, and the initial GameState.
+   */
+  public static createRoom(
+    hostPlayerName: string,
+    existingRoomCodes: string[],
+    config?: Partial<GameConfig>
+  ): { room: Room; playerId: string; gameState: GameState } {
+    const roomCode = this.generateUniqueRoomCode(existingRoomCodes);
+    const playerId = `player_${Date.now()}_${Math.random()
+      .toString(36)
+      .substring(2, 11)}`;
+
+    const hostPlayer: Player = {
+      id: playerId,
+      name: hostPlayerName,
+      connected: true,
+      joinedAt: Date.now(),
+    };
+
+    const room: Room = {
+      id: `room_${roomCode}`,
+      code: roomCode,
+      players: [hostPlayer],
+      status: 'waiting',
+      createdAt: Date.now(),
+      maxPlayers: 8,
+    };
+
+    const gameState: GameState = {
+      room,
+      currentRound: null,
+      scores: { [playerId]: 0 },
+      gameConfig: { ...DEFAULT_CONFIG, ...config },
+      roundHistory: [],
+    };
+
+    return { room, playerId, gameState };
+  }
+
+  /**
+   * Adds a new player to an existing game state.
+   * @param gameState The current game state of the room to join.
+   * @param playerName The name of the new player.
+   * @returns A new GameState object with the player added.
+   * @throws Will throw an error if the room is full, game is in progress, or name is taken.
+   */
+  public static joinRoom(
+    gameState: GameState,
+    playerName: string
+  ): { newGameState: GameState; newPlayer: Player } {
+    const { room, scores } = gameState;
+
+    if (room.players.length >= room.maxPlayers) {
+      throw new Error('ROOM_FULL');
+    }
+    if (room.status !== 'waiting') {
+      throw new Error('GAME_IN_PROGRESS');
+    }
+    if (
+      room.players.some(p => p.name.toLowerCase() === playerName.toLowerCase())
+    ) {
+      throw new Error('PLAYER_NAME_TAKEN');
+    }
+
+    const newPlayer: Player = {
+      id: `player_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+      name: playerName,
+      connected: true,
+      joinedAt: Date.now(),
+    };
+
+    const newPlayers = [...room.players, newPlayer];
+    const newScores = { ...scores, [newPlayer.id]: 0 };
+    const newRoom = { ...room, players: newPlayers };
+
+    return {
+      newGameState: { ...gameState, room: newRoom, scores: newScores },
+      newPlayer,
+    };
+  }
+
+  /**
+   * Removes a player from a game state.
+   * @param gameState The current game state.
+   * @param playerId The ID of the player to remove.
+   * @returns A new GameState with the player removed. If the room becomes empty, returns null.
+   */
+  public static leaveRoom(
+    gameState: GameState,
+    playerId: string
+  ): GameState | null {
+    const newPlayers = gameState.room.players.filter(p => p.id !== playerId);
+
+    if (newPlayers.length === 0) {
+      return null; // Indicates the room should be deleted.
+    }
+
+    const newScores = { ...gameState.scores };
+    delete newScores[playerId];
+
+    const newRoom = { ...gameState.room, players: newPlayers };
+
+    return {
+      ...gameState,
+      room: newRoom,
+      scores: newScores,
+    };
+  }
 }
 
-// Ensure unique room code
-function generateUniqueRoomCode(): string {
-  let code = generateRoomCode();
-  let attempts = 0;
-  while (rooms.has(code) && attempts < 10) {
-    code = generateRoomCode();
-    attempts++;
-  }
-  if (attempts >= 10) {
-    throw new Error('Unable to generate unique room code');
-  }
-  return code;
-}
-
-// Create new room
-export function createRoom(
-  hostPlayerName: string,
-  config?: Partial<GameConfig>
-): { room: Room; playerId: string; gameState: GameState } {
-  const roomCode = generateUniqueRoomCode();
-  const playerId = `player_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-
-  const hostPlayer: Player = {
-    id: playerId,
-    name: hostPlayerName,
-    connected: true,
-    joinedAt: Date.now(),
-  };
-
-  const room: Room = {
-    id: `room_${roomCode}`,
-    code: roomCode,
-    players: [hostPlayer],
-    status: 'waiting',
-    createdAt: Date.now(),
-    maxPlayers: 8,
-  };
-
-  const gameState: GameState = {
-    room,
-    currentRound: null,
-    scores: { [playerId]: 0 },
-    gameConfig: { ...DEFAULT_CONFIG, ...config },
-    roundHistory: [],
-  };
-
-  rooms.set(roomCode, room);
-  gameStates.set(roomCode, gameState);
-
-  return { room, playerId, gameState };
-}
-
-// Add player to existing room
-export function joinRoom(
-  roomCode: string,
-  playerName: string
-): { room: Room; playerId: string; gameState: GameState } {
-  const room = rooms.get(roomCode);
-  const gameState = gameStates.get(roomCode);
-
-  if (!room || !gameState) {
-    throw new Error('ROOM_NOT_FOUND');
-  }
-
-  if (room.players.length >= room.maxPlayers) {
-    throw new Error('ROOM_FULL');
-  }
-
-  if (room.status !== 'waiting') {
-    throw new Error('GAME_IN_PROGRESS');
-  }
-
-  // Check if player name is already taken
-  const nameExists = room.players.some(
-    p => p.name.toLowerCase() === playerName.toLowerCase()
-  );
-  if (nameExists) {
-    throw new Error('PLAYER_NAME_TAKEN');
-  }
-
-  const playerId = `player_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-
-  const newPlayer: Player = {
-    id: playerId,
-    name: playerName,
-    connected: true,
-    joinedAt: Date.now(),
-  };
-
-  room.players.push(newPlayer);
-  gameState.scores[playerId] = 0;
-
-  return { room, playerId, gameState };
-}
-
-// Remove player from room
-export function leaveRoom(roomCode: string, playerId: string): Room | null {
-  const room = rooms.get(roomCode);
-  if (!room) return null;
-
-  room.players = room.players.filter(p => p.id !== playerId);
-
-  const gameState = gameStates.get(roomCode);
-  if (gameState) {
-    delete gameState.scores[playerId];
-  }
-
-  // Clean up empty rooms
-  if (room.players.length === 0) {
-    rooms.delete(roomCode);
-    gameStates.delete(roomCode);
-    return null;
-  }
-
-  return room;
-}
-
-// Map error codes to user-friendly messages
+// This remains a standalone utility function as it is pure and stateless.
 export function getErrorMessage(code: string): string {
   const messages: Record<string, string> = {
     ROOM_NOT_FOUND: 'Room not found. Please check the room code.',
@@ -148,21 +165,4 @@ export function getErrorMessage(code: string): string {
     INVALID_CODE: 'Invalid room code format.',
   };
   return messages[code] || 'An unexpected error occurred.';
-}
-
-export function findRoomByPlayerId(playerId: string): string | null {
-  for (const [roomCode, room] of rooms.entries()) {
-    if (room.players.some(p => p.id === playerId)) {
-      return roomCode;
-    }
-  }
-  return null;
-}
-
-export function getRoom(roomCode: string): Room | undefined {
-  return rooms.get(roomCode);
-}
-
-export function getGameState(roomCode: string): GameState | undefined {
-  return gameStates.get(roomCode);
 }

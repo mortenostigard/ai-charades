@@ -85,9 +85,8 @@ This separation allows the game logic to be tested independently and potentially
 ### Socket.io Architecture
 
 - **Local Development Server**: A hybrid approach using a Next.js Pages API route (`/pages/api/socket.ts`) to run the Socket.IO server alongside the Next.js dev server. This enables rapid end-to-end testing in a local environment.
-- **Production Server**: For production, the Socket.IO server must be deployed as a separate, long-running Node.js service on a platform that supports WebSocket connections (e.g., Railway, Heroku, or a dedicated cloud server). **It cannot be deployed on Vercel's serverless functions.**
-- **Client**: React hooks (`useSocket`) connect to the appropriate Socket.IO endpoint (local or production) to manage the real-time connection.
-- **Room Management**: In-memory storage for the MVP, which is sufficient for local development and initial testing.
+- **Production Server**: For production, the Socket.IO server is deployed as a separate, standalone Node.js service using `server.ts`. This long-running process is suitable for hosting on platforms like Railway or Heroku. **It cannot be deployed on Vercel's serverless functions.**
+- **State Management**: For simplicity, game state is managed in-memory within the socket handlers (`/src/lib/socket/handlers.ts`). This is suitable for a single-server deployment model.
 - **Event-Driven**: All game actions are managed through standardized socket events, with handlers located in `/src/lib/socket/handlers.ts`.
 
 ### State Synchronization
@@ -97,7 +96,7 @@ This separation allows the game logic to be tested independently and potentially
 - **Conflict Resolution**: Server timestamp wins on disputes
 - **Reconnection Handling**: Resume game state on network recovery
 - **Main Application**: Deployed to Vercel to leverage its global CDN, serverless functions for standard API routes, and CI/CD pipeline.
-- **Socket.IO Server**: The real-time server will be deployed separately to a long-running container service. The Next.js client will connect to this service's public URL, configured via environment variables.
+- **Socket.IO Server**: The real-time server (`server.ts`) will be deployed separately to a long-running container service. The Next.js client will connect to this service's public URL, configured via environment variables.
 - **Environment Variables**: `NEXT_PUBLIC_SOCKET_URL` will be used to tell the client where to connect.
 
 ## Mobile-First Constraints
@@ -165,15 +164,9 @@ This separation allows the game logic to be tested independently and potentially
 
 ### Current (MVP) Limitations
 
-- **In-Memory Storage**: Rooms and player state are lost on server restart. This is acceptable for the MVP but will be addressed for production.
-- **Single Server**: No horizontal scaling for the Socket.IO server.
-- **Deployment Model**: The current hybrid setup is for local development only.
-
-### Future Improvements
-
-- **Redis**: Implement Redis for persistent room storage and to enable scaling the dedicated Socket.IO server across multiple instances (Pub/Sub).
-- **Dedicated Socket.IO Service**: Create a separate Node.js application for the Socket.IO server, ready for production deployment.
-- **Load Balancing**: Configure load balancing if multiple Socket.IO server instances are deployed.
+- **In-Memory Storage**: Rooms and player state are lost on server restart. This is an accepted trade-off for the MVP's scope.
+- **Single Server**: The architecture is designed for a single, standalone Socket.IO server and does not support horizontal scaling without moving to a centralized data store like Redis.
+- **Deployment Model**: The hybrid setup (`/pages/api/socket.ts`) is for local development only. The production deployment uses `server.ts`.
 
 ## Security Considerations
 
