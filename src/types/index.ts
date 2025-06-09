@@ -36,7 +36,14 @@ export interface CurrentRound {
 export interface GamePrompt {
   id: string;
   text: string;
-  category: 'movie' | 'song' | 'celebrity' | 'book';
+  category:
+    | 'modern_life'
+    | 'social_media'
+    | 'technology'
+    | 'professional'
+    | 'emotional'
+    | 'abstract'
+    | 'social_situations';
   difficulty: 'easy' | 'medium' | 'hard';
 }
 
@@ -45,7 +52,14 @@ export interface SabotageAction {
   name: string;
   description: string;
   duration: number;
-  category: 'movement' | 'timing' | 'style';
+  category:
+    | 'emotion'
+    | 'physical'
+    | 'environment'
+    | 'character'
+    | 'interaction'
+    | 'sensory'
+    | 'meta';
   compatibleWith: string[];
 }
 

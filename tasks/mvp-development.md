@@ -78,8 +78,8 @@ To keep the 3-day MVP focused, we're intentionally deferring these features, but
 
 - [ ] 9.0 **Implement Game Engine Components**
   - [x] 9.1 Create `src/game/round-manager.ts` for round lifecycle, role rotation, and tracking overall game completion (e.g., all players have a turn as actor).
-  - [ ] 9.2 Create `src/game/prompt-manager.ts` with initial game prompts data.
-  - [ ] 9.3 Create `src/game/sabotage-manager.ts` with 10-20 basic sabotage actions
+  - [x] 9.2 Create `src/game/prompt-manager.ts` with initial game prompts data.
+  - [x] 9.3 Create `src/game/sabotage-manager.ts` with 10-20 basic sabotage actions
   - [ ] 9.4 Create `src/game/scoring-engine.ts` to implement the risk/reward logic from `docs/game_spec.md`.
   - [ ] 9.5 Add game and round socket event handlers: `start_game`, `start_round`, `round_started`, `timer_update`, `deploy_sabotage`, `round_complete`.
   - [ ] 9.6 Implement role assignment logic (actor, director, audience rotation).
