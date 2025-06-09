@@ -48,7 +48,7 @@ async function endRound(io: Server, roomCode: string, winnerId?: string) {
     directorId: gameState.currentRound.directorId,
     prompt: gameState.currentRound.prompt,
     winner: winnerId || null,
-    sabotagesUsed: gameState.currentRound.deployedSabotages.length,
+    sabotagesUsed: gameState.currentRound.sabotagesDeployedCount,
     completedAt: Date.now(),
   };
 
@@ -384,59 +384,170 @@ export function handleStartGame(io: Server, socket: Socket) {
 }
 
 export function handleDeploySabotage(io: Server, socket: Socket) {
-  return (data: { sabotageId: string; directorId: string }) => {
+  return async (data: {
+    sabotageId: string;
+    directorId: string;
+    roomCode: string;
+  }) => {
     try {
-      const roomCode = findRoomCodeByPlayerId(data.directorId);
-      if (!roomCode) throw new Error('Room not found for director');
-
+      const { sabotageId, directorId, roomCode } = data;
       const gameState = gameStates.get(roomCode);
-      if (!gameState) throw new Error('Game state not found');
+      if (!gameState) {
+        throw new Error(`Game state not found for room ${roomCode}`);
+      }
 
       const sabotageManager = new SabotageManager(gameState);
-      const now = Date.now();
-
-      const { canDeploy, reason } = sabotageManager.canDeploySabotage(
-        data.sabotageId,
-        now
-      );
-
-      if (!canDeploy) {
-        socket.emit('sabotage_error', {
-          code: reason,
-          message: `Cannot deploy sabotage: ${reason}`,
-          attemptedSabotageId: data.sabotageId,
-        });
-        return;
-      }
-
       const newGameState = sabotageManager.deploySabotage(
-        data.sabotageId,
-        data.directorId,
-        now
+        sabotageId,
+        directorId,
+        Date.now()
       );
+
+      // --- State Update ---
       gameStates.set(roomCode, newGameState);
 
-      // Notify the actor specifically
-      const actorId = newGameState.currentRound?.actorId;
-      if (actorId) {
-        const actorSocketId = playerSockets.get(actorId);
-        if (actorSocketId) {
-          io.to(actorSocketId).emit('sabotage_deployed', {
-            sabotage:
-              newGameState.currentRound?.deployedSabotages[
-                newGameState.currentRound.deployedSabotages.length - 1
-              ],
-          });
-        }
+      const activeSabotage = newGameState.currentRound?.currentSabotage;
+      if (!activeSabotage) {
+        // This should not happen if deploySabotage succeeds, but it's a safe guard.
+        throw new Error('Deployment failed to produce an active sabotage.');
       }
 
-      // Broadcast the new state to everyone
-      io.to(roomCode).emit('game_state_update', { gameState: newGameState });
+      // --- Emit Events ---
+      io.to(roomCode).emit('sabotage_deployed', {
+        sabotage: activeSabotage,
+        targetPlayerId: newGameState.currentRound?.actorId,
+      });
+
+      // --- Set Timer to End Sabotage ---
+      setTimeout(() => {
+        const currentGameState = gameStates.get(roomCode);
+        if (
+          currentGameState?.currentRound?.currentSabotage?.action.id ===
+          sabotageId
+        ) {
+          currentGameState.currentRound.currentSabotage = null;
+          gameStates.set(roomCode, currentGameState);
+
+          io.to(roomCode).emit('sabotage_ended', { sabotageId });
+        }
+      }, activeSabotage.action.duration);
     } catch (error) {
-      console.error('Error deploying sabotage:', error);
+      if (error instanceof Error) {
+        // We expect specific error codes from the SabotageManager
+        console.error(`Sabotage error: ${error.message}`);
+        socket.emit('sabotage_error', {
+          code: error.message,
+          message: 'Failed to deploy sabotage.',
+          attemptedSabotageId: data.sabotageId,
+        });
+      } else {
+        console.error(`Unknown error deploying sabotage:`, error);
+        socket.emit('game_error', {
+          code: 'SERVER_ERROR',
+          message: 'An unexpected error occurred.',
+        });
+      }
+    }
+  };
+}
+
+export function handleEndRound(io: Server, socket: Socket) {
+  return (data: { roomId: string; directorId: string; winnerId: string }) => {
+    try {
+      const roomCode = data.roomId;
+      const gameState = gameStates.get(roomCode);
+
+      if (!gameState || !gameState.currentRound) {
+        throw new Error('Game state not found');
+      }
+
+      gameLoopManager.removeLoop(roomCode);
+
+      const completedRound = {
+        roundNumber: gameState.currentRound.number,
+        actorId: gameState.currentRound.actorId,
+        directorId: gameState.currentRound.directorId,
+        prompt: gameState.currentRound.prompt,
+        winner: data.winnerId || null,
+        sabotagesUsed: gameState.currentRound.sabotagesDeployedCount,
+        completedAt: Date.now(),
+      };
+
+      const { newScores, scoreUpdates } = ScoringEngine.calculateScores(
+        gameState.scores,
+        { winnerId: data.winnerId || null, completedRound }
+      );
+
+      const newGameState = {
+        ...gameState,
+        currentRound: null,
+        roundHistory: [...gameState.roundHistory, completedRound],
+        scores: newScores,
+      };
+
+      gameStates.set(roomCode, newGameState);
+
+      io.to(roomCode).emit('round_complete', {
+        round: completedRound,
+        scores: scoreUpdates,
+      });
+
+      // --- Start Next Round or End Game ---
+      // Use a short delay to allow clients to process the round_complete event
+      setTimeout(() => {
+        const currentGameState = gameStates.get(roomCode);
+        if (!currentGameState) return;
+
+        const roundManager = new RoundManager(currentGameState);
+
+        if (roundManager.isGameComplete()) {
+          // --- END THE GAME ---
+          const finalGameState: GameState = {
+            ...currentGameState,
+            room: { ...currentGameState.room, status: 'complete' },
+          };
+          gameStates.set(roomCode, finalGameState);
+          io.to(roomCode).emit('game_complete', {
+            scores: finalGameState.scores,
+          });
+          console.log(`Game completed in room ${roomCode}`);
+        } else {
+          // --- START NEXT ROUND ---
+          const promptManager = new PromptManager(
+            currentGameState.roundHistory.map(r => r.prompt.id)
+          );
+          const nextPrompt = promptManager.getRandomPrompt();
+          const nextRoundGameState = roundManager.startNextRound(nextPrompt);
+
+          gameStates.set(roomCode, nextRoundGameState);
+          gameLoopManager.createLoop(roomCode, nextRoundGameState);
+
+          const audienceIds = nextRoundGameState.room.players
+            .map(p => p.id)
+            .filter(
+              id =>
+                id !== nextRoundGameState.currentRound?.actorId &&
+                id !== nextRoundGameState.currentRound?.directorId
+            );
+
+          io.to(roomCode).emit('round_started', {
+            round: nextRoundGameState.currentRound,
+            roles: {
+              actorId: nextRoundGameState.currentRound?.actorId,
+              directorId: nextRoundGameState.currentRound?.directorId,
+              audienceIds,
+            },
+          });
+          console.log(`Starting next round in room ${roomCode}`);
+        }
+      }, 5000); // 5 second delay before starting next round
+
+      endRound(io, roomCode, data.winnerId);
+    } catch (error) {
+      console.error('Error ending round:', error);
       socket.emit('game_error', {
-        code: 'SABOTAGE_FAILED',
-        message: 'Could not deploy sabotage.',
+        code: 'ROUND_NOT_ACTIVE',
+        message: 'Could not end the round.',
       });
     }
   };
@@ -457,6 +568,7 @@ export function initializeSocketHandlers(io: Server) {
     socket.on('start_game', handleStartGame(io, socket));
     socket.on('deploy_sabotage', handleDeploySabotage(io, socket));
     socket.on('request_game_state', handleRequestGameState(socket));
-    socket.on('disconnect', handleDisconnect(socket));
+    socket.on('end_round', handleEndRound(io, socket));
+    socket.on('disconnecting', handleDisconnect(socket));
   });
 }

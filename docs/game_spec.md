@@ -20,9 +20,9 @@ Traditional charades with a twist: one player acts while another player (the Dir
 
 ## Sabotage Mechanics
 
-- **Maximum Sabotages**: 3 per round
+- **Maximum Sabotages**: 1 at a time (max 3 per round)
 - **Duration**: Each sabotage lasts 20 seconds
-- **Stacking**: Multiple sabotages can be active simultaneously (compatible ones only)
+- **Stacking**: Not allowed. A new sabotage cannot be deployed while another is active.
 - **Notification**: Actor receives sound + vibration when sabotage deployed
 
 ### Sabotage Types
@@ -76,8 +76,6 @@ Traditional charades with a twist: one player acts while another player (the Dir
 
 ## Special Rules
 
-- **Sabotage Compatibility**: Only deploy sabotages that can work together
-- **Honor System**: Group enforces that actors follow sabotage constraints
 - **Director Timing**: Cannot deploy sabotage during active constraint countdown
 - **Equal Opportunity**: Game tracks that everyone gets equal director turns
 

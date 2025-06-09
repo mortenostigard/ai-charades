@@ -37,7 +37,7 @@ interface GameStore {
   setCurrentRound: (round: CurrentRound | null) => void;
   updateScores: (scoreUpdates: ScoreUpdate[]) => void;
   deployActiveSabotage: (sabotage: ActiveSabotage) => void;
-  removeActiveSabotage: (sabotageId: string) => void;
+  removeActiveSabotage: () => void;
 
   // Actions - Reset
   resetState: () => void;
@@ -170,17 +170,15 @@ export const useGameStore = create<GameStore>()(
     deployActiveSabotage: (sabotage: ActiveSabotage) =>
       set(draft => {
         if (draft.gameState?.currentRound) {
-          draft.gameState.currentRound.activeSabotages.push(sabotage);
+          draft.gameState.currentRound.currentSabotage = sabotage;
+          draft.gameState.currentRound.sabotagesDeployedCount += 1;
         }
       }),
 
-    removeActiveSabotage: (sabotageId: string) =>
+    removeActiveSabotage: () =>
       set(draft => {
         if (draft.gameState?.currentRound) {
-          draft.gameState.currentRound.activeSabotages =
-            draft.gameState.currentRound.activeSabotages.filter(
-              s => s.action.id !== sabotageId
-            );
+          draft.gameState.currentRound.currentSabotage = null;
         }
       }),
 
@@ -251,7 +249,8 @@ export const useGameStore = create<GameStore>()(
       if (!gameState?.currentRound) return false;
 
       const role = state.getCurrentRole();
-      const { startTime, duration, activeSabotages } = gameState.currentRound;
+      const { startTime, duration, currentSabotage, sabotagesDeployedCount } =
+        gameState.currentRound;
       const { gracePeriod, maxSabotages } = gameState.gameConfig;
 
       // Only director can deploy sabotage
@@ -262,7 +261,10 @@ export const useGameStore = create<GameStore>()(
       if (elapsed < gracePeriod) return false;
 
       // Check max sabotages limit
-      if (activeSabotages.length >= maxSabotages) return false;
+      if (sabotagesDeployedCount >= maxSabotages) return false;
+
+      // Check if a sabotage is already active
+      if (currentSabotage) return false;
 
       // Check if round is still active
       if (elapsed >= duration) return false;

@@ -158,8 +158,8 @@ export const useSocket = () => {
       deployActiveSabotage(data.sabotage);
     });
 
-    socket.on('sabotage_ended', (data: { sabotageId: string }) => {
-      removeActiveSabotage(data.sabotageId);
+    socket.on('sabotage_ended', (_data: { sabotageId: string }) => {
+      removeActiveSabotage();
     });
 
     socket.on('reaction_sent', (data: { reaction: EmojiReaction }) => {

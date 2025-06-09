@@ -36,14 +36,21 @@ interface CurrentRound {
   prompt: GamePrompt;
   startTime: number;
   duration: number;
-  deployedSabotages: ActiveSabotage[];
+  currentSabotage: ActiveSabotage | null;
   status: 'active' | 'complete';
 }
 
 interface GamePrompt {
   id: string;
   text: string;
-  category: 'movie' | 'song' | 'celebrity' | 'book';
+  category:
+    | 'modern_life'
+    | 'emotional'
+    | 'social_media'
+    | 'social_situations'
+    | 'professional'
+    | 'technology'
+    | 'abstract';
   difficulty: 'easy' | 'medium' | 'hard';
 }
 
@@ -52,8 +59,13 @@ interface SabotageAction {
   name: string;
   description: string;
   duration: number;
-  category: 'movement' | 'timing' | 'style';
-  compatibleWith: string[];
+  category:
+    | 'emotion'
+    | 'physical'
+    | 'environment'
+    | 'character'
+    | 'sensory'
+    | 'meta';
 }
 
 interface ActiveSabotage {
@@ -224,10 +236,8 @@ interface ScoreUpdate {
 
 // Sabotage deployed notification
 'sabotage_deployed': {
-  sabotage: ActiveSabotage
-  targetPlayerId: string // Only sent to actor
-  sabotageId: string
-  endedAt: number
+  sabotage: ActiveSabotage;
+  targetPlayerId: string; // Only sent to actor
 }
 
 // Sabotage ended notification
@@ -280,9 +290,13 @@ interface ScoreUpdate {
 
 // Sabotage deployment error
 'sabotage_error': {
-  code: 'SABOTAGE_NOT_FOUND' | 'INCOMPATIBLE_SABOTAGE' | 'MAX_SABOTAGES_REACHED' | 'GRACE_PERIOD_ACTIVE'
-  message: string
-  attemptedSabotageId: string
+  code:
+    | 'SABOTAGE_NOT_FOUND'
+    | 'MAX_SABOTAGES_REACHED'
+    | 'GRACE_PERIOD_ACTIVE'
+    | 'SABOTAGE_ALREADY_ACTIVE';
+  message: string;
+  attemptedSabotageId: string;
 }
 
 // Emoji reaction error

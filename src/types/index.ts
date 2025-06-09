@@ -29,7 +29,8 @@ export interface CurrentRound {
   prompt: GamePrompt;
   startTime: number;
   duration: number;
-  deployedSabotages: ActiveSabotage[];
+  currentSabotage: ActiveSabotage | null;
+  sabotagesDeployedCount: number;
   status: 'active' | 'complete';
 }
 
@@ -57,10 +58,8 @@ export interface SabotageAction {
     | 'physical'
     | 'environment'
     | 'character'
-    | 'interaction'
     | 'sensory'
     | 'meta';
-  compatibleWith: string[];
 }
 
 export interface ActiveSabotage {

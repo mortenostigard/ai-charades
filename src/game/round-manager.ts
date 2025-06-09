@@ -46,7 +46,8 @@ export class RoundManager {
       prompt: firstPrompt,
       startTime: Date.now(),
       duration: this.gameState.gameConfig.roundDuration,
-      deployedSabotages: [],
+      currentSabotage: null,
+      sabotagesDeployedCount: 0,
       status: 'active',
     };
 
@@ -85,7 +86,8 @@ export class RoundManager {
       prompt: nextPrompt,
       startTime: Date.now(),
       duration: this.gameState.gameConfig.roundDuration,
-      deployedSabotages: [],
+      currentSabotage: null,
+      sabotagesDeployedCount: 0,
       status: 'active',
     };
 

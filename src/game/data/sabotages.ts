@@ -12,7 +12,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now you're extremely polite about it",
     duration: 20000,
     category: 'emotion',
-    compatibleWith: [],
   },
   {
     id: 'sabotage_emotion_2',
@@ -20,7 +19,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now you're slightly annoyed but trying to hide it",
     duration: 20000,
     category: 'emotion',
-    compatibleWith: [],
   },
   {
     id: 'sabotage_emotion_3',
@@ -28,7 +26,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now you're doing it like you're being watched by your mom",
     duration: 20000,
     category: 'emotion',
-    compatibleWith: [],
   },
 
   // Physical Style Changes
@@ -38,7 +35,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: 'Now everything is in slow motion',
     duration: 20000,
     category: 'physical',
-    compatibleWith: [],
   },
   {
     id: 'sabotage_physical_2',
@@ -46,7 +42,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now you're doing it like you're made of rubber",
     duration: 20000,
     category: 'physical',
-    compatibleWith: [],
   },
   {
     id: 'sabotage_physical_3',
@@ -54,7 +49,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now act like you're on a moving boat",
     duration: 20000,
     category: 'physical',
-    compatibleWith: [],
   },
 
   // Environmental Shifts
@@ -64,7 +58,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now you're doing this during an earthquake",
     duration: 20000,
     category: 'environment',
-    compatibleWith: [],
   },
   {
     id: 'sabotage_env_2',
@@ -72,7 +65,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now it's incredibly windy",
     duration: 20000,
     category: 'environment',
-    compatibleWith: [],
   },
   {
     id: 'sabotage_env_3',
@@ -80,7 +72,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now the floor is lava (don't touch the ground)",
     duration: 20000,
     category: 'environment',
-    compatibleWith: [],
   },
   {
     id: 'sabotage_env_4',
@@ -88,7 +79,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now you're underwater",
     duration: 20000,
     category: 'environment',
-    compatibleWith: [],
   },
 
   // Character/Role Additions
@@ -98,7 +88,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now you're a robot learning to be human",
     duration: 20000,
     category: 'character',
-    compatibleWith: [],
   },
   {
     id: 'sabotage_char_2',
@@ -106,7 +95,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now you're an overly dramatic theater actor",
     duration: 20000,
     category: 'character',
-    compatibleWith: [],
   },
   {
     id: 'sabotage_char_3',
@@ -114,7 +102,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now you're a ninja trying to stay hidden",
     duration: 20000,
     category: 'character',
-    compatibleWith: [],
   },
 
   // Sensory Limitations
@@ -124,7 +111,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now one of your arms doesn't work properly",
     duration: 20000,
     category: 'sensory',
-    compatibleWith: [],
   },
   {
     id: 'sabotage_sensory_2',
@@ -132,7 +118,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now you can't use your dominant hand",
     duration: 20000,
     category: 'sensory',
-    compatibleWith: [],
   },
   {
     id: 'sabotage_sensory_3',
@@ -140,7 +125,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now you're doing it with your eyes closed",
     duration: 20000,
     category: 'sensory',
-    compatibleWith: [],
   },
   {
     id: 'sabotage_sensory_4',
@@ -148,7 +132,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now you have hiccups that won't stop",
     duration: 20000,
     category: 'sensory',
-    compatibleWith: [],
   },
 
   // Meta/Absurd
@@ -158,7 +141,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now you're doing it like it's a life-or-death situation",
     duration: 20000,
     category: 'meta',
-    compatibleWith: [],
   },
   {
     id: 'sabotage_meta_2',
@@ -166,7 +148,6 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now you're doing it while having an existential crisis",
     duration: 20000,
     category: 'meta',
-    compatibleWith: [],
   },
   {
     id: 'sabotage_meta_3',
@@ -174,6 +155,5 @@ export const SABOTAGE_ACTIONS: SabotageAction[] = [
     description: "Now you're doing it like you're in a commercial for it",
     duration: 20000,
     category: 'meta',
-    compatibleWith: [],
   },
 ];
