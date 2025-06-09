@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-
 import { SabotageAction, ActiveSabotage, Player } from '@/types';
+import { Button } from '@/components/ui/button';
 
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
 
 import { GameTimer } from './game-timer';
+import { WinnerSelectionDialog } from './WinnerSelectionDialog';
 
 interface DirectorViewProps {
   readonly activeSabotage: ActiveSabotage | null;
@@ -24,15 +23,6 @@ export default function DirectorView({
   onSelectWinnerAction,
   roundNumber,
 }: DirectorViewProps) {
-  const [isSelectingWinner, setIsSelectingWinner] = useState(false);
-  const [selectedWinnerId, setSelectedWinnerId] = useState<string | null>(null);
-
-  // Reset the winner selection UI whenever a new round begins.
-  useEffect(() => {
-    setIsSelectingWinner(false);
-    setSelectedWinnerId(null);
-  }, [roundNumber]);
-
   // TODO: Replace with actual sabotages from game state
   const sabotages: SabotageAction[] = [
     {
@@ -120,51 +110,18 @@ export default function DirectorView({
 
       {/* Footer Section - Correct Guess Button */}
       <div className='flex-shrink-0 pt-4 pb-8 text-center'>
-        {!isSelectingWinner ? (
+        <WinnerSelectionDialog
+          audience={audience}
+          onSelectWinnerAction={onSelectWinnerAction}
+          roundNumber={roundNumber}
+        >
           <Button
             size='lg'
-            className='min-w-[200px] bg-green-600 hover:bg-green-700 text-white font-bold'
-            onClick={() => setIsSelectingWinner(true)}
+            className='w-full max-w-xs h-16 text-xl font-bold bg-gradient-to-r from-green-500 to-cyan-600 hover:from-green-600 hover:to-cyan-700 text-white rounded-2xl shadow-lg border-2 border-green-400/50 transition-all duration-300 ease-in-out transform hover:scale-105'
           >
             Correct Guess!
           </Button>
-        ) : (
-          <div className='w-full max-w-md mx-auto'>
-            <h3 className='text-lg font-bold text-gray-300 mb-4'>
-              Who guessed correctly?
-            </h3>
-            <div className='grid grid-cols-2 gap-3 mb-4'>
-              {audience.map(player => (
-                <Button
-                  key={player.id}
-                  variant={
-                    selectedWinnerId === player.id ? 'default' : 'outline'
-                  }
-                  className={`w-full ${
-                    selectedWinnerId === player.id
-                      ? 'bg-green-500 border-green-400'
-                      : 'border-gray-600'
-                  }`}
-                  onClick={() => setSelectedWinnerId(player.id)}
-                >
-                  {player.name}
-                </Button>
-              ))}
-            </div>
-            <Button
-              size='lg'
-              className='w-full bg-purple-600 hover:bg-purple-700'
-              disabled={!selectedWinnerId}
-              onClick={() => {
-                if (selectedWinnerId) {
-                  onSelectWinnerAction(selectedWinnerId);
-                }
-              }}
-            >
-              Confirm Winner & End Round
-            </Button>
-          </div>
-        )}
+        </WinnerSelectionDialog>
       </div>
     </div>
   );
