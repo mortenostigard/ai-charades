@@ -2,6 +2,10 @@ import { Server, Socket } from 'socket.io';
 
 import { GameState, GameConfig } from '@/types';
 import { RoomManager, getErrorMessage } from '@/game/room-manager';
+import { RoundManager } from '@/game/round-manager';
+import { PromptManager } from '@/game/prompt-manager';
+import { SabotageManager } from '@/game/sabotage-manager';
+import { gameLoopManager } from '@/game/game-loop';
 
 // --- In-memory state management with HMR (Hot Module Replacement) support ---
 
@@ -29,6 +33,45 @@ function findRoomCodeByPlayerId(playerId: string): string | undefined {
   }
   return undefined;
 }
+
+// --- Round Completion Logic ---
+async function endRound(io: Server, roomCode: string, winnerId?: string) {
+  const gameState = gameStates.get(roomCode);
+  if (!gameState || !gameState.currentRound) return;
+
+  // For now, we'll just mark the round as complete. Scoring will be added later.
+  const completedRound = {
+    roundNumber: gameState.currentRound.number,
+    actorId: gameState.currentRound.actorId,
+    directorId: gameState.currentRound.directorId,
+    prompt: gameState.currentRound.prompt,
+    winner: winnerId || null,
+    sabotagesUsed: gameState.currentRound.deployedSabotages.length,
+    completedAt: Date.now(),
+  };
+
+  const newGameState: GameState = {
+    ...gameState,
+    currentRound: null, // This will be replaced by the next round shortly
+    roundHistory: [...gameState.roundHistory, completedRound],
+    // placeholder score update
+    scores: { ...gameState.scores },
+  };
+
+  gameStates.set(roomCode, newGameState);
+
+  // For now, we will just end the game. Starting next round will be handled later.
+  gameLoopManager.removeLoop(roomCode);
+
+  io.to(roomCode).emit('round_complete', {
+    round: completedRound,
+    scores: newGameState.scores,
+  });
+
+  // TODO: Add logic to start the next round or end the game
+}
+
+// --- Socket Event Handlers ---
 
 export function handleCreateRoom(socket: Socket) {
   return async (data: {
@@ -162,6 +205,11 @@ export function handleLeaveRoom(socket: Socket) {
         const gameState = gameStates.get(roomCode);
         if (!gameState) return;
 
+        // If game is in progress, stop the loop
+        if (gameState.room.status === 'playing') {
+          gameLoopManager.removeLoop(roomCode);
+        }
+
         const newGameState = RoomManager.leaveRoom(gameState, playerId);
 
         // Remove player-socket mapping
@@ -179,6 +227,7 @@ export function handleLeaveRoom(socket: Socket) {
         } else {
           // Room is empty, clean it up
           gameStates.delete(roomCode);
+          gameLoopManager.removeLoop(roomCode);
           console.log(`Room ${roomCode} cleaned up - no players remaining`);
         }
       }
@@ -236,13 +285,126 @@ export function handleDisconnect(socket: Socket) {
   };
 }
 
+export function handleStartGame(io: Server, socket: Socket) {
+  return (data: { roomId: string; requestedBy: string }) => {
+    try {
+      const roomCode = data.roomId;
+      const gameState = gameStates.get(roomCode);
+
+      if (!gameState) {
+        throw new Error('Game state not found');
+      }
+      // TODO: Add validation to ensure only host can start
+
+      const promptManager = new PromptManager();
+      const firstPrompt = promptManager.getRandomPrompt();
+      const roundManager = new RoundManager(gameState);
+      const newGameState = roundManager.startFirstRound(firstPrompt);
+
+      gameStates.set(roomCode, newGameState);
+      gameLoopManager.createLoop(roomCode, newGameState);
+
+      const audienceIds = newGameState.room.players
+        .map(p => p.id)
+        .filter(
+          id =>
+            id !== newGameState.currentRound?.actorId &&
+            id !== newGameState.currentRound?.directorId
+        );
+
+      io.to(roomCode).emit('round_started', {
+        round: newGameState.currentRound,
+        roles: {
+          actorId: newGameState.currentRound?.actorId,
+          directorId: newGameState.currentRound?.directorId,
+          audienceIds,
+        },
+      });
+
+      console.log(`Game started in room ${roomCode}`);
+    } catch (error) {
+      console.error('Error starting game:', error);
+      socket.emit('game_error', {
+        code: 'START_GAME_FAILED',
+        message: 'Could not start the game.',
+      });
+    }
+  };
+}
+
+export function handleDeploySabotage(io: Server, socket: Socket) {
+  return (data: { sabotageId: string; directorId: string }) => {
+    try {
+      const roomCode = findRoomCodeByPlayerId(data.directorId);
+      if (!roomCode) throw new Error('Room not found for director');
+
+      const gameState = gameStates.get(roomCode);
+      if (!gameState) throw new Error('Game state not found');
+
+      const sabotageManager = new SabotageManager(gameState);
+      const now = Date.now();
+
+      const { canDeploy, reason } = sabotageManager.canDeploySabotage(
+        data.sabotageId,
+        now
+      );
+
+      if (!canDeploy) {
+        socket.emit('sabotage_error', {
+          code: reason,
+          message: `Cannot deploy sabotage: ${reason}`,
+          attemptedSabotageId: data.sabotageId,
+        });
+        return;
+      }
+
+      const newGameState = sabotageManager.deploySabotage(
+        data.sabotageId,
+        data.directorId,
+        now
+      );
+      gameStates.set(roomCode, newGameState);
+
+      // Notify the actor specifically
+      const actorId = newGameState.currentRound?.actorId;
+      if (actorId) {
+        const actorSocketId = playerSockets.get(actorId);
+        if (actorSocketId) {
+          io.to(actorSocketId).emit('sabotage_deployed', {
+            sabotage:
+              newGameState.currentRound?.deployedSabotages[
+                newGameState.currentRound.deployedSabotages.length - 1
+              ],
+          });
+        }
+      }
+
+      // Broadcast the new state to everyone
+      io.to(roomCode).emit('game_state_update', { gameState: newGameState });
+    } catch (error) {
+      console.error('Error deploying sabotage:', error);
+      socket.emit('game_error', {
+        code: 'SABOTAGE_FAILED',
+        message: 'Could not deploy sabotage.',
+      });
+    }
+  };
+}
+
 export function initializeSocketHandlers(io: Server) {
+  // Initialize the game loop manager with the server instance
+  gameLoopManager.init(io, (roomCode: string) => {
+    endRound(io, roomCode);
+  });
+
   io.on('connection', (socket: Socket) => {
     console.log(`Client connected: ${socket.id}`);
 
     socket.on('create_room', handleCreateRoom(socket));
     socket.on('join_room', handleJoinRoom(socket));
     socket.on('leave_room', handleLeaveRoom(socket));
+    socket.on('start_game', handleStartGame(io, socket));
+    socket.on('deploy_sabotage', handleDeploySabotage(io, socket));
     socket.on('request_game_state', handleRequestGameState(socket));
     socket.on('disconnect', handleDisconnect(socket));
   });
