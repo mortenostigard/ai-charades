@@ -5,6 +5,7 @@ import { RoomManager, getErrorMessage } from '@/game/room-manager';
 import { RoundManager } from '@/game/round-manager';
 import { PromptManager } from '@/game/prompt-manager';
 import { SabotageManager } from '@/game/sabotage-manager';
+import { ScoringEngine } from '@/game/scoring-engine';
 import { gameLoopManager } from '@/game/game-loop';
 
 // --- In-memory state management with HMR (Hot Module Replacement) support ---
@@ -36,10 +37,11 @@ function findRoomCodeByPlayerId(playerId: string): string | undefined {
 
 // --- Round Completion Logic ---
 async function endRound(io: Server, roomCode: string, winnerId?: string) {
-  const gameState = gameStates.get(roomCode);
+  let gameState = gameStates.get(roomCode);
   if (!gameState || !gameState.currentRound) return;
 
-  // For now, we'll just mark the round as complete. Scoring will be added later.
+  gameLoopManager.removeLoop(roomCode);
+
   const completedRound = {
     roundNumber: gameState.currentRound.number,
     actorId: gameState.currentRound.actorId,
@@ -50,25 +52,74 @@ async function endRound(io: Server, roomCode: string, winnerId?: string) {
     completedAt: Date.now(),
   };
 
-  const newGameState: GameState = {
+  const { newScores, scoreUpdates } = ScoringEngine.calculateScores(
+    gameState.scores,
+    { winnerId: winnerId || null, completedRound }
+  );
+
+  gameState = {
     ...gameState,
-    currentRound: null, // This will be replaced by the next round shortly
+    currentRound: null,
     roundHistory: [...gameState.roundHistory, completedRound],
-    // placeholder score update
-    scores: { ...gameState.scores },
+    scores: newScores,
   };
 
-  gameStates.set(roomCode, newGameState);
-
-  // For now, we will just end the game. Starting next round will be handled later.
-  gameLoopManager.removeLoop(roomCode);
+  gameStates.set(roomCode, gameState);
 
   io.to(roomCode).emit('round_complete', {
     round: completedRound,
-    scores: newGameState.scores,
+    scores: scoreUpdates,
   });
 
-  // TODO: Add logic to start the next round or end the game
+  // --- Start Next Round or End Game ---
+  // Use a short delay to allow clients to process the round_complete event
+  setTimeout(() => {
+    const currentGameState = gameStates.get(roomCode);
+    if (!currentGameState) return;
+
+    const roundManager = new RoundManager(currentGameState);
+
+    if (roundManager.isGameComplete()) {
+      // --- END THE GAME ---
+      const finalGameState: GameState = {
+        ...currentGameState,
+        room: { ...currentGameState.room, status: 'complete' },
+      };
+      gameStates.set(roomCode, finalGameState);
+      io.to(roomCode).emit('game_complete', {
+        scores: finalGameState.scores,
+      });
+      console.log(`Game completed in room ${roomCode}`);
+    } else {
+      // --- START NEXT ROUND ---
+      const promptManager = new PromptManager(
+        currentGameState.roundHistory.map(r => r.prompt.id)
+      );
+      const nextPrompt = promptManager.getRandomPrompt();
+      const nextRoundGameState = roundManager.startNextRound(nextPrompt);
+
+      gameStates.set(roomCode, nextRoundGameState);
+      gameLoopManager.createLoop(roomCode, nextRoundGameState);
+
+      const audienceIds = nextRoundGameState.room.players
+        .map(p => p.id)
+        .filter(
+          id =>
+            id !== nextRoundGameState.currentRound?.actorId &&
+            id !== nextRoundGameState.currentRound?.directorId
+        );
+
+      io.to(roomCode).emit('round_started', {
+        round: nextRoundGameState.currentRound,
+        roles: {
+          actorId: nextRoundGameState.currentRound?.actorId,
+          directorId: nextRoundGameState.currentRound?.directorId,
+          audienceIds,
+        },
+      });
+      console.log(`Starting next round in room ${roomCode}`);
+    }
+  }, 5000); // 5 second delay before starting next round
 }
 
 // --- Socket Event Handlers ---

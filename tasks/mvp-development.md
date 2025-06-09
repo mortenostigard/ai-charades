@@ -76,13 +76,16 @@ To keep the 3-day MVP focused, we're intentionally deferring these features, but
 
 ### Day 3: Game Loop & Polish
 
-- [ ] 9.0 **Implement Game Engine Components**
+- [x] 9.0 **Implement Game Engine Components**
   - [x] 9.1 Create `src/game/round-manager.ts` for round lifecycle, role rotation, and tracking overall game completion (e.g., all players have a turn as actor).
   - [x] 9.2 Create `src/game/prompt-manager.ts` with initial game prompts data.
   - [x] 9.3 Create `src/game/sabotage-manager.ts` with 10-20 basic sabotage actions
-  - [ ] 9.4 Create `src/game/scoring-engine.ts` to implement the risk/reward logic from `docs/game_spec.md`.
+  - [x] 9.4 Create `src/game/scoring-engine.ts` to implement the risk/reward logic from `docs/game_spec.md`.
   - [x] 9.5 Add game and round socket event handlers: `start_game`, `start_round`, `round_started`, `timer_update`, `deploy_sabotage`, `round_complete`.
-  - [ ] 9.6 Implement role assignment logic (actor, director, audience rotation).
+  - [x] 9.6 Implement role assignment logic (actor, director, audience rotation).
+    - [x] 9.6.1 Enhance `RoundManager` to determine the next action (continue or end game).
+    - [x] 9.6.2 Update `endRound` handler to trigger the next round with rotated roles.
+    - [x] 9.6.3 Update `endRound` handler to trigger game completion.
 - [ ] 10.0 **Build Game Views & Basic Mechanics**
   - [ ] 10.1 Create role-specific view components: `ActorView`, `DirectorView`, `AudienceView` with role-based color schemes.
   - [ ] 10.2 Implement game timer with real-time countdown display and warning states.
