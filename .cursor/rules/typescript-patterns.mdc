@@ -97,3 +97,21 @@ Import types from the centralized type definitions (see @docs/api_spec.md for co
 @docs/api_spec.md
 @docs/tech_spec.md
 
+### Selector Best Practices
+Avoid infinite re-renders with these patterns:
+
+```tsx
+// BAD - Store functions that return new objects each time
+const canDeploy = useGameStore(state => state.canDeploySabotage());
+const gracePeriod = useGameStore(state => state.getGracePeriodState());
+
+// GOOD - Custom hooks for computed state
+const { canDeploy, gracePeriodState } = useSabotage();
+
+// GOOD - Simple property selectors (always safe)
+const gameState = useGameStore(state => state.gameState);
+const timeRemaining = useGameStore(state => state.timeRemaining);
+```
+
+**Best Practice**: Use **custom hooks** for derived state that involves object creation. Keep stores for primitive state only.
+

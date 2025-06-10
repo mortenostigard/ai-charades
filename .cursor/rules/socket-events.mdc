@@ -1,15 +1,15 @@
 ---
 description: Socket.io event handling patterns and standards
-globs: **/socket**, **/api/**, **/*socket*, **/hooks/useSocket*
+globs: **/socket**, **/api/**,**/*useSocket*
 alwaysApply: false
 ---
 # Socket.io Event Handling Standards
 
 ## Event Naming Convention
 - Use exact event names from api_spec.md (DO NOT duplicate the events here - reference the spec)
-- Client to Server: `'action-name'`
-- Server to Client: `'event-name'`
-- Errors: `'error-type'`
+- Client to Server: `'action_name'`
+- Server to Client: `'event_name'`
+- Errors: `'error_type'`
 
 ## Client-Side Event Handler Pattern
 ```tsx
@@ -22,7 +22,7 @@ const handleSocketEvent = useCallback(
       });
       
       // 2. Emit to server
-      socket.emit('event-name', payload);
+      socket.emit('event_name', payload);
       
     } catch (error) {
       // 3. Error handling
@@ -40,7 +40,7 @@ socket.on('event-name', async (payload: EventPayload) => {
   try {
     // 1. Validate payload
     if (!isValidPayload(payload)) {
-      socket.emit('game-error', { 
+      socket.emit('game_error', { 
         code: 'INVALID_PAYLOAD', 
         message: 'Invalid event data' 
       });
@@ -51,14 +51,14 @@ socket.on('event-name', async (payload: EventPayload) => {
     const result = await handleGameLogic(payload);
     
     // 3. Broadcast to room (notify others, not sender)
-    socket.to(roomId).emit('event-response', result);
+    socket.to(roomId).emit('event_response', result);
     
     // 4. Respond to sender separately if needed
-    socket.emit('action-confirmed', result);
+    socket.emit('action_confirmed', result);
     
   } catch (error) {
     // 5. Error response
-    socket.emit('game-error', {
+    socket.emit('game_error', {
       code: 'SERVER_ERROR',
       message: error.message
     });

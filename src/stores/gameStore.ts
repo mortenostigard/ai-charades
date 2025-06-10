@@ -51,7 +51,6 @@ interface GameStore {
   getPlayerById: (id: string) => Player | undefined;
   isInRoom: () => boolean;
   getMyPlayer: () => Player | undefined;
-  canDeploySabotage: () => boolean;
   getTimeRemaining: () => number;
 }
 
@@ -72,7 +71,7 @@ export const useGameStore = create<GameStore>()(
     setGameState: (state: GameState) =>
       set(draft => {
         draft.gameState = state;
-        draft.error = null; // Clear errors when state updates successfully
+        draft.error = null;
       }),
 
     setPlayerId: (id: string) =>
@@ -249,36 +248,6 @@ export const useGameStore = create<GameStore>()(
       const state = get();
       const { playerId } = state;
       return playerId ? state.getPlayerById(playerId) : undefined;
-    },
-
-    canDeploySabotage: () => {
-      const state = get();
-      const { gameState } = state;
-
-      if (!gameState?.currentRound) return false;
-
-      const role = state.getCurrentRole();
-      const { startTime, duration, currentSabotage, sabotagesDeployedCount } =
-        gameState.currentRound;
-      const { gracePeriod, maxSabotages } = gameState.gameConfig;
-
-      // Only director can deploy sabotage
-      if (role !== 'director') return false;
-
-      // Check if grace period has passed
-      const elapsed = Date.now() - startTime;
-      if (elapsed < gracePeriod) return false;
-
-      // Check max sabotages limit
-      if (sabotagesDeployedCount >= maxSabotages) return false;
-
-      // Check if a sabotage is already active
-      if (currentSabotage) return false;
-
-      // Check if round is still active
-      if (elapsed >= duration) return false;
-
-      return true;
     },
 
     getTimeRemaining: () => {

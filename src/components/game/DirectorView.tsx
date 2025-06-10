@@ -1,7 +1,12 @@
 'use client';
 
+import { useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Lock, Zap } from 'lucide-react';
+
 import { SabotageAction, ActiveSabotage, Player } from '@/types';
 import { Button } from '@/components/ui/button';
+import { useSabotage } from '@/hooks/useSabotage';
 
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
@@ -29,10 +34,14 @@ export default function DirectorView({
   sabotagesDeployedCount,
   maxSabotages,
 }: DirectorViewProps) {
-  // Handle sabotage deployment
-  const handleDeploySabotage = (sabotage: SabotageAction) => {
-    onDeploySabotageAction(sabotage);
-  };
+  const { canDeploySabotage, gracePeriodState } = useSabotage();
+
+  const handleDeploySabotage = useCallback(
+    (sabotage: SabotageAction) => {
+      onDeploySabotageAction(sabotage);
+    },
+    [onDeploySabotageAction]
+  );
 
   const getSabotageClasses = (isActive: boolean, isDisabled: boolean) => {
     if (isActive) {
@@ -43,8 +52,6 @@ export default function DirectorView({
     }
     return 'bg-gradient-to-r from-cyan-900/40 to-blue-900/40 border-cyan-700/50 hover:border-cyan-600/70';
   };
-
-  const isMaxSabotagesReached = sabotagesDeployedCount >= maxSabotages;
 
   return (
     <div className='min-h-screen bg-gray-950 text-white flex flex-col p-4'>
@@ -57,12 +64,62 @@ export default function DirectorView({
           <h1 className='text-xl font-bold text-transparent bg-gradient-to-r from-cyan-300 to-blue-500 bg-clip-text'>
             DIRECTOR
           </h1>
-
           <GameTimer role='director' />
         </div>
       </div>
 
-      {/* Sabotage Availability Section */}
+      {/* Grace Period Status Section */}
+      <div className='flex-shrink-0 mb-4'>
+        <AnimatePresence mode='wait'>
+          {gracePeriodState.isInGracePeriod ? (
+            <motion.div
+              key='grace-period'
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className='max-w-md mx-auto bg-gray-900/80 border border-gray-800 rounded-xl p-3 text-center'
+            >
+              <div className='text-sm text-gray-400'>
+                Sabotages available in
+              </div>
+              <div className='text-2xl font-bold text-gray-300'>
+                {gracePeriodState.remainingSeconds}s
+              </div>
+              <div className='flex justify-center mt-2'>
+                <Lock className='text-gray-500 h-5 w-5' />
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key='sabotages-unlocked'
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{
+                opacity: 1,
+                scale: [0.9, 1.05, 1],
+                boxShadow: [
+                  '0 0 0 rgba(34, 211, 238, 0)',
+                  '0 0 20px rgba(34, 211, 238, 0.5)',
+                  '0 0 10px rgba(34, 211, 238, 0.3)',
+                ],
+              }}
+              transition={{ duration: 0.6 }}
+              className='max-w-md mx-auto bg-gradient-to-r from-cyan-900/40 to-blue-900/40 border border-cyan-600/50 rounded-xl p-3 text-center'
+            >
+              <div className='text-lg font-bold text-transparent bg-gradient-to-r from-cyan-300 to-blue-400 bg-clip-text'>
+                Sabotages Unlocked!
+              </div>
+              <div className='text-sm text-cyan-300/70 mt-1'>
+                Deploy sabotages to challenge the actor
+              </div>
+              <div className='flex justify-center mt-2'>
+                <Zap className='text-cyan-400 h-5 w-5 animate-pulse' />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Sabotage Deployment Section */}
       <div className='flex-1 flex flex-col items-center justify-center space-y-8'>
         <Card className='w-full max-w-md bg-gray-900 border-gray-800'>
           <CardHeader>
@@ -72,12 +129,14 @@ export default function DirectorView({
           </CardHeader>
           <CardContent className='grid grid-cols-1 gap-4'>
             {availableSabotages.map(sabotage => {
-              const isDisabled = !!activeSabotage || isMaxSabotagesReached;
+              // Use the existing canDeploySabotage logic instead of manual checks
+              const isDisabled = !canDeploySabotage;
               return (
-                <button
+                <motion.button
                   key={sabotage.id}
                   onClick={() => handleDeploySabotage(sabotage)}
                   disabled={isDisabled}
+                  whileTap={!isDisabled ? { scale: 0.95 } : {}}
                   className={`p-4 rounded-lg border-2 text-left transition-all ${getSabotageClasses(
                     activeSabotage?.action.id === sabotage.id,
                     isDisabled
@@ -87,7 +146,7 @@ export default function DirectorView({
                   <div className='text-sm text-gray-400'>
                     {sabotage.description}
                   </div>
-                </button>
+                </motion.button>
               );
             })}
           </CardContent>
