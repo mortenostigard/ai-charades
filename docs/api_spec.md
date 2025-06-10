@@ -37,6 +37,7 @@ interface CurrentRound {
   duration: number;
   currentSabotage: ActiveSabotage | null;
   sabotagesDeployedCount: number;
+  availableSabotages: SabotageAction[];
   status: 'active' | 'complete';
 }
 

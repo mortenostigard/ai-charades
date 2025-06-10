@@ -17,10 +17,11 @@ export function GameRoom({ roomCode }: GameRoomProps) {
   const currentRole = useGameStore(state => state.getCurrentRole());
   const round = useGameStore(state => state.gameState?.currentRound);
   const players = useGameStore(state => state.gameState?.room.players ?? []);
+  const gameConfig = useGameStore(state => state.gameState?.gameConfig);
   const getPlayerById = useGameStore(state => state.getPlayerById);
   const { emit } = useSocket();
 
-  if (roomStatus === 'playing' && round) {
+  if (roomStatus === 'playing' && round && gameConfig) {
     const actor = getPlayerById(round.actorId);
     const director = getPlayerById(round.directorId);
 
@@ -48,13 +49,21 @@ export function GameRoom({ roomCode }: GameRoomProps) {
           <DirectorView
             activeSabotage={round.currentSabotage}
             onDeploySabotageAction={sabotage => {
-              emit('deploy_sabotage', { roomCode, sabotageId: sabotage.id });
+              emit('deploy_sabotage', {
+                roomCode,
+                sabotageId: sabotage.id,
+                directorId: director.id,
+                timestamp: Date.now(),
+              });
             }}
             audience={audience}
             onSelectWinnerAction={winnerId => {
               emit('end_round', { roomCode, winnerId });
             }}
             roundNumber={round.number}
+            availableSabotages={round.availableSabotages}
+            sabotagesDeployedCount={round.sabotagesDeployedCount}
+            maxSabotages={gameConfig.maxSabotages}
           />
         );
       case 'audience':

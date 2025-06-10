@@ -73,4 +73,17 @@ export class SabotageManager {
       currentRound: newCurrentRound,
     };
   }
+
+  /**
+   * Selects a specified number of random sabotages from the master list.
+   * This uses the Fisher-Yates shuffle algorithm for an unbiased selection.
+   * @param count The number of random sabotages to select.
+   * @returns An array of SabotageAction objects.
+   */
+  public static selectRandomSabotages(count: number) {
+    // Create a shuffled copy of the array
+    const shuffled = [...SABOTAGE_ACTIONS].sort(() => 0.5 - Math.random());
+    // Return the first `count` elements
+    return shuffled.slice(0, count);
+  }
 }

@@ -21,11 +21,12 @@ Traditional charades with a twist: one player acts while another player (the Dir
 ## Sabotage Mechanics
 
 - **Maximum Sabotages**: 1 at a time (max 3 per round)
+- **Director's Hand**: The Director receives a random hand of 6 available sabotages at the start of each round.
 - **Duration**: Each sabotage lasts 20 seconds
 - **Stacking**: Not allowed. A new sabotage cannot be deployed while another is active.
 - **Notification**: Actor receives sound + vibration when sabotage deployed
 
-### Sabotage Types
+### Sabotage Types (hypothetical examples)
 
 **Movement Constraints:**
 

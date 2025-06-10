@@ -14,6 +14,9 @@ interface DirectorViewProps {
   readonly audience: Player[];
   readonly onSelectWinnerAction: (playerId: string) => void;
   readonly roundNumber: number;
+  readonly availableSabotages: SabotageAction[];
+  readonly sabotagesDeployedCount: number;
+  readonly maxSabotages: number;
 }
 
 export default function DirectorView({
@@ -22,32 +25,10 @@ export default function DirectorView({
   audience,
   onSelectWinnerAction,
   roundNumber,
+  availableSabotages,
+  sabotagesDeployedCount,
+  maxSabotages,
 }: DirectorViewProps) {
-  // TODO: Replace with actual sabotages from game state
-  const sabotages: SabotageAction[] = [
-    {
-      id: 'sabotage-1',
-      name: 'One Hand Tied',
-      description: 'Actor must perform with one hand behind their back.',
-      duration: 30,
-      category: 'physical',
-    },
-    {
-      id: 'sabotage-2',
-      name: 'Silent Movie',
-      description: 'Actor cannot make any sounds.',
-      duration: 20,
-      category: 'sensory',
-    },
-    {
-      id: 'sabotage-3',
-      name: 'Gibberish',
-      description: 'Actor can only speak in gibberish.',
-      duration: 25,
-      category: 'character',
-    },
-  ];
-
   // Handle sabotage deployment
   const handleDeploySabotage = (sabotage: SabotageAction) => {
     onDeploySabotageAction(sabotage);
@@ -62,6 +43,8 @@ export default function DirectorView({
     }
     return 'bg-gradient-to-r from-cyan-900/40 to-blue-900/40 border-cyan-700/50 hover:border-cyan-600/70';
   };
+
+  const isMaxSabotagesReached = sabotagesDeployedCount >= maxSabotages;
 
   return (
     <div className='min-h-screen bg-gray-950 text-white flex flex-col p-4'>
@@ -84,26 +67,29 @@ export default function DirectorView({
         <Card className='w-full max-w-md bg-gray-900 border-gray-800'>
           <CardHeader>
             <CardTitle className='text-center text-2xl font-bold text-cyan-400'>
-              Deploy Sabotage
+              Deploy Sabotage ({sabotagesDeployedCount}/{maxSabotages})
             </CardTitle>
           </CardHeader>
           <CardContent className='grid grid-cols-1 gap-4'>
-            {sabotages.map(sabotage => (
-              <button
-                key={sabotage.id}
-                onClick={() => handleDeploySabotage(sabotage)}
-                disabled={!!activeSabotage}
-                className={`p-4 rounded-lg border-2 text-left transition-all ${getSabotageClasses(
-                  activeSabotage?.action.id === sabotage.id,
-                  !!activeSabotage
-                )}`}
-              >
-                <div className='font-bold text-lg'>{sabotage.name}</div>
-                <div className='text-sm text-gray-400'>
-                  {sabotage.description}
-                </div>
-              </button>
-            ))}
+            {availableSabotages.map(sabotage => {
+              const isDisabled = !!activeSabotage || isMaxSabotagesReached;
+              return (
+                <button
+                  key={sabotage.id}
+                  onClick={() => handleDeploySabotage(sabotage)}
+                  disabled={isDisabled}
+                  className={`p-4 rounded-lg border-2 text-left transition-all ${getSabotageClasses(
+                    activeSabotage?.action.id === sabotage.id,
+                    isDisabled
+                  )}`}
+                >
+                  <div className='font-bold text-lg'>{sabotage.name}</div>
+                  <div className='text-sm text-gray-400'>
+                    {sabotage.description}
+                  </div>
+                </button>
+              );
+            })}
           </CardContent>
         </Card>
       </div>

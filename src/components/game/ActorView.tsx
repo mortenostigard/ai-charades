@@ -4,10 +4,10 @@ import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { ActiveSabotage } from '@/types';
 
 import { GameTimer } from './game-timer';
+import { SabotageAlert } from './SabotageAlert';
 
 interface ActorViewProps {
   readonly prompt: string;
@@ -81,50 +81,7 @@ export default function ActorView({ prompt, activeSabotage }: ActorViewProps) {
 
       {/* Active Sabotages Section - Better Integration */}
       <div className='flex-shrink-0 pb-8'>
-        {activeSabotage && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            className='max-w-md mx-auto'
-          >
-            <div className='text-center mb-4'>
-              <h2 className='text-lg font-bold text-transparent bg-gradient-to-r from-orange-400 to-red-500 bg-clip-text'>
-                Active Sabotage
-              </h2>
-            </div>
-
-            <div className='grid grid-cols-1'>
-              <motion.div
-                key={activeSabotage.action.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{
-                  type: 'spring',
-                  stiffness: 400,
-                  damping: 17,
-                }}
-              >
-                <div className='bg-gradient-to-r from-red-900/40 to-red-800/40 border border-red-600/50 rounded-xl p-3'>
-                  <div className='flex items-center justify-between'>
-                    <span className='font-bold text-red-200 text-sm'>
-                      {activeSabotage.action.name}
-                    </span>
-                    <Badge
-                      variant='outline'
-                      className='bg-red-500/20 border-red-400/50 text-red-300 text-xs px-2 py-1'
-                    >
-                      NEW
-                    </Badge>
-                  </div>
-                  <p className='text-red-300/80 text-xs mt-1'>
-                    {activeSabotage.action.description}
-                  </p>
-                </div>
-              </motion.div>
-            </div>
-          </motion.div>
-        )}
+        <SabotageAlert activeSabotage={activeSabotage} />
       </div>
     </div>
   );

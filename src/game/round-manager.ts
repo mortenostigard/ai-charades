@@ -8,6 +8,7 @@ import {
 } from '../types';
 
 import { ScoringEngine } from './scoring-engine';
+import { SabotageManager } from './sabotage-manager';
 
 /**
  * Manages the lifecycle of rounds within a game, including role rotation
@@ -53,6 +54,7 @@ export class RoundManager {
       duration: this.gameState.gameConfig.roundDuration,
       currentSabotage: null,
       sabotagesDeployedCount: 0,
+      availableSabotages: SabotageManager.selectRandomSabotages(6),
       status: 'active',
     };
 
