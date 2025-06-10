@@ -9,6 +9,7 @@ import type {
   ActiveSabotage,
   PlayerScoreChange,
   PlayerRole,
+  CompletedRound,
 } from '@/types';
 
 interface GameStore {
@@ -19,6 +20,8 @@ interface GameStore {
   loading: boolean;
   error: string | null;
   timeRemaining: number;
+  currentView: 'playing' | 'summary';
+  completedRound: CompletedRound | null;
 
   // Actions - Room Management
   setGameState: (state: GameState) => void;

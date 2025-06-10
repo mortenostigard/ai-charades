@@ -34,43 +34,6 @@ function findRoomCodeByPlayerId(playerId: string): string | undefined {
   return undefined;
 }
 
-function orchestrateNextRound(io: Server, roomCode: string) {
-  setTimeout(() => {
-    const currentGameState = gameStates.get(roomCode);
-    if (!currentGameState) return;
-
-    const roundManager = new RoundManager(currentGameState);
-
-    if (roundManager.isGameComplete()) {
-      // --- END THE GAME ---
-      const finalGameState: GameState = {
-        ...currentGameState,
-        room: { ...currentGameState.room, status: 'complete' },
-      };
-      gameStates.set(roomCode, finalGameState);
-      io.to(roomCode).emit('game_complete', {
-        scores: finalGameState.scores,
-      });
-      console.log(`Game completed in room ${roomCode}`);
-    } else {
-      // --- START NEXT ROUND ---
-      const promptManager = new PromptManager(
-        currentGameState.roundHistory.map(r => r.prompt.id)
-      );
-      const nextPrompt = promptManager.getRandomPrompt();
-      const nextRoundGameState = roundManager.startRound(nextPrompt);
-
-      gameStates.set(roomCode, nextRoundGameState);
-      gameLoopManager.createLoop(roomCode, nextRoundGameState);
-
-      io.to(roomCode).emit('game_state_update', {
-        gameState: nextRoundGameState,
-      });
-      console.log(`Starting next round in room ${roomCode}`);
-    }
-  }, 5000); // 5 second delay before starting next round
-}
-
 function processRoundCompletion(
   io: Server,
   roomCode: string,
@@ -94,8 +57,6 @@ function processRoundCompletion(
     completedRound:
       newGameState.roundHistory[newGameState.roundHistory.length - 1],
   });
-
-  orchestrateNextRound(io, roomCode);
 }
 
 // --- Socket Event Handlers ---
@@ -347,6 +308,69 @@ export function handleStartGame(io: Server, socket: Socket) {
   };
 }
 
+export function handleStartRound(io: Server, socket: Socket) {
+  return (data: { roomCode: string; requestedBy: string }) => {
+    try {
+      const { roomCode, requestedBy } = data;
+      const currentGameState = gameStates.get(roomCode);
+
+      if (!currentGameState) {
+        socket.emit('game_error', {
+          code: 'ROOM_NOT_FOUND',
+          message: 'Room not found.',
+        });
+        return;
+      }
+
+      // Validate that the request comes from the room host
+      const hostId = currentGameState.room.players[0]?.id;
+      if (requestedBy !== hostId) {
+        socket.emit('game_error', {
+          code: 'UNAUTHORIZED',
+          message: 'Only the host can start the next round.',
+        });
+        return;
+      }
+
+      const roundManager = new RoundManager(currentGameState);
+
+      if (roundManager.isGameComplete()) {
+        // --- END THE GAME ---
+        const finalGameState: GameState = {
+          ...currentGameState,
+          room: { ...currentGameState.room, status: 'complete' },
+        };
+        gameStates.set(roomCode, finalGameState);
+        io.to(roomCode).emit('game_complete', {
+          scores: finalGameState.scores,
+        });
+        console.log(`Game completed in room ${roomCode}`);
+      } else {
+        // --- START NEXT ROUND ---
+        const promptManager = new PromptManager(
+          currentGameState.roundHistory.map(r => r.prompt.id)
+        );
+        const nextPrompt = promptManager.getRandomPrompt();
+        const nextRoundGameState = roundManager.startRound(nextPrompt);
+
+        gameStates.set(roomCode, nextRoundGameState);
+        gameLoopManager.createLoop(roomCode, nextRoundGameState);
+
+        io.to(roomCode).emit('game_state_update', {
+          gameState: nextRoundGameState,
+        });
+        console.log(`Starting next round in room ${roomCode}`);
+      }
+    } catch (error) {
+      console.error('Error starting next round:', error);
+      socket.emit('game_error', {
+        code: 'START_ROUND_FAILED',
+        message: 'Could not start the next round.',
+      });
+    }
+  };
+}
+
 export function handleDeploySabotage(io: Server, socket: Socket) {
   return async (data: {
     sabotageId: string;
@@ -458,6 +482,7 @@ export function initializeSocketHandlers(io: Server) {
     socket.on('join_room', handleJoinRoom(socket));
     socket.on('leave_room', handleLeaveRoom(socket));
     socket.on('start_game', handleStartGame(io, socket));
+    socket.on('start_round', handleStartRound(io, socket));
     socket.on('deploy_sabotage', handleDeploySabotage(io, socket));
     socket.on('request_game_state', handleRequestGameState(socket));
     socket.on('end_round', handleEndRound(io, socket));

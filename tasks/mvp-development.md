@@ -43,7 +43,7 @@ To keep the 3-day MVP focused, we're intentionally deferring these features, but
 
 - [x] 1.0 Initial project scaffolding and documentation review.
 - [x] 2.0 Create comprehensive specifications for Game, API, Tech, and Design.
-- [x] 3.0 Generate high-fidelity component references.
+- [x] 3.0 Generate high-fidelity component mockups.
 - [x] 4.0 Align on development plan and update `tech_spec.md`.
 
 ### Day 2: Backend, State & Lobby
@@ -83,9 +83,6 @@ To keep the 3-day MVP focused, we're intentionally deferring these features, but
   - [x] 9.4 Create `src/game/scoring-engine.ts` to implement the risk/reward logic from `docs/game_spec.md`.
   - [x] 9.5 Add game and round socket event handlers: `start_game`, `timer_update`, `deploy_sabotage`, `round_complete`.
   - [x] 9.6 Implement role assignment logic (actor, director, audience rotation).
-    - [x] 9.6.1 Enhance `RoundManager` to determine the next action (continue or end game).
-    - [x] 9.6.2 Update `endRound` handler to trigger the next round with rotated roles.
-    - [x] 9.6.3 Update `endRound` handler to trigger game completion.
 - [ ] 10.0 **Build Game Views & Basic Mechanics**
   - [x] 10.1 Create role-specific view components: `ActorView`, `DirectorView`, `AudienceView` with role-based color schemes.
   - [x] 10.1.1 Implement client-side routing in `GameRoom` to display the correct view based on game state (`waiting`, `playing`).
@@ -94,12 +91,11 @@ To keep the 3-day MVP focused, we're intentionally deferring these features, but
   - [x] 10.3 Add prompt display for the Actor.
   - [x] 10.4 Implement "Correct Guess" UI on the Director's view, allowing them to select a winner and end the round.
   - [x] 10.5 Implement basic sabotage deployment UI (Director) and notification display (Actor).
-  - [ ] 10.6 Build round completion and score display components.
-  - [ ] 10.7 Add sound feedback for sabotage notifications on mobile devices.
-  - [ ] 10.8 Build a `GameCompleteScreen` to display final scores and winner, as defined in `docs/game_spec.md`.
+  - [x] 10.6 Build round completion and score display components.
+  - [ ] 10.7 Build a `GameCompleteScreen` to display final scores and winner, as defined in `docs/game_spec.md`.
 - [ ] 11.0 **MVP Polish & Testing**
   - [ ] 11.1 Add comprehensive error handling and user feedback.
   - [ ] 11.2 Implement graceful disconnection/reconnection handling.
-  - [ ] 11.3 End-to-end testing of create room → join → play → complete flow.
-  - [ ] 11.4 Mobile responsiveness testing and touch target optimization.
-  - [ ] 11.5 Performance testing and optimization (bundle size, rendering).
+  - [ ] 11.3 Add sound feedback for sabotage notifications on mobile devices.
+  - [ ] 11.4 End-to-end testing of create room → join → play → complete flow.
+  - [ ] 11.5 Mobile responsiveness testing and touch target optimization.

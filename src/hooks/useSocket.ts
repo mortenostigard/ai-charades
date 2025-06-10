@@ -139,10 +139,8 @@ export const useSocket = () => {
 
     // --- Game Flow Events ---
     socket.on('round_complete', (data: { completedRound: CompletedRound }) => {
-      // Update the completed round history in the store and clear the current round
-      // This logic will be more complex, for now we just update scores from scoreChanges
-      const scoreChanges = data.completedRound.scoreChanges;
-      updateScores(scoreChanges);
+      const { setRoundComplete } = useGameStore.getState();
+      setRoundComplete(data.completedRound);
     });
 
     socket.on('sabotage_deployed', (data: { sabotage: ActiveSabotage }) => {

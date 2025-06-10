@@ -7,6 +7,7 @@ import ActorView from './ActorView';
 import DirectorView from './DirectorView';
 import AudienceView from './AudienceView';
 import { RoomLobby } from './room-lobby';
+import { RoundSummaryScreen } from './RoundSummaryScreen';
 
 interface GameRoomProps {
   readonly roomCode: string;
@@ -14,12 +15,18 @@ interface GameRoomProps {
 
 export function GameRoom({ roomCode }: GameRoomProps) {
   const roomStatus = useGameStore(state => state.gameState?.room.status);
+  const currentView = useGameStore(state => state.currentView);
   const currentRole = useGameStore(state => state.getCurrentRole());
   const round = useGameStore(state => state.gameState?.currentRound);
   const players = useGameStore(state => state.gameState?.room.players ?? []);
   const gameConfig = useGameStore(state => state.gameState?.gameConfig);
   const getPlayerById = useGameStore(state => state.getPlayerById);
   const { emit } = useSocket();
+
+  // If we're in summary view, show the round summary screen
+  if (currentView === 'summary') {
+    return <RoundSummaryScreen />;
+  }
 
   if (roomStatus === 'playing' && round && gameConfig) {
     const actor = getPlayerById(round.actorId);
