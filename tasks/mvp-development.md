@@ -92,7 +92,7 @@ To keep the 3-day MVP focused, we're intentionally deferring these features, but
   - [x] 10.4 Implement "Correct Guess" UI on the Director's view, allowing them to select a winner and end the round.
   - [x] 10.5 Implement basic sabotage deployment UI (Director) and notification display (Actor).
   - [x] 10.6 Build round completion and score display components.
-  - [ ] 10.7 Build a `GameCompleteScreen` to display final scores and winner, as defined in `docs/game_spec.md`.
+  - [x] 10.7 Build a `GameCompleteScreen` to display final scores and winner, as defined in `docs/game_spec.md`.
 - [ ] 11.0 **MVP Polish & Testing**
   - [ ] 11.1 Add comprehensive error handling and user feedback.
   - [ ] 11.2 Implement graceful disconnection/reconnection handling.

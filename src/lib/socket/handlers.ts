@@ -47,16 +47,38 @@ function processRoundCompletion(
 
   // Use the RoundManager to handle the core logic of ending a round.
   const roundManager = new RoundManager(gameState);
-  const { newGameState } = roundManager.endRound(winnerId);
+  let { newGameState } = roundManager.endRound(winnerId);
 
-  // Persist the new state.
-  gameStates.set(roomCode, newGameState);
+  // Check if the game is complete after this round
+  const updatedRoundManager = new RoundManager(newGameState);
+  if (updatedRoundManager.isGameComplete()) {
+    // Update game state to complete status
+    newGameState = {
+      ...newGameState,
+      room: { ...newGameState.room, status: 'complete' },
+    };
 
-  // Notify all clients that the round is complete with the results.
-  io.to(roomCode).emit('round_complete', {
-    completedRound:
-      newGameState.roundHistory[newGameState.roundHistory.length - 1],
-  });
+    // Persist the complete state
+    gameStates.set(roomCode, newGameState);
+
+    // Broadcast game completion
+    io.to(roomCode).emit('game_state_update', {
+      gameState: newGameState,
+      message: 'Game complete! All players have acted.',
+      shouldReconnect: false,
+    });
+
+    console.log(`Game completed in room ${roomCode}`);
+  } else {
+    // Persist the new state
+    gameStates.set(roomCode, newGameState);
+
+    // Notify all clients that the round is complete with the results
+    io.to(roomCode).emit('round_complete', {
+      completedRound:
+        newGameState.roundHistory[newGameState.roundHistory.length - 1],
+    });
+  }
 }
 
 // --- Socket Event Handlers ---
@@ -276,28 +298,66 @@ export function handleDisconnect(socket: Socket) {
 export function handleStartGame(io: Server, socket: Socket) {
   return (data: { roomCode: string; requestedBy: string }) => {
     try {
-      const { roomCode } = data;
+      const { roomCode, requestedBy } = data;
       const gameState = gameStates.get(roomCode);
 
       if (!gameState) {
         throw new Error('Game state not found');
       }
-      // TODO: Add validation to ensure only host can start
 
-      // Game is ready to start
-      const roundManager = new RoundManager(gameState);
-      const promptManager = new PromptManager(
-        gameState.roundHistory.map(r => r.prompt.id)
-      );
-      const prompt = promptManager.getRandomPrompt();
-      const newGameState = roundManager.startRound(prompt);
+      // Validate that the request comes from the room host
+      const hostId = gameState.room.players[0]?.id;
+      if (requestedBy !== hostId) {
+        socket.emit('game_error', {
+          code: 'UNAUTHORIZED',
+          message: 'Only the host can start the game.',
+        });
+        return;
+      }
 
-      gameStates.set(roomCode, newGameState);
-      gameLoopManager.createLoop(roomCode, newGameState);
+      let newGameState: GameState;
 
-      io.to(roomCode).emit('game_state_update', { gameState: newGameState });
+      if (gameState.room.status === 'complete') {
+        // Play Again: Reset game state while keeping players
+        newGameState = {
+          ...gameState,
+          room: { ...gameState.room, status: 'waiting' },
+          currentRound: null,
+          scores: Object.fromEntries(
+            gameState.room.players.map(player => [player.id, 0])
+          ),
+          roundHistory: [],
+        };
 
-      console.log(`Game started in room ${roomCode}`);
+        // Update state and broadcast the reset
+        gameStates.set(roomCode, newGameState);
+        io.to(roomCode).emit('game_state_update', {
+          gameState: newGameState,
+          message: 'Game reset. Ready to play again!',
+          shouldReconnect: false,
+        });
+
+        console.log(`Game reset for play again in room ${roomCode}`);
+      } else {
+        // Start new game from waiting state
+        const roundManager = new RoundManager(gameState);
+        const promptManager = new PromptManager(
+          gameState.roundHistory.map(r => r.prompt.id)
+        );
+        const prompt = promptManager.getRandomPrompt();
+        newGameState = roundManager.startRound(prompt);
+
+        gameStates.set(roomCode, newGameState);
+        gameLoopManager.createLoop(roomCode, newGameState);
+
+        io.to(roomCode).emit('game_state_update', {
+          gameState: newGameState,
+          message: 'Game started!',
+          shouldReconnect: false,
+        });
+
+        console.log(`Game started in room ${roomCode}`);
+      }
     } catch (error) {
       console.error('Error starting game:', error);
       socket.emit('game_error', {

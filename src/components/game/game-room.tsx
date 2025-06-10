@@ -1,5 +1,7 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
+
 import { useGameStore } from '@/stores/gameStore';
 import { useSocket } from '@/hooks/useSocket';
 
@@ -8,12 +10,15 @@ import DirectorView from './director-view';
 import AudienceView from './audience-view';
 import { RoomLobby } from './room-lobby';
 import { RoundSummaryScreen } from './round-summary-screen';
+import { GameCompleteScreen } from './game-complete-screen';
 
 interface GameRoomProps {
   readonly roomCode: string;
 }
 
 export function GameRoom({ roomCode }: GameRoomProps) {
+  const router = useRouter();
+  const gameState = useGameStore(state => state.gameState);
   const roomStatus = useGameStore(state => state.gameState?.room.status);
   const currentView = useGameStore(state => state.currentView);
   const currentRole = useGameStore(state => state.getCurrentRole());
@@ -21,7 +26,29 @@ export function GameRoom({ roomCode }: GameRoomProps) {
   const players = useGameStore(state => state.gameState?.room.players ?? []);
   const gameConfig = useGameStore(state => state.gameState?.gameConfig);
   const getPlayerById = useGameStore(state => state.getPlayerById);
+  const myPlayer = useGameStore(state => state.getMyPlayer());
+  const resetState = useGameStore(state => state.resetState);
   const { emit } = useSocket();
+
+  // If game is complete, show the game complete screen
+  if (roomStatus === 'complete' && gameState && myPlayer) {
+    return (
+      <GameCompleteScreen
+        gameState={gameState}
+        currentPlayerId={myPlayer.id}
+        onPlayAgainAction={() => {
+          emit('start_game', {
+            roomCode,
+            requestedBy: myPlayer.id,
+          });
+        }}
+        onBackToHomeAction={() => {
+          resetState();
+          router.push('/');
+        }}
+      />
+    );
+  }
 
   // If we're in summary view, show the round summary screen
   if (currentView === 'summary') {
