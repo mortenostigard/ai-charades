@@ -6,7 +6,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { GameRoom } from '@/components/game/game-room';
 import { useGameStore } from '@/stores/gameStore';
 import { JoinGate } from '@/components/game/join-gate';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { LoadingSpinner } from '@/components/game/loading-spinner';
 
 export default function RoomPage() {
   const router = useRouter();

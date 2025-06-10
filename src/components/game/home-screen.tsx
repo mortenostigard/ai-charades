@@ -8,10 +8,10 @@ import { useSocket } from '@/hooks/useSocket';
 import { useGameStore } from '@/stores/gameStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PlayerNameInput } from '@/components/ui/player-name-input';
-import { RoomCodeInput } from '@/components/ui/room-code-input';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { ErrorMessage } from '@/components/ui/error-message';
+import { PlayerNameInput } from '@/components/game/player-name-input';
+import { RoomCodeInput } from '@/components/game/room-code-input';
+import { LoadingSpinner } from '@/components/game/loading-spinner';
+import { ErrorMessage } from '@/components/game/error-message';
 
 export function HomeScreen() {
   const router = useRouter();

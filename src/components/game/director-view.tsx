@@ -11,7 +11,7 @@ import { useSabotage } from '@/hooks/useSabotage';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
 import { GameTimer } from './game-timer';
-import { WinnerSelectionDialog } from './WinnerSelectionDialog';
+import { WinnerSelectionDialog } from './winner-selection-dialog';
 
 interface DirectorViewProps {
   readonly activeSabotage: ActiveSabotage | null;

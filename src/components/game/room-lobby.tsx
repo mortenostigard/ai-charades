@@ -12,8 +12,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ErrorMessage } from '@/components/ui/error-message';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { ErrorMessage } from '@/components/game/error-message';
+import { LoadingSpinner } from '@/components/game/loading-spinner';
 
 interface RoomLobbyProps {
   readonly roomCode: string;

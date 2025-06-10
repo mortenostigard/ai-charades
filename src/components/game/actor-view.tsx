@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ActiveSabotage } from '@/types';
 
 import { GameTimer } from './game-timer';
-import { SabotageAlert } from './SabotageAlert';
+import { SabotageAlert } from './sabotage-alert';
 
 interface ActorViewProps {
   readonly prompt: string;

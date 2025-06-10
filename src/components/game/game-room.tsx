@@ -3,11 +3,11 @@
 import { useGameStore } from '@/stores/gameStore';
 import { useSocket } from '@/hooks/useSocket';
 
-import ActorView from './ActorView';
-import DirectorView from './DirectorView';
-import AudienceView from './AudienceView';
+import ActorView from './actor-view';
+import DirectorView from './director-view';
+import AudienceView from './audience-view';
 import { RoomLobby } from './room-lobby';
-import { RoundSummaryScreen } from './RoundSummaryScreen';
+import { RoundSummaryScreen } from './round-summary-screen';
 
 interface GameRoomProps {
   readonly roomCode: string;
