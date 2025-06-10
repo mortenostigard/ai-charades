@@ -40,6 +40,7 @@
 
 - **Success/Active**: Green variants (`text-green-400`, `bg-green-900/40`)
 - **Warning/Sabotage**: Red variants (`text-red-400`, `bg-red-900/40`)
+- **Grace Period**: Amber variants (`text-amber-400`, `bg-amber-900/40`)
 - **Neutral/Disabled**: Gray variants (`text-gray-400`, `bg-gray-900/60`)
 
 ## Typography
@@ -135,6 +136,12 @@
 - Use gradient backgrounds with transparency: `bg-gradient-to-r from-{color}-900/40`
 - Border with matching color: `border-{color}-600/50`
 - Text with lighter variant: `text-{color}-300`
+
+### Grace Period States
+
+- **Locked State**: Use lock icon with amber colors and countdown text
+- **Unlocked Transition**: Smooth animation from amber to green with glow effect
+- **Countdown Display**: `text-amber-300` with format "Sabotages available in Xs"
 
 ### Interactive Elements
 

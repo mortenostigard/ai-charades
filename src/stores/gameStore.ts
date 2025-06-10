@@ -51,7 +51,6 @@ interface GameStore {
   getPlayerById: (id: string) => Player | undefined;
   isInRoom: () => boolean;
   getMyPlayer: () => Player | undefined;
-  getTimeRemaining: () => number;
 }
 
 const initialState = {
@@ -248,17 +247,6 @@ export const useGameStore = create<GameStore>()(
       const state = get();
       const { playerId } = state;
       return playerId ? state.getPlayerById(playerId) : undefined;
-    },
-
-    getTimeRemaining: () => {
-      const { gameState } = get();
-
-      if (!gameState?.currentRound) return 0;
-
-      const { startTime, duration } = gameState.currentRound;
-      const elapsed = Date.now() - startTime;
-
-      return Math.max(0, duration - elapsed);
     },
   }))
 );

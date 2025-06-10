@@ -162,6 +162,12 @@ export const useSocket = () => {
       // addReaction(data.reaction);
     });
 
+    // --- Timer Events ---
+    socket.on('timer_update', (data: { timeRemaining: number }) => {
+      const { setTimeRemaining } = useGameStore.getState();
+      setTimeRemaining(data.timeRemaining);
+    });
+
     // --- Generic Error/State Sync ---
     socket.on('game_error', (error: { code: string; message: string }) => {
       setError(error.message);

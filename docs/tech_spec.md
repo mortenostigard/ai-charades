@@ -57,11 +57,21 @@ The `/design-mockups/screens` directory contains high-fidelity, functional React
 The `/src/game/` directory contains pure game logic, separated from UI and infrastructure concerns:
 
 - **`room-manager.ts`** - Room creation, player management, state storage
-- **`round-manager.ts`** - Round lifecycle, timer management, role rotation
+- **`round-manager.ts`** - Round lifecycle, role rotation, delegates to GameLoop
+- **`game-loop.ts`** - Server-authoritative timer with 1-second broadcasts to clients
 - **`scoring-engine.ts`** - Risk/reward calculations, point distribution
 - **`sabotage-manager.ts`** - Sabotage deployment, timing constraints, compatibility
 - **`prompt-manager.ts`** - Game prompts selection and categorization
 - **`game-rules.ts`** - Core game constants and validation rules
+
+#### Timer Implementation
+
+The game timer is **server-authoritative** to ensure synchronized gameplay:
+
+- **GameLoop** manages timer intervals and broadcasts `timer_update` events
+- **RoundManager** delegates timer responsibility to GameLoop
+- **Client Store** receives timer updates via socket events, no local calculation
+- **Grace Period Logic** uses server timestamps for accurate validation
 
 This separation allows the game logic to be tested independently and potentially reused across different interfaces.
 
@@ -69,16 +79,13 @@ This separation allows the game logic to be tested independently and potentially
 
 - **Single Zustand Store**: Centralized game state
 - **Socket Synchronization**: Server authoritative, optimistic client updates
-- **Immutable Updates**: Predictable state changes
-- **Computed Selectors**: Derived values (current role, can deploy sabotage)
+- **Immutable Updates**: Predictable state changes using Immer middleware
+- **Computed Selectors**: Derived values (current role, host status, sabotage eligibility)
 
 ### Custom Hooks Pattern
 
 - `useSocket()`: WebSocket connection and event management
-- `useGameState()`: Game state access with selectors
-- `useRole()`: Current player's role and permissions
-- `useTimer()`: Round countdown with callbacks
-- `useSabotage()`: Sabotage deployment logic and constraints
+- `useSabotage()`: Sabotage deployment logic and grace period state
 
 ## Real-Time Communication
 
@@ -95,6 +102,9 @@ This separation allows the game logic to be tested independently and potentially
 - **Optimistic Updates**: UI updates immediately, server confirms
 - **Conflict Resolution**: Server timestamp wins on disputes
 - **Reconnection Handling**: Resume game state on network recovery
+
+### Deployment Architecture
+
 - **Main Application**: Deployed to Vercel to leverage its global CDN, serverless functions for standard API routes, and CI/CD pipeline.
 - **Socket.IO Server**: The real-time server (`server.ts`) will be deployed separately to a long-running container service. The Next.js client will connect to this service's public URL, configured via environment variables.
 - **Environment Variables**: `NEXT_PUBLIC_SOCKET_URL` will be used to tell the client where to connect.

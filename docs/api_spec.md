@@ -220,6 +220,11 @@ interface ScoreUpdate {
   roomCode: string
   requestedBy: string
 }
+
+// Request current game state (for reconnection)
+'request_game_state': {
+  playerId: string
+}
 ```
 
 #### Server → Client
@@ -240,7 +245,6 @@ interface ScoreUpdate {
 // Game timer update
 'timer_update': {
   timeRemaining: number
-  roundStatus: 'grace_period' | 'sabotage_allowed' | 'ending_soon'
 }
 
 // Game state synchronized

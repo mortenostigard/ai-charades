@@ -15,35 +15,7 @@ export default function RoomPage() {
   const myPlayer = useGameStore(state => state.getMyPlayer());
   const loading = useGameStore(state => state.loading);
   const error = useGameStore(state => state.error);
-  const currentRound = useGameStore(state => state.gameState?.currentRound);
   const resetState = useGameStore(state => state.resetState);
-  const setTimeRemaining = useGameStore(state => state.setTimeRemaining);
-
-  // Effect to manage the game timer countdown
-  useEffect(() => {
-    if (!currentRound) {
-      setTimeRemaining(0);
-      return;
-    }
-
-    const { startTime, duration } = currentRound;
-
-    // Set initial time immediately
-    const initialElapsed = Date.now() - startTime;
-    setTimeRemaining(Math.max(0, duration - initialElapsed));
-
-    const intervalId = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const newTimeRemaining = Math.max(0, duration - elapsed);
-      setTimeRemaining(newTimeRemaining);
-
-      if (newTimeRemaining === 0) {
-        clearInterval(intervalId);
-      }
-    }, 250); // Update 4 times a second for smoothness
-
-    return () => clearInterval(intervalId);
-  }, [currentRound, setTimeRemaining]);
 
   // Effect to handle navigation if gameState is ever cleared (e.g., player leaves)
   useEffect(() => {
