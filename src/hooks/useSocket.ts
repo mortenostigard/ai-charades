@@ -8,10 +8,9 @@ import {
   GameState,
   Player,
   Room,
-  CurrentRound,
-  ScoreUpdate,
   ActiveSabotage,
   EmojiReaction,
+  CompletedRound,
 } from '@/types';
 
 // This ensures the hook only runs once, preventing multiple socket connections.
@@ -139,14 +138,12 @@ export const useSocket = () => {
     });
 
     // --- Game Flow Events ---
-    socket.on(
-      'round_complete',
-      (data: { round: CurrentRound; scores: ScoreUpdate[] }) => {
-        // Update the completed round history in the store and clear the current round
-        // This logic will be more complex, for now we just clear the round
-        updateScores(data.scores);
-      }
-    );
+    socket.on('round_complete', (data: { completedRound: CompletedRound }) => {
+      // Update the completed round history in the store and clear the current round
+      // This logic will be more complex, for now we just update scores from scoreChanges
+      const scoreChanges = data.completedRound.scoreChanges;
+      updateScores(scoreChanges);
+    });
 
     socket.on('sabotage_deployed', (data: { sabotage: ActiveSabotage }) => {
       deployActiveSabotage(data.sabotage);

@@ -4,10 +4,9 @@ import {
   GamePrompt,
   GameState,
   Player,
-  ScoreUpdate,
 } from '../types';
 
-import { ScoringEngine } from './scoring-engine';
+import { ScoringEngine, ScoringData } from './scoring-engine';
 import { SabotageManager } from './sabotage-manager';
 
 /**
@@ -68,31 +67,37 @@ export class RoundManager {
   /**
    * Ends the current round, calculates scores, and returns the new state.
    * @param winnerId The ID of the player who won the round, if any.
-   * @returns An object containing the updated GameState and the specific score changes for the round.
+   * @returns An object containing the updated GameState.
    */
   public endRound(winnerId?: string): {
     newGameState: GameState;
-    scoreUpdates: ScoreUpdate[];
   } {
     if (!this.gameState.currentRound) {
       // This should ideally not be reached if called correctly
       throw new Error('No active round to end.');
     }
 
+    const outcome = winnerId ? 'correct_guess' : 'time_up';
+    const scoringData: ScoringData = {
+      winnerId: winnerId || null,
+      currentRound: this.gameState.currentRound,
+    };
+    const { newScores, scoreChanges } = ScoringEngine.calculateScores(
+      this.gameState.scores,
+      scoringData
+    );
+
     const completedRound: CompletedRound = {
       roundNumber: this.gameState.currentRound.number,
       actorId: this.gameState.currentRound.actorId,
       directorId: this.gameState.currentRound.directorId,
       prompt: this.gameState.currentRound.prompt,
-      winner: winnerId || null,
+      outcome,
+      winnerId,
       sabotagesUsed: this.gameState.currentRound.sabotagesDeployedCount,
+      scoreChanges,
       completedAt: Date.now(),
     };
-
-    const { newScores, scoreUpdates } = ScoringEngine.calculateScores(
-      this.gameState.scores,
-      { winnerId: winnerId || null, completedRound }
-    );
 
     const newGameState: GameState = {
       ...this.gameState,
@@ -101,7 +106,7 @@ export class RoundManager {
       scores: newScores,
     };
 
-    return { newGameState, scoreUpdates };
+    return { newGameState };
   }
 
   /**

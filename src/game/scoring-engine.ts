@@ -1,13 +1,13 @@
-import { ScoreUpdate, CompletedRound } from '@/types';
+import { PlayerScoreChange, CurrentRound } from '@/types';
 
 /**
- * Defines the outcome of a completed round, which is needed to calculate scores.
+ * Data needed to calculate scores from a completed round.
  */
-export interface RoundOutcome {
+export interface ScoringData {
   /** The player who correctly guessed the prompt. Null if the round timed out. */
   winnerId: string | null;
-  /** The completed round data. */
-  completedRound: CompletedRound;
+  /** The current round data (before completion). */
+  currentRound: CurrentRound;
 }
 
 /**
@@ -22,32 +22,27 @@ export class ScoringEngine {
   /**
    * Calculates the new scores for all players based on the round's outcome.
    * @param currentScores The record of player IDs to their current scores.
-   * @param outcome The result of the completed round.
-   * @returns An object containing the new scores record and a list of individual score updates.
+   * @param input The result of the completed round.
+   * @returns An object containing the new scores record and a list of individual score changes.
    */
   public static calculateScores(
     currentScores: Record<string, number>,
-    outcome: RoundOutcome
+    data: ScoringData
   ): {
     newScores: Record<string, number>;
-    scoreUpdates: ScoreUpdate[];
+    scoreChanges: PlayerScoreChange[];
   } {
-    const { winnerId, completedRound } = outcome;
-    const { actorId, directorId, sabotagesUsed } = completedRound;
+    const { winnerId, currentRound } = data;
+    const { actorId, directorId, sabotagesDeployedCount } = currentRound;
     const newScores = { ...currentScores };
-    const scoreUpdates: ScoreUpdate[] = [];
+    const scoreChanges: PlayerScoreChange[] = [];
 
-    const createUpdate = (
-      playerId: string,
-      points: number,
-      reason: ScoreUpdate['reason']
-    ): void => {
+    const createUpdate = (playerId: string, points: number): void => {
       if (points !== 0) {
         newScores[playerId] = (newScores[playerId] || 0) + points;
-        scoreUpdates.push({
+        scoreChanges.push({
           playerId,
-          pointsAwarded: points,
-          reason,
+          pointsEarned: points,
           totalScore: newScores[playerId],
         });
       }
@@ -56,18 +51,18 @@ export class ScoringEngine {
     if (winnerId) {
       // --- Scenario: Audience Guessed Correctly ---
       // Actor gets +2 points
-      createUpdate(actorId, 2, 'successful_acting');
+      createUpdate(actorId, 2);
       // Director loses 1 point per sabotage used
-      createUpdate(directorId, -sabotagesUsed, 'failed_direction');
+      createUpdate(directorId, -sabotagesDeployedCount);
       // Correct guesser gets +1 point
-      createUpdate(winnerId, 1, 'correct_guess');
+      createUpdate(winnerId, 1);
     } else {
       // --- Scenario: No One Guessed (Timeout) ---
       // Director gets +2 points for successful sabotage
-      createUpdate(directorId, 2, 'successful_direction');
+      createUpdate(directorId, 2);
       // Actor gets 0 points, so no update is created
     }
 
-    return { newScores, scoreUpdates };
+    return { newScores, scoreChanges };
   }
 }

@@ -84,15 +84,15 @@ function processRoundCompletion(
 
   // Use the RoundManager to handle the core logic of ending a round.
   const roundManager = new RoundManager(gameState);
-  const { newGameState, scoreUpdates } = roundManager.endRound(winnerId);
+  const { newGameState } = roundManager.endRound(winnerId);
 
   // Persist the new state.
   gameStates.set(roomCode, newGameState);
 
   // Notify all clients that the round is complete with the results.
   io.to(roomCode).emit('round_complete', {
-    round: newGameState.roundHistory[newGameState.roundHistory.length - 1],
-    scores: scoreUpdates,
+    completedRound:
+      newGameState.roundHistory[newGameState.roundHistory.length - 1],
   });
 
   orchestrateNextRound(io, roomCode);

@@ -7,7 +7,8 @@ import type {
   Room,
   CurrentRound,
   ActiveSabotage,
-  ScoreUpdate,
+  PlayerScoreChange,
+  PlayerRole,
 } from '@/types';
 
 interface GameStore {
@@ -37,15 +38,16 @@ interface GameStore {
 
   // Actions - Round Management
   setCurrentRound: (round: CurrentRound | null) => void;
-  updateScores: (scoreUpdates: ScoreUpdate[]) => void;
+  updateScores: (scoreUpdates: PlayerScoreChange[]) => void;
   deployActiveSabotage: (sabotage: ActiveSabotage) => void;
   removeActiveSabotage: () => void;
+  setRoundComplete: (completedRound: CompletedRound) => void;
 
   // Actions - Reset
   resetState: () => void;
 
   // Computed Selectors
-  getCurrentRole: () => 'actor' | 'director' | 'audience' | null;
+  getCurrentRole: () => PlayerRole | undefined;
   isHost: () => boolean;
   canStartGame: () => boolean;
   getPlayerById: (id: string) => Player | undefined;
@@ -60,6 +62,8 @@ const initialState = {
   loading: false,
   error: null,
   timeRemaining: 0,
+  currentView: 'playing' as const,
+  completedRound: null,
 };
 
 export const useGameStore = create<GameStore>()(
@@ -71,6 +75,7 @@ export const useGameStore = create<GameStore>()(
       set(draft => {
         draft.gameState = state;
         draft.error = null;
+        draft.currentView = 'playing';
       }),
 
     setPlayerId: (id: string) =>
@@ -162,7 +167,7 @@ export const useGameStore = create<GameStore>()(
         }
       }),
 
-    updateScores: (scoreUpdates: ScoreUpdate[]) =>
+    updateScores: (scoreUpdates: PlayerScoreChange[]) =>
       set(draft => {
         if (draft.gameState?.scores) {
           scoreUpdates.forEach(update => {
@@ -188,6 +193,12 @@ export const useGameStore = create<GameStore>()(
         }
       }),
 
+    setRoundComplete: (completedRound: CompletedRound) =>
+      set(draft => {
+        draft.completedRound = completedRound;
+        draft.currentView = 'summary';
+      }),
+
     // Reset state (for leaving room, etc.)
     resetState: () =>
       set(state => ({
@@ -201,7 +212,7 @@ export const useGameStore = create<GameStore>()(
       const state = get();
       const { gameState, playerId } = state;
 
-      if (!gameState?.currentRound || !playerId) return null;
+      if (!gameState?.currentRound || !playerId) return undefined;
 
       const { actorId, directorId } = gameState.currentRound;
 

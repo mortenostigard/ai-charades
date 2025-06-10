@@ -2,115 +2,31 @@
 
 ## TypeScript Interfaces
 
-### Core Data Types
+All TypeScript interfaces are defined in `src/types/index.ts`. Import them as:
 
 ```typescript
-interface Player {
-  id: string;
-  name: string;
-  connected: boolean;
-  joinedAt: number;
-}
-
-interface Room {
-  code: string;
-  players: Player[];
-  status: 'waiting' | 'playing' | 'paused' | 'complete';
-  createdAt: number;
-  maxPlayers: number;
-}
-
-interface GameState {
-  room: Room;
-  currentRound: CurrentRound | null;
-  scores: Record<string, number>;
-  gameConfig: GameConfig;
-  roundHistory: CompletedRound[];
-}
-
-interface CurrentRound {
-  number: number;
-  actorId: string;
-  directorId: string;
-  prompt: GamePrompt;
-  startTime: number;
-  duration: number;
-  currentSabotage: ActiveSabotage | null;
-  sabotagesDeployedCount: number;
-  availableSabotages: SabotageAction[];
-  status: 'active' | 'complete';
-}
-
-interface GamePrompt {
-  id: string;
-  text: string;
-  category:
-    | 'modern_life'
-    | 'emotional'
-    | 'social_media'
-    | 'social_situations'
-    | 'professional'
-    | 'technology'
-    | 'abstract';
-  difficulty: 'easy' | 'medium' | 'hard';
-}
-
-interface SabotageAction {
-  id: string;
-  name: string;
-  description: string;
-  duration: number;
-  category:
-    | 'emotion'
-    | 'physical'
-    | 'environment'
-    | 'character'
-    | 'sensory'
-    | 'meta';
-}
-
-interface ActiveSabotage {
-  action: SabotageAction;
-  deployedAt: number;
-  endsAt: number;
-  deployedBy: string;
-}
-
-interface GameConfig {
-  roundDuration: number;
-  gracePeriod: number;
-  maxSabotages: number;
-  sabotageTypes: SabotageAction[];
-}
-
-interface CompletedRound {
-  roundNumber: number;
-  actorId: string;
-  directorId: string;
-  prompt: GamePrompt;
-  winner: string | null;
-  sabotagesUsed: number;
-  completedAt: number;
-}
-
-interface EmojiReaction {
-  fromPlayerId: string;
-  toPlayerId: string; // The Actor
-  emoji: '😂' | '🔥' | '🤔' | '😴'; // Example set
-  timestamp: number;
-}
-
-interface ScoreUpdate {
-  playerId: string;
-  pointsAwarded: number;
-  reason:
-    | 'correct_guess'
-    | 'successful_acting'
-    | 'successful_direction'
-    | 'failed_direction';
-  totalScore: number;
-}
+import {
+  Player,
+  Room,
+  GameState,
+  CurrentRound,
+  CompletedRound,
+  ScoreUpdate,
+  GamePrompt,
+  SabotageAction,
+  ActiveSabotage,
+  GameConfig,
+  EmojiReaction,
+} from '@/types';
 ```
+
+Key interfaces include:
+
+- `Player` - Game room participant with connection status
+- `GameState` - Complete game state including room, scores, and round history
+- `CurrentRound` - Active round with timer, roles, and available sabotages
+- `CompletedRound` - Finished round with winner and sabotage count
+- `ScoreUpdate` - Point changes from round completion with reasoning
 
 ## Socket Events
 
