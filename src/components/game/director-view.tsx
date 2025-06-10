@@ -4,44 +4,63 @@ import { useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Zap } from 'lucide-react';
 
-import { SabotageAction, ActiveSabotage, Player } from '@/types';
+import { SabotageAction } from '@/types';
 import { Button } from '@/components/ui/button';
 import { useSabotage } from '@/hooks/useSabotage';
+import { useGameStore } from '@/stores/gameStore';
+import { useSocket } from '@/hooks/useSocket';
 
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 
 import { GameTimer } from './game-timer';
 import { WinnerSelectionDialog } from './winner-selection-dialog';
 
-interface DirectorViewProps {
-  readonly activeSabotage: ActiveSabotage | null;
-  readonly onDeploySabotageAction: (sabotage: SabotageAction) => void;
-  readonly audience: Player[];
-  readonly onSelectWinnerAction: (playerId: string) => void;
-  readonly roundNumber: number;
-  readonly availableSabotages: SabotageAction[];
-  readonly sabotagesDeployedCount: number;
-  readonly maxSabotages: number;
-}
-
-export default function DirectorView({
-  activeSabotage,
-  onDeploySabotageAction,
-  audience,
-  onSelectWinnerAction,
-  roundNumber,
-  availableSabotages,
-  sabotagesDeployedCount,
-  maxSabotages,
-}: DirectorViewProps) {
+export default function DirectorView() {
   const { canDeploySabotage, gracePeriodState } = useSabotage();
+  const { emit } = useSocket();
+
+  const round = useGameStore(state => state.gameState?.currentRound);
+  const gameConfig = useGameStore(state => state.gameState?.gameConfig);
+  const roomCode = useGameStore(state => state.gameState?.room.code);
+  const players = useGameStore(state => state.gameState?.room.players);
 
   const handleDeploySabotage = useCallback(
     (sabotage: SabotageAction) => {
-      onDeploySabotageAction(sabotage);
+      if (roomCode && round) {
+        emit('deploy_sabotage', {
+          roomCode,
+          sabotageId: sabotage.id,
+          directorId: round.directorId,
+          timestamp: Date.now(),
+        });
+      }
     },
-    [onDeploySabotageAction]
+    [emit, roomCode, round]
   );
+
+  const onSelectWinnerAction = useCallback(
+    (winnerId: string) => {
+      if (roomCode) {
+        emit('end_round', { roomCode, winnerId });
+      }
+    },
+    [emit, roomCode]
+  );
+
+  if (!round || !gameConfig || !roomCode || !players) {
+    return null;
+  }
+
+  const {
+    currentSabotage: activeSabotage,
+    number: roundNumber,
+    availableSabotages,
+    sabotagesDeployedCount,
+    actorId,
+    directorId,
+  } = round;
+  const { maxSabotages } = gameConfig;
+  const audience = players.filter(p => p.id !== actorId && p.id !== directorId);
 
   const getSabotageClasses = (isActive: boolean, isDisabled: boolean) => {
     if (isActive) {

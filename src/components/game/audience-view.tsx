@@ -3,18 +3,26 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { Player } from '@/types';
+import { useGameStore } from '@/stores/gameStore';
 
 import { GameTimer } from './game-timer';
 
-interface AudienceViewProps {
-  readonly actor: Player;
-  readonly director: Player;
-}
-
-export default function AudienceView({ actor, director }: AudienceViewProps) {
+export default function AudienceView() {
   const [reactionsUsed, setReactionsUsed] = useState(0);
   const [recentReaction, setRecentReaction] = useState<string | null>(null);
+  const round = useGameStore(state => state.gameState?.currentRound);
+  const getPlayerById = useGameStore(state => state.getPlayerById);
+
+  if (!round) {
+    return null;
+  }
+
+  const actor = getPlayerById(round.actorId);
+  const director = getPlayerById(round.directorId);
+
+  if (!actor || !director) {
+    return null;
+  }
 
   // Handle reaction button click
   const handleReaction = (emoji: string) => {

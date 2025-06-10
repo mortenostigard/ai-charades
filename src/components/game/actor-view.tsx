@@ -4,21 +4,27 @@ import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
 import { Card, CardContent } from '@/components/ui/card';
+import { useGameStore } from '@/stores/gameStore';
 import { ActiveSabotage } from '@/types';
 
 import { GameTimer } from './game-timer';
 import { SabotageAlert } from './sabotage-alert';
 
-interface ActorViewProps {
-  readonly prompt: string;
-  readonly activeSabotage: ActiveSabotage | null;
-}
-
-export default function ActorView({ prompt, activeSabotage }: ActorViewProps) {
+export default function ActorView() {
+  const prompt = useGameStore(
+    state => state.gameState?.currentRound?.prompt.text
+  );
+  const activeSabotage =
+    useGameStore(state => state.gameState?.currentRound?.currentSabotage) ??
+    null;
   const prevSabotageRef = useRef<ActiveSabotage | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    if (activeSabotage && !prevSabotageRef.current) {
+    if (
+      activeSabotage &&
+      prevSabotageRef.current?.action.id !== activeSabotage.action.id
+    ) {
       if (audioRef.current) {
         audioRef.current.currentTime = 0;
         audioRef.current
@@ -29,8 +35,6 @@ export default function ActorView({ prompt, activeSabotage }: ActorViewProps) {
 
     prevSabotageRef.current = activeSabotage;
   }, [activeSabotage]);
-
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     audioRef.current = new Audio('/sabotage-alert.mp3');

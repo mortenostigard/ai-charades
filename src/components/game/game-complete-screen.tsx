@@ -1,27 +1,47 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Crown, Home, RotateCcw } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { GameState } from '@/types';
+import { useGameStore } from '@/stores/gameStore';
+import { useSocket } from '@/hooks/useSocket';
 
-interface GameCompleteScreenProps {
-  readonly gameState: GameState;
-  readonly currentPlayerId: string;
-  readonly onPlayAgainAction: () => void;
-  readonly onBackToHomeAction: () => void;
-}
+export function GameCompleteScreen() {
+  const router = useRouter();
+  const { emit } = useSocket();
+  const gameState = useGameStore(state => state.gameState);
+  const myPlayer = useGameStore(state => state.getMyPlayer());
+  const resetState = useGameStore(state => state.resetState);
 
-export function GameCompleteScreen({
-  gameState,
-  currentPlayerId,
-  onPlayAgainAction,
-  onBackToHomeAction,
-}: GameCompleteScreenProps) {
   const [showWinner, setShowWinner] = useState(false);
+
+  const onPlayAgainAction = useCallback(() => {
+    if (gameState?.room.code && myPlayer?.id) {
+      emit('start_game', {
+        roomCode: gameState.room.code,
+        requestedBy: myPlayer.id,
+      });
+    }
+  }, [emit, gameState, myPlayer]);
+
+  const onBackToHomeAction = useCallback(() => {
+    resetState();
+    router.push('/');
+  }, [resetState, router]);
+
+  // Animation sequence
+  useEffect(() => {
+    const timer = setTimeout(() => setShowWinner(true), 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!gameState || !myPlayer) {
+    return null;
+  }
 
   // Get sorted players by final score
   const getFinalRankings = () => {
@@ -35,13 +55,20 @@ export function GameCompleteScreen({
 
   const finalRankings = getFinalRankings();
   const winner = finalRankings[0];
-  const isHost = gameState.room.players[0]?.id === currentPlayerId;
+  const isHost = gameState.room.players[0]?.id === myPlayer.id;
 
-  // Animation sequence
-  useEffect(() => {
-    const timer = setTimeout(() => setShowWinner(true), 2000);
-    return () => clearTimeout(timer);
-  }, []);
+  const getRankingBadgeClasses = (index: number) => {
+    switch (index) {
+      case 0:
+        return 'bg-gradient-to-r from-yellow-400 to-orange-400 text-black';
+      case 1:
+        return 'bg-gradient-to-r from-gray-300 to-gray-400 text-black';
+      case 2:
+        return 'bg-gradient-to-r from-orange-400 to-orange-600 text-white';
+      default:
+        return 'bg-gray-700 text-gray-300';
+    }
+  };
 
   return (
     <div className='min-h-screen bg-gray-950 text-white flex flex-col p-4 relative overflow-hidden'>
@@ -99,15 +126,9 @@ export function GameCompleteScreen({
                   >
                     <div className='flex items-center gap-3'>
                       <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                          index === 0
-                            ? 'bg-gradient-to-r from-yellow-400 to-orange-400 text-black'
-                            : index === 1
-                              ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-black'
-                              : index === 2
-                                ? 'bg-gradient-to-r from-orange-400 to-orange-600 text-white'
-                                : 'bg-gray-700 text-gray-300'
-                        }`}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${getRankingBadgeClasses(
+                          index
+                        )}`}
                       >
                         {index + 1}
                       </div>
