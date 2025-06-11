@@ -62,7 +62,7 @@ const initialState = {
   playerId: null,
   loading: false,
   error: null,
-  timeRemaining: 0,
+  timeRemaining: Number(process.env.NEXT_PUBLIC_ROUND_TIME) || 90,
   currentView: 'playing' as const,
   completedRound: null,
   socketReady: false,
