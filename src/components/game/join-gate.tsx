@@ -18,7 +18,7 @@ export function JoinGate({ roomCode }: JoinGateProps) {
   const { emit } = useSocket();
   const error = useGameStore(state => state.error);
   const loading = useGameStore(state => state.loading);
-  const connected = useGameStore(state => state.connected);
+  const socketReady = useGameStore(state => state.socketReady);
   const setLoading = useGameStore(state => state.setLoading);
   const setError = useGameStore(state => state.setError);
   const [playerName, setPlayerName] = useState('');
@@ -50,12 +50,12 @@ export function JoinGate({ roomCode }: JoinGateProps) {
           <div className='space-y-2'>
             <Button
               onClick={handleJoinRoom}
-              disabled={!isPlayerNameValid || loading || !connected}
+              disabled={!isPlayerNameValid || loading || !socketReady}
               className='w-full h-14 text-lg font-bold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50'
             >
               {loading && <LoadingSpinner />}
-              {!loading && !connected && 'Connecting...'}
-              {!loading && connected && 'Join Game'}
+              {!loading && !socketReady && 'Connecting...'}
+              {!loading && socketReady && 'Join Game'}
             </Button>
           </div>
           <ErrorMessage message={error || ''} />

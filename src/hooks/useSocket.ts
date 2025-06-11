@@ -9,7 +9,6 @@ import {
   Player,
   Room,
   ActiveSabotage,
-  EmojiReaction,
   CompletedRound,
 } from '@/types';
 
@@ -18,19 +17,18 @@ let socket: Socket | null = null;
 
 export const useSocket = () => {
   const {
-    setConnected,
     setGameState,
     setPlayerId,
     setError,
     setLoading,
+    setSocketReady,
     addPlayer,
     removePlayer,
+    updatePlayer,
     updateRoom,
     updateScores,
     deployActiveSabotage,
     removeActiveSabotage,
-    // TODO: Add an action in the store for this
-    // addReaction,
   } = useGameStore.getState();
 
   const requestResync = useCallback(() => {
@@ -59,34 +57,64 @@ export const useSocket = () => {
     // --- Core Connection Events ---
     socket.on('connect', () => {
       console.log('Socket connected:', socket?.id);
-      setConnected(true);
+      const { playerId } = useGameStore.getState();
+      if (playerId) {
+        updatePlayer(playerId, { connectionStatus: 'connected' });
+      }
       setError(null);
-      // If we are reconnecting, we might want to resync state
-      requestResync();
+      setSocketReady(true);
+
+      // Check for existing session data for automatic rejoining
+      const storedPlayerId = sessionStorage.getItem('ai-charades-playerId');
+      const storedRoomCode = sessionStorage.getItem('ai-charades-roomCode');
+
+      if (storedPlayerId && storedRoomCode && socket) {
+        console.log(
+          'Found session data, attempting to rejoin room:',
+          storedRoomCode
+        );
+        updatePlayer(storedPlayerId, { connectionStatus: 'reconnecting' });
+        setLoading(true);
+        socket.emit('rejoin_room', {
+          playerId: storedPlayerId,
+          roomCode: storedRoomCode,
+        });
+      } else {
+        // If we are reconnecting without session data, we might want to resync state
+        requestResync();
+      }
     });
 
     socket.on('disconnect', reason => {
       console.log('Socket disconnected:', reason);
-      setConnected(false);
+      const { playerId } = useGameStore.getState();
+      if (playerId) {
+        updatePlayer(playerId, { connectionStatus: 'disconnected' });
+      }
       if (reason !== 'io client disconnect') {
         setError('Connection lost. Attempting to reconnect...');
       }
+      setSocketReady(false);
     });
 
-    socket.on('reconnect_attempt', attempt => {
+    socket.io.on('reconnect_attempt', (attempt: number) => {
       console.log(`Reconnection attempt ${attempt}...`);
+      const { playerId } = useGameStore.getState();
+      if (playerId) {
+        updatePlayer(playerId, { connectionStatus: 'reconnecting' });
+      }
       setLoading(true);
       setError(`Reconnecting (attempt ${attempt} of 5)...`);
     });
 
-    socket.on('reconnect', attempt => {
+    socket.io.on('reconnect', (attempt: number) => {
       console.log(`Successfully reconnected after ${attempt} attempts.`);
       setLoading(false);
       setError(null);
       // State resync will be handled by the 'connect' event handler
     });
 
-    socket.on('reconnect_failed', () => {
+    socket.io.on('reconnect_failed', () => {
       console.error('Failed to reconnect.');
       setLoading(false);
       setError('Could not reconnect to the server. Please refresh the page.');
@@ -106,6 +134,10 @@ export const useSocket = () => {
         setGameState(data.gameState);
         setPlayerId(data.playerId);
         setLoading(false);
+
+        // Store session data for reconnection
+        sessionStorage.setItem('ai-charades-playerId', data.playerId);
+        sessionStorage.setItem('ai-charades-roomCode', data.room.code);
       }
     );
 
@@ -115,6 +147,10 @@ export const useSocket = () => {
         setGameState(data.gameState);
         setPlayerId(data.playerId);
         setLoading(false);
+
+        // Store session data for reconnection
+        sessionStorage.setItem('ai-charades-playerId', data.playerId);
+        sessionStorage.setItem('ai-charades-roomCode', data.room.code);
       }
     );
 
@@ -127,6 +163,19 @@ export const useSocket = () => {
       removePlayer(data.playerId);
       updateRoom(data.room);
     });
+
+    socket.on('player_reconnected', (data: { player: Player; room: Room }) => {
+      updatePlayer(data.player.id, data.player);
+      updateRoom(data.room);
+    });
+
+    socket.on(
+      'player_disconnected',
+      (data: { playerId: string; room: Room }) => {
+        updatePlayer(data.playerId, { connectionStatus: 'disconnected' });
+        updateRoom(data.room);
+      }
+    );
 
     socket.on('room_updated', (data: { room: Room }) => {
       updateRoom(data.room);
@@ -149,12 +198,6 @@ export const useSocket = () => {
 
     socket.on('sabotage_ended', (_data: { sabotageId: string }) => {
       removeActiveSabotage();
-    });
-
-    socket.on('reaction_sent', (data: { reaction: EmojiReaction }) => {
-      // TODO: Implement reaction handling in the store
-      console.log('Reaction received:', data.reaction);
-      // addReaction(data.reaction);
     });
 
     // --- Timer Events ---
@@ -185,12 +228,13 @@ export const useSocket = () => {
       }
     };
   }, [
-    setConnected,
     setGameState,
     setPlayerId,
     setError,
     setLoading,
+    setSocketReady,
     addPlayer,
+    updatePlayer,
     removePlayer,
     updateRoom,
     updateScores,

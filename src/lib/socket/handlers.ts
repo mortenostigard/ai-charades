@@ -14,14 +14,18 @@ import { gameLoopManager } from '@/game/game-loop';
 const globalForState = globalThis as unknown as {
   gameStates: Map<string, GameState>;
   playerSockets: Map<string, string>;
+  pendingRemovals: Map<string, NodeJS.Timeout>;
 };
 
 const gameStates = globalForState.gameStates || new Map<string, GameState>();
 const playerSockets = globalForState.playerSockets || new Map<string, string>();
+const pendingRemovals =
+  globalForState.pendingRemovals || new Map<string, NodeJS.Timeout>();
 
 if (process.env.NODE_ENV !== 'production') {
   globalForState.gameStates = gameStates;
   globalForState.playerSockets = playerSockets;
+  globalForState.pendingRemovals = pendingRemovals;
 }
 
 // Helper function to find which room a player is in.
@@ -205,6 +209,99 @@ export function handleJoinRoom(socket: Socket) {
   };
 }
 
+export function handleRejoinRoom(socket: Socket) {
+  return async (data: { playerId: string; roomCode: string }) => {
+    try {
+      const { playerId, roomCode } = data;
+
+      if (!playerId || !roomCode) {
+        socket.emit('room_error', {
+          code: 'INVALID_DATA',
+          message: 'Player ID and room code are required for rejoining.',
+        });
+        return;
+      }
+
+      if (!/^\d{4}$/.test(roomCode)) {
+        socket.emit('room_error', {
+          code: 'INVALID_CODE',
+          message: getErrorMessage('INVALID_CODE'),
+        });
+        return;
+      }
+
+      const gameState = gameStates.get(roomCode);
+      if (!gameState) {
+        socket.emit('room_error', {
+          code: 'ROOM_NOT_FOUND',
+          message: getErrorMessage('ROOM_NOT_FOUND'),
+        });
+        return;
+      }
+
+      // Find the player in the room
+      const player = gameState.room.players.find(p => p.id === playerId);
+      if (!player) {
+        socket.emit('room_error', {
+          code: 'PLAYER_NOT_FOUND',
+          message: 'Player not found in the specified room.',
+        });
+        return;
+      }
+
+      // Cancel any pending removal timer for this player
+      const pendingTimer = pendingRemovals.get(playerId);
+      if (pendingTimer) {
+        clearTimeout(pendingTimer);
+        pendingRemovals.delete(playerId);
+        console.log(`Cancelled pending removal for player ${playerId}`);
+      }
+
+      // Update the player's connection status and socket mapping
+      const updatedPlayer = {
+        ...player,
+        connectionStatus: 'connected' as const,
+      };
+      const updatedPlayers = gameState.room.players.map(p =>
+        p.id === playerId ? updatedPlayer : p
+      );
+
+      const newGameState = {
+        ...gameState,
+        room: { ...gameState.room, players: updatedPlayers },
+      };
+
+      // Update state and socket mapping
+      gameStates.set(roomCode, newGameState);
+      playerSockets.set(playerId, socket.id);
+
+      // Join the socket room
+      await socket.join(roomCode);
+
+      // Emit full game state back to the rejoining client
+      socket.emit('game_state_update', {
+        gameState: newGameState,
+        message: 'Successfully rejoined the room.',
+        shouldReconnect: false,
+      });
+
+      // Broadcast to other players that this player has reconnected
+      socket.to(roomCode).emit('player_reconnected', {
+        player: updatedPlayer,
+        room: newGameState.room,
+      });
+
+      console.log(`${player.name} (${playerId}) rejoined room ${roomCode}`);
+    } catch (error) {
+      console.error('Error rejoining room:', error);
+      socket.emit('room_error', {
+        code: 'SERVER_ERROR',
+        message: 'Failed to rejoin room. Please try again.',
+      });
+    }
+  };
+}
+
 export function handleLeaveRoom(socket: Socket) {
   return async (data: { playerId: string }) => {
     try {
@@ -275,22 +372,85 @@ export function handleRequestGameState(socket: Socket) {
   };
 }
 
-export function handleDisconnect(socket: Socket) {
+export function handleDisconnect(io: Server, socket: Socket) {
   return async () => {
     console.log(`Client disconnected: ${socket.id}`);
-    let playerIdToRemove: string | undefined;
+    let disconnectedPlayerId: string | undefined;
 
     // Find player associated with this socket
     for (const [playerId, socketId] of playerSockets.entries()) {
       if (socketId === socket.id) {
-        playerIdToRemove = playerId;
+        disconnectedPlayerId = playerId;
         break;
       }
     }
 
-    if (playerIdToRemove) {
-      // Use the same logic as leaving a room
-      await handleLeaveRoom(socket)({ playerId: playerIdToRemove });
+    if (disconnectedPlayerId) {
+      const roomCode = findRoomCodeByPlayerId(disconnectedPlayerId);
+
+      if (roomCode) {
+        const gameState = gameStates.get(roomCode);
+        if (!gameState) return;
+
+        // Find and update the player's connection status to 'disconnected'
+        const updatedPlayers = gameState.room.players.map(player =>
+          player.id === disconnectedPlayerId
+            ? { ...player, connectionStatus: 'disconnected' as const }
+            : player
+        );
+
+        const newGameState = {
+          ...gameState,
+          room: { ...gameState.room, players: updatedPlayers },
+        };
+
+        gameStates.set(roomCode, newGameState);
+
+        // Broadcast player disconnection status to other clients (using io)
+        io.to(roomCode).emit('player_disconnected', {
+          playerId: disconnectedPlayerId,
+          room: newGameState.room,
+        });
+
+        // Start 30-second countdown before permanent removal
+        const removalTimer = setTimeout(() => {
+          if (!gameStates.has(roomCode)) return;
+
+          console.log(`Removing player ${disconnectedPlayerId} after timeout`);
+
+          // Remove from pending removals map
+          pendingRemovals.delete(disconnectedPlayerId);
+
+          // Perform permanent removal using RoomManager without relying on stale socket
+          const latestState = gameStates.get(roomCode);
+          if (!latestState) return;
+
+          const updatedState = RoomManager.leaveRoom(
+            latestState,
+            disconnectedPlayerId
+          );
+
+          if (updatedState) {
+            gameStates.set(roomCode, updatedState);
+
+            // Notify remaining players of the departure
+            io.to(roomCode).emit('player_left', {
+              playerId: disconnectedPlayerId,
+              room: updatedState.room,
+            });
+          }
+
+          // Finally clean up mapping
+          playerSockets.delete(disconnectedPlayerId);
+        }, 30000); // 30 seconds
+
+        // Store the timer so it can be cancelled if player rejoins
+        pendingRemovals.set(disconnectedPlayerId, removalTimer);
+
+        console.log(
+          `Player ${disconnectedPlayerId} marked as disconnected, will be removed in 30 seconds if not reconnected`
+        );
+      }
     }
   };
 }
@@ -540,12 +700,13 @@ export function initializeSocketHandlers(io: Server) {
 
     socket.on('create_room', handleCreateRoom(socket));
     socket.on('join_room', handleJoinRoom(socket));
+    socket.on('rejoin_room', handleRejoinRoom(socket));
     socket.on('leave_room', handleLeaveRoom(socket));
     socket.on('start_game', handleStartGame(io, socket));
     socket.on('start_round', handleStartRound(io, socket));
     socket.on('deploy_sabotage', handleDeploySabotage(io, socket));
     socket.on('request_game_state', handleRequestGameState(socket));
     socket.on('end_round', handleEndRound(io, socket));
-    socket.on('disconnecting', handleDisconnect(socket));
+    socket.on('disconnecting', handleDisconnect(io, socket));
   });
 }

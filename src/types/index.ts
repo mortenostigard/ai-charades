@@ -7,8 +7,12 @@ export interface Player {
   id: string;
   /** Display name chosen by the player */
   name: string;
-  /** Whether the player is currently connected to the socket */
-  connected: boolean;
+  /** Current connection status of the player */
+  connectionStatus:
+    | 'connecting'
+    | 'connected'
+    | 'disconnected'
+    | 'reconnecting';
   /** Timestamp when the player joined the room */
   joinedAt: number;
 }

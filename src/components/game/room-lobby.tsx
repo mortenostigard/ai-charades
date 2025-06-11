@@ -15,6 +15,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ErrorMessage } from '@/components/game/error-message';
 import { LoadingSpinner } from '@/components/game/loading-spinner';
 
+import { ConnectionStatusIndicator } from './connection-status-indicator';
+
 interface RoomLobbyProps {
   readonly roomCode: string;
 }
@@ -126,40 +128,67 @@ export function RoomLobby({ roomCode }: RoomLobbyProps) {
                   animate='show'
                 >
                   <AnimatePresence>
-                    {players.map((player, index) => (
-                      <motion.div
-                        key={player.id}
-                        layout
-                        variants={{
-                          hidden: { opacity: 0, y: 20 },
-                          show: { opacity: 1, y: 0 },
-                        }}
-                        initial='hidden'
-                        animate='show'
-                        className='flex items-center gap-3 p-3 bg-gray-800 rounded-xl border border-gray-700'
-                      >
-                        <Avatar className='h-10 w-10 border-2 border-gray-600'>
-                          <AvatarFallback className='bg-gradient-to-br from-purple-500 to-pink-500 text-white font-bold'>
-                            {player.name.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <p className='font-semibold text-white truncate flex-1'>
-                          {player.name}
-                        </p>
-                        {index === 0 && (
-                          <Badge
-                            variant='secondary'
-                            className='bg-yellow-400 text-black font-bold'
-                          >
-                            <Crown className='h-4 w-4 mr-1' />
-                            Host
-                          </Badge>
-                        )}
-                        {player.id === playerId && (
-                          <Badge variant='outline'>You</Badge>
-                        )}
-                      </motion.div>
-                    ))}
+                    {players.map((player, index) => {
+                      return (
+                        <motion.div
+                          key={player.id}
+                          layout
+                          variants={{
+                            hidden: { opacity: 0, y: 20 },
+                            show: { opacity: 1, y: 0 },
+                          }}
+                          initial='hidden'
+                          animate='show'
+                          className={`flex items-center gap-3 p-3 bg-gray-800 rounded-xl border border-gray-700 ${
+                            player.connectionStatus === 'disconnected'
+                              ? 'opacity-60'
+                              : ''
+                          }`}
+                        >
+                          <Avatar className='h-10 w-10 border-2 border-gray-600'>
+                            <AvatarFallback className='bg-gradient-to-br from-purple-500 to-pink-500 text-white font-bold'>
+                              {player.name.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+
+                          <div className='flex-1 flex items-center gap-2 min-w-0'>
+                            <p className='font-semibold text-white truncate'>
+                              {player.name}
+                            </p>
+                            <ConnectionStatusIndicator
+                              connectionStatus={player.connectionStatus}
+                              showBadge={false}
+                              className='flex-shrink-0'
+                            />
+                          </div>
+
+                          <div className='flex items-center gap-2 flex-shrink-0'>
+                            {/* Connection status badge - show only for non-connected states */}
+                            <ConnectionStatusIndicator
+                              connectionStatus={player.connectionStatus}
+                              showIcon={false}
+                              showBadge={true}
+                            />
+
+                            {/* Host badge */}
+                            {index === 0 && (
+                              <Badge
+                                variant='secondary'
+                                className='bg-yellow-400 text-black font-bold'
+                              >
+                                <Crown className='h-4 w-4 mr-1' />
+                                Host
+                              </Badge>
+                            )}
+
+                            {/* You badge */}
+                            {player.id === playerId && (
+                              <Badge variant='outline'>You</Badge>
+                            )}
+                          </div>
+                        </motion.div>
+                      );
+                    })}
                   </AnimatePresence>
                 </motion.div>
               </div>

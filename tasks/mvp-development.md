@@ -6,22 +6,6 @@ This document outlines the tasks required to complete the Minimum Viable Product
 - **Day 2:** Backend Core, State Management, and Lobby Implementation
 - **Day 3:** Core Game Loop, Gameplay Mechanics, and Polish
 
-## Relevant Files
-
-- `src/types/index.ts` - Centralized TypeScript interfaces for all game entities ✅
-- `src/pages/api/socket.ts` - Main Socket.io server endpoint (local development) ✅
-- `src/lib/socket/handlers.ts` - Server-side Socket.io event handlers ✅
-- `src/game/room-manager.ts` - Core game logic for room and player management ✅
-- `src/stores/gameStore.ts` - Zustand store for global client-side state management ✅
-- `src/hooks/useSocket.ts` - Custom hook to manage the client's Socket.io connection ✅
-- `src/app/page.tsx` - The main home page component for creating or joining a room ✅
-- `src/app/room/[code]/page.tsx` - The room lobby component where players wait before the game starts
-- `src/components/game/home-screen.tsx` - The UI component for the home screen ✅
-- `src/components/ui/player-name-input.tsx` - Reusable player name input component ✅
-- `src/components/ui/room-code-input.tsx` - Reusable room code input component ✅
-- `src/game/round-manager.ts` - Manages round lifecycle and role rotation.
-- `server.ts` - Standalone Socket.IO server for production deployment.
-
 ### Notes
 
 - This plan focuses on building the core infrastructure. UI components will be implemented by referencing the examples in `/design-mockups/screens`.
@@ -31,7 +15,6 @@ This document outlines the tasks required to complete the Minimum Viable Product
 
 To keep the 3-day MVP focused, we're intentionally deferring these features, but will implement if there is extra time left:
 
-- **Advanced sabotage**: Complex compatibility rules (as defined in `docs/game_spec.md`) and multiple simultaneous sabotages.
 - **Emoji reactions**: Audience emoji feedback system, including the `'send-reaction'` event and "Audience Favorite" scoring logic from the game and API specs.
 - **Reconnection recovery**: Full game state recovery on reconnect as outlined in the "Reconnection Flow" in `docs/api_spec.md`. Basic reconnection will be handled, but full state restoration is deferred.
 - **Room persistence**: Rooms expire on server restart.
@@ -94,8 +77,8 @@ To keep the 3-day MVP focused, we're intentionally deferring these features, but
   - [x] 10.6 Build round completion and score display components.
   - [x] 10.7 Build a `GameCompleteScreen` to display final scores and winner, as defined in `docs/game_spec.md`.
 - [ ] 11.0 **MVP Polish & Testing**
-  - [ ] 11.1 Add comprehensive error handling and user feedback.
-  - [ ] 11.2 Implement graceful disconnection/reconnection handling.
+  - [x] 11.1 Implement graceful disconnection/reconnection handling.
+  - [ ] 11.2 Add comprehensive error handling and user feedback.
   - [ ] 11.3 Add sound feedback for sabotage notifications on mobile devices.
   - [ ] 11.4 End-to-end testing of create room → join → play → complete flow.
   - [ ] 11.5 Mobile responsiveness testing and touch target optimization.

@@ -20,7 +20,7 @@ export function HomeScreen() {
   const gameState = useGameStore(state => state.gameState);
   const error = useGameStore(state => state.error);
   const loading = useGameStore(state => state.loading);
-  const connected = useGameStore(state => state.connected);
+  const socketReady = useGameStore(state => state.socketReady);
   const setLoading = useGameStore(state => state.setLoading);
   const setError = useGameStore(state => state.setError);
 
@@ -86,12 +86,12 @@ export function HomeScreen() {
                 <div className='space-y-2'>
                   <Button
                     onClick={handleCreateRoom}
-                    disabled={!isPlayerNameValid || loading || !connected}
+                    disabled={!isPlayerNameValid || loading || !socketReady}
                     className='w-full h-14 text-lg font-bold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50'
                   >
                     {loading && <LoadingSpinner />}
-                    {!loading && !connected && 'Connecting...'}
-                    {!loading && connected && 'Create Room'}
+                    {!loading && !socketReady && 'Connecting...'}
+                    {!loading && socketReady && 'Create Room'}
                   </Button>
                   <Button
                     variant='ghost'
@@ -146,13 +146,13 @@ export function HomeScreen() {
                       !isPlayerNameValid ||
                       !isRoomCodeValid ||
                       loading ||
-                      !connected
+                      !socketReady
                     }
                     className='w-full h-14 text-lg font-bold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 disabled:opacity-50'
                   >
                     {loading && <LoadingSpinner />}
-                    {!loading && !connected && 'Connecting...'}
-                    {!loading && connected && 'Join Room'}
+                    {!loading && !socketReady && 'Connecting...'}
+                    {!loading && socketReady && 'Join Room'}
                   </Button>
                   <Button
                     variant='ghost'
@@ -185,16 +185,16 @@ export function HomeScreen() {
             <Button
               onClick={() => setMode('create')}
               className='w-full h-16 text-xl font-bold bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600'
-              disabled={loading || !connected}
+              disabled={loading || !socketReady}
             >
-              {connected ? 'Create Room' : 'Connecting...'}
+              {socketReady ? 'Create Room' : 'Connecting...'}
             </Button>
             <Button
               onClick={() => setMode('join')}
               className='w-full h-16 text-xl font-bold bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600'
-              disabled={loading || !connected}
+              disabled={loading || !socketReady}
             >
-              {connected ? 'Join Room' : 'Connecting...'}
+              {socketReady ? 'Join Room' : 'Connecting...'}
             </Button>
           </motion.div>
         );

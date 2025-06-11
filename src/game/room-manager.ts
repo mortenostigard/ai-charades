@@ -58,7 +58,7 @@ export class RoomManager {
     const hostPlayer: Player = {
       id: playerId,
       name: hostPlayerName,
-      connected: true,
+      connectionStatus: 'connected',
       joinedAt: Date.now(),
     };
 
@@ -109,7 +109,7 @@ export class RoomManager {
     const newPlayer: Player = {
       id: `player_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       name: playerName,
-      connected: true,
+      connectionStatus: 'connected',
       joinedAt: Date.now(),
     };
 

@@ -16,20 +16,20 @@ interface GameStore {
   // Core State
   gameState: GameState | null;
   playerId: string | null;
-  connected: boolean;
   loading: boolean;
   error: string | null;
   timeRemaining: number;
   currentView: 'playing' | 'summary';
   completedRound: CompletedRound | null;
+  socketReady: boolean;
 
   // Actions - Room Management
   setGameState: (state: GameState) => void;
   setPlayerId: (id: string) => void;
-  setConnected: (connected: boolean) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   setTimeRemaining: (time: number) => void;
+  setSocketReady: (ready: boolean) => void;
 
   // Actions - Player Management
   addPlayer: (player: Player) => void;
@@ -61,12 +61,12 @@ interface GameStore {
 const initialState = {
   gameState: null,
   playerId: null,
-  connected: false,
   loading: false,
   error: null,
   timeRemaining: 0,
   currentView: 'playing' as const,
   completedRound: null,
+  socketReady: false,
 };
 
 export const useGameStore = create<GameStore>()(
@@ -86,14 +86,6 @@ export const useGameStore = create<GameStore>()(
         draft.playerId = id;
       }),
 
-    setConnected: (connected: boolean) =>
-      set(draft => {
-        draft.connected = connected;
-        if (!connected) {
-          draft.error = 'Connection lost. Attempting to reconnect...';
-        }
-      }),
-
     setLoading: (loading: boolean) =>
       set(draft => {
         draft.loading = loading;
@@ -110,6 +102,11 @@ export const useGameStore = create<GameStore>()(
     setTimeRemaining: (time: number) =>
       set(draft => {
         draft.timeRemaining = time;
+      }),
+
+    setSocketReady: (ready: boolean) =>
+      set(draft => {
+        draft.socketReady = ready;
       }),
 
     // Player management
@@ -203,12 +200,7 @@ export const useGameStore = create<GameStore>()(
       }),
 
     // Reset state (for leaving room, etc.)
-    resetState: () =>
-      set(state => ({
-        ...initialState,
-        // Persist connection status across resets
-        connected: state.connected,
-      })),
+    resetState: () => set(initialState),
 
     // Computed selectors
     getCurrentRole: () => {

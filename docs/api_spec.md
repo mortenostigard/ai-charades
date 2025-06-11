@@ -52,6 +52,12 @@ Key interfaces include:
   playerId: string
 }
 
+// Rejoin room after disconnection
+'rejoin_room': {
+  playerId: string
+  roomCode: string
+}
+
 // Update player info
 'update_player': {
   playerId: string
@@ -62,15 +68,15 @@ Key interfaces include:
 #### Server → Client
 
 ```typescript
+  // Room created successfully
+  'room_created': {
+    room: Room
+    playerId: string
+    gameState: GameState
+  }
+
 // Successfully joined room
 'room_joined': {
-  room: Room
-  playerId: string
-  gameState: GameState
-}
-
-// Room created successfully
-'room_created': {
   room: Room
   playerId: string
   gameState: GameState
@@ -90,6 +96,18 @@ Key interfaces include:
 
 // Player left the room
 'player_left': {
+  playerId: string
+  room: Room
+}
+
+// Player reconnected to the room
+'player_reconnected': {
+  player: Player
+  room: Room
+}
+
+// Player disconnected from the room (marked for removal)
+'player_disconnected': {
   playerId: string
   room: Room
 }
