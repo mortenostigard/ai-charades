@@ -5,7 +5,6 @@ const DEFAULT_CONFIG: GameConfig = {
   roundDuration: 90000, // 90 seconds in milliseconds
   gracePeriod: 20000, // 20 seconds in milliseconds
   maxSabotages: 3,
-  sabotageTypes: [], // Will be populated with actual sabotage actions later
 };
 
 /**

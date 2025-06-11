@@ -22,7 +22,7 @@ export interface Room {
   /** List of all players in the room */
   players: Player[];
   /** Current room state */
-  status: 'waiting' | 'playing' | 'paused' | 'complete';
+  status: 'waiting' | 'playing' | 'complete';
   /** Timestamp when the room was created */
   createdAt: number;
   /** Maximum number of players allowed (default: 8) */
@@ -143,8 +143,6 @@ export interface GameConfig {
   gracePeriod: number;
   /** Maximum number of sabotages per round (default: 3) */
   maxSabotages: number;
-  /** Available sabotage types for the game */
-  sabotageTypes: SabotageAction[];
 }
 
 /**
