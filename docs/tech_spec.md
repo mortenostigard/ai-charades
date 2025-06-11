@@ -15,23 +15,29 @@
 ### Project Structure
 
 ```
-/src
-  /app                       # App Router: Main UI and components
-    /room/[id]/page.tsx    # Dynamic room pages
-    layout.tsx
-    page.tsx
-  /pages
-    /api/socket.ts         # Socket.io server (local dev only)
-  /components
-    /ui                    # shadcn/ui base components
-    /game                  # Game-specific components
-  /game                      # Pure game logic and engine
-  /hooks                     # Custom hooks
-  /lib                       # General utilities and helpers
-    /socket/handlers.ts    # Socket.io event handlers
-  /stores                    # Zustand stores
-  /types                     # TypeScript interfaces
-/docs                      # Documentation
+./apps
+  /frontend                 # Next.js 14 application (App Router)
+    /src
+      /app                 # Main UI and routes
+        /room/[code]/page.tsx  # Dynamic room pages (App Router)
+        layout.tsx
+        page.tsx
+      /components
+        /ui                # shadcn/ui base components
+        /game              # Game-specific components
+      /hooks               # Custom React hooks
+      /stores              # Zustand stores
+  /backend                  # Stand-alone Node service for Socket.IO
+    server.ts              # Entry point (creates HTTP + Socket.IO server)
+    /src
+      /socket/handlers.ts  # Socket.io event handlers (game logic bridge)
+      /game                # Pure game logic and engine (room-manager, etc.)
+
+./packages
+  /shared                  # Re-usable TypeScript types shared via pnpm workspaces
+    /src/types
+
+./docs                      # Documentation
 ```
 
 ### Component Architecture
@@ -50,11 +56,11 @@
 
 ### Design & Component Mockups
 
-The `/design-mockups/screens` directory contains high-fidelity, functional React component mockups that serve as the primary visual and interactive reference for implementing the application's UI. These references should be consulted to ensure the final components built in `/src/components/game` match the project's design and UX goals.
+The `/design-mockups/screens` directory contains high-fidelity, functional React component mockups created during the design phase by using v0. They serve as the primary visual and interactive reference for implementing the application's UI. These references should be consulted to ensure the final components built in `/src/components/game` match the project's design and UX goals.
 
 ### Game Engine Architecture
 
-The `/src/game/` directory contains pure game logic, separated from UI and infrastructure concerns:
+The `apps/backend/src/game/` directory contains pure game logic, separated from UI and infrastructure concerns:
 
 - **`room-manager.ts`** - Room creation, player management, state storage
 - **`round-manager.ts`** - Round lifecycle, role rotation, delegates to GameLoop
@@ -91,10 +97,12 @@ This separation allows the game logic to be tested independently and potentially
 
 ### Socket.io Architecture
 
-- **Local Development Server**: A hybrid approach using a Next.js Pages API route (`/pages/api/socket.ts`) to run the Socket.IO server alongside the Next.js dev server. This enables rapid end-to-end testing in a local environment.
-- **Production Server**: For production, the Socket.IO server is deployed as a separate, standalone Node.js service using `server.ts`. This long-running process is suitable for hosting on platforms like Railway or Heroku. **It cannot be deployed on Vercel's serverless functions.**
-- **State Management**: For simplicity, game state is managed in-memory within the socket handlers (`/src/lib/socket/handlers.ts`). This is suitable for a single-server deployment model.
-- **Event-Driven**: All game actions are managed through standardized socket events, with handlers located in `/src/lib/socket/handlers.ts`.
+The project now uses a dedicated real-time service located at **`apps/backend`** for **both development and production**.
+
+- **Backend Service** (`apps/backend/server.ts`): A long-running Node.js process that creates an HTTP server and attaches Socket.IO. During local development you run this process (e.g. `pnpm --filter backend dev`) alongside the Next.js dev server (`apps/frontend`). For production it can be deployed to Railway, Fly.io, or any container host. **It is not compatible with Vercel's serverless runtime.**
+- **CORS & Environment Variables**: The backend reads `CLIENT_URL` (defaults to `http://localhost:3000`) to allow the frontend origin. The frontend reads `NEXT_PUBLIC_SOCKET_URL` (defaults to `http://localhost:3001`) to know where to connect.
+- **State Management**: Game state is kept in-memory inside the Socket.IO handlers (`apps/backend/src/socket/handlers.ts`). This is acceptable for the single-server MVP.
+- **Event-Driven Design**: All gameplay actions flow through the Socket.IO event handlers defined in `apps/backend/src/socket/handlers.ts` following the patterns in `@docs/api_spec.md`.
 
 ### State Synchronization
 
@@ -177,7 +185,7 @@ This separation allows the game logic to be tested independently and potentially
 - **In-Memory Storage**: Rooms and player state are lost on server restart. This is an accepted trade-off for the MVP's scope.
 - **Client State**: Similarly, all client-side state (managed by Zustand) is in-memory and will be lost on a page refresh. Users who refresh the page will be prompted to rejoin the room.
 - **Single Server**: The architecture is designed for a single, standalone Socket.IO server and does not support horizontal scaling without moving to a centralized data store like Redis.
-- **Deployment Model**: The hybrid setup (`/pages/api/socket.ts`) is for local development only. The production deployment uses `server.ts`.
+- **Deployment Model**: A single dedicated Socket.IO service (`apps/backend`) is used in all environments. Horizontal scaling would require moving game state to Redis or a similar store.
 
 ## Security Considerations
 
