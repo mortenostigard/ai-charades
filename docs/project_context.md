@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Building **AI Charades: Director's Cut** - a real-time multiplayer party game where one player acts out prompts while another player can deploy sabotage actions to make it more challenging and entertaining.
+Building **Charades: Director's Cut** - a real-time multiplayer party game where one player acts out prompts while another player can deploy sabotage actions to make it more challenging and entertaining.
 
 ## Key Constraints
 

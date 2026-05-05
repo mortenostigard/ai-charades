@@ -1,4 +1,4 @@
-# AI Charades: Director's Cut - Design System
+# Charades: Director's Cut - Design System
 
 ## Core Design Principles
 

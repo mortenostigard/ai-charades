@@ -11,7 +11,7 @@ config({ path: '.env.local' });
 // Parse CLIENT_URL: comma-separated list, each entry can use `*` as a wildcard.
 // Examples:
 //   CLIENT_URL=http://localhost:3000
-//   CLIENT_URL=https://ai-charades.vercel.app,https://ai-charades-*.vercel.app
+//   CLIENT_URL=https://charades-directors-cut.vercel.app,https://charades-directors-cut-*.vercel.app
 const allowedOriginPatterns = (
   process.env.CLIENT_URL || 'http://localhost:3000'
 )

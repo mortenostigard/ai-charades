@@ -9,7 +9,7 @@ import type {
   PlayerScoreChange,
   PlayerRole,
   CompletedRound,
-} from '@ai-charades/shared';
+} from '@charades/shared';
 
 interface GameStore {
   // Core State

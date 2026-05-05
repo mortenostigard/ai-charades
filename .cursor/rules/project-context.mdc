@@ -1,11 +1,11 @@
 ---
-description: AI Charades project context and core requirements
+description: Charades project context and core requirements
 globs: 
 alwaysApply: true
 ---
-# AI Charades: Director's Cut - Project Context
+# Charades: Director's Cut - Project Context
 
-You are working on **AI Charades: Director's Cut**, a real-time multiplayer party game where one player acts out prompts while another player can deploy sabotage actions.
+You are working on **Charades: Director's Cut**, a real-time multiplayer party game where one player acts out prompts while another player can deploy sabotage actions.
 
 ## Key Constraints
 - **Timeline**: 3 days total development time

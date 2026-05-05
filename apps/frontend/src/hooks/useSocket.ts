@@ -8,7 +8,7 @@ import {
   type Room,
   type ActiveSabotage,
   type CompletedRound,
-} from '@ai-charades/shared';
+} from '@charades/shared';
 
 import { useGameStore } from '@/stores/gameStore';
 
@@ -76,8 +76,8 @@ export const useSocket = () => {
       setSocketReady(true);
 
       // Check for existing session data for automatic rejoining
-      const storedPlayerId = sessionStorage.getItem('ai-charades-playerId');
-      const storedRoomCode = sessionStorage.getItem('ai-charades-roomCode');
+      const storedPlayerId = sessionStorage.getItem('charades-playerId');
+      const storedRoomCode = sessionStorage.getItem('charades-roomCode');
 
       if (storedPlayerId && storedRoomCode && socket) {
         console.log(
@@ -147,8 +147,8 @@ export const useSocket = () => {
         setLoading(false);
 
         // Store session data for reconnection
-        sessionStorage.setItem('ai-charades-playerId', data.playerId);
-        sessionStorage.setItem('ai-charades-roomCode', data.room.code);
+        sessionStorage.setItem('charades-playerId', data.playerId);
+        sessionStorage.setItem('charades-roomCode', data.room.code);
       }
     );
 
@@ -160,8 +160,8 @@ export const useSocket = () => {
         setLoading(false);
 
         // Store session data for reconnection
-        sessionStorage.setItem('ai-charades-playerId', data.playerId);
-        sessionStorage.setItem('ai-charades-roomCode', data.room.code);
+        sessionStorage.setItem('charades-playerId', data.playerId);
+        sessionStorage.setItem('charades-roomCode', data.room.code);
       }
     );
 

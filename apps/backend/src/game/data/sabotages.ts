@@ -1,4 +1,4 @@
-import { type SabotageAction } from '@ai-charades/shared';
+import { type SabotageAction } from '@charades/shared';
 
 /**
  * A collection of sabotage actions that the Director can deploy to make

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { type ActiveSabotage } from '@ai-charades/shared';
+import { type ActiveSabotage } from '@charades/shared';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { useGameStore } from '@/stores/gameStore';

@@ -8,7 +8,7 @@ import { Toaster } from '@/components/ui/sonner';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "AI Charades: Director's Cut",
+  title: "Charades: Director's Cut",
   description: 'A party game for the modern age.',
 };
 

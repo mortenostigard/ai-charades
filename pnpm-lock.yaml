@@ -24,7 +24,7 @@ importers:
 
   apps/backend:
     dependencies:
-      '@ai-charades/shared':
+      '@charades/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       socket.io:
@@ -64,7 +64,7 @@ importers:
 
   apps/frontend:
     dependencies:
-      '@ai-charades/shared':
+      '@charades/shared':
         specifier: workspace:*
         version: link:../../packages/shared
       '@radix-ui/react-avatar':

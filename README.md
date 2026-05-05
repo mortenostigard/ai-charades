@@ -1,13 +1,13 @@
-# AI Charades: Director's Cut
+# Charades: Director's Cut
 
-Welcome to **AI Charades: Director's Cut**, a real-time multiplayer party game designed for mobile-first play. One player acts out prompts while another can deploy sabotage actions to make it more challenging and fun.
+Welcome to **Charades: Director's Cut**, a real-time multiplayer party game designed for mobile-first play. One player acts out prompts while another can deploy sabotage actions to make it more challenging and fun.
 
 This project is structured as a monorepo with separate frontend and backend applications, enabling independent development and deployment.
 
 ## Project Structure
 
 ```
-ai-charades/
+charades-directors-cut/
 ├── apps/
 │   ├── frontend/          # Next.js application
 │   └── backend/           # Socket.io server
@@ -95,7 +95,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 The monorepo splits between two hosts:
 
-- **Frontend → [Vercel](https://vercel.com)**. Auto-deploys from GitHub: production from `master`, a preview deployment per PR. Set Root Directory to `apps/frontend`; pnpm and Node version are auto-detected. Configure `NEXT_PUBLIC_SOCKET_URL` (Production + Preview) to point at the backend.
+- **Frontend → [Vercel](https://vercel.com)**. Auto-deploys from GitHub: production from `main`, a preview deployment per PR. Set Root Directory to `apps/frontend`; pnpm and Node version are auto-detected. Configure `NEXT_PUBLIC_SOCKET_URL` (Production + Preview) to point at the backend.
 - **Backend → [Render](https://render.com)** (free tier). Configured declaratively via `render.yaml` (Blueprint) — point a new Render Blueprint at this repo and it picks up the file. Health check is at `/health`. Free-tier services spin down after 15 min of idle and cold-start in ~30s. Set `CLIENT_URL` in the Render dashboard.
 
 The Socket.IO backend can't run on Vercel (it needs a long-running process; Vercel's serverless model doesn't support that), which is why the backend lives on Render.
@@ -104,10 +104,10 @@ The Socket.IO backend can't run on Vercel (it needs a long-running process; Verc
 
 **Backend** (Render dashboard):
 
-- `CLIENT_URL` — comma-separated list of allowed CORS origins; supports `*` wildcards. Example: `https://ai-charades.vercel.app,https://ai-charades-*.vercel.app`
+- `CLIENT_URL` — comma-separated list of allowed CORS origins; supports `*` wildcards. Example: `https://charades-directors-cut.vercel.app,https://charades-directors-cut-*.vercel.app`
 - `PORT` — Render injects this automatically; default `3001` for local
 
 **Frontend** (Vercel project settings):
 
-- `NEXT_PUBLIC_SOCKET_URL` — backend URL, e.g. `https://ai-charades-backend.onrender.com`
+- `NEXT_PUBLIC_SOCKET_URL` — backend URL, e.g. `https://charades-directors-cut-backend.onrender.com`
 - Independent versioning and deployment of each application

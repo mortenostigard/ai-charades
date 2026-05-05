@@ -1,5 +1,5 @@
 {
-  "name": "@ai-charades/backend",
+  "name": "@charades/backend",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -13,7 +13,7 @@
     "type-check": "tsc --project tsconfig.server.json --noEmit"
   },
   "dependencies": {
-    "@ai-charades/shared": "workspace:*",
+    "@charades/shared": "workspace:*",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {

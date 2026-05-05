@@ -1,5 +1,5 @@
 ---
-description: React component patterns and standards for AI Charades
+description: React component patterns and standards for Charades
 globs: src/components/**/*.tsx,src/app/**.tsx
 alwaysApply: false
 ---

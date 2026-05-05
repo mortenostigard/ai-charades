@@ -1,4 +1,4 @@
-# AI Charades: Director's Cut – Architecture Diagrams
+# Charades: Director's Cut – Architecture Diagrams
 
 Below are the core UML-style diagrams that give newcomers a fast, visual overview of the system. Each is written in Mermaid so it renders automatically in GitHub / modern Markdown viewers.
 

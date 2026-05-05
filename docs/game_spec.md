@@ -1,4 +1,4 @@
-# AI Charades: Director's Cut - Game Specification
+# Charades: Director's Cut - Game Specification
 
 ## Core Concept
 

@@ -3,16 +3,16 @@
 # root packageManager field via corepack and the Node version from .nvmrc.
 services:
   - type: web
-    name: ai-charades-backend
+    name: charades-directors-cut-backend
     runtime: node
     plan: free
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @ai-charades/backend... build
-    startCommand: pnpm --filter @ai-charades/backend start
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @charades/backend... build
+    startCommand: pnpm --filter @charades/backend start
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
       # Set CLIENT_URL in the Render dashboard. Comma-separated; supports `*`.
-      # Example: https://ai-charades.vercel.app,https://ai-charades-*.vercel.app
+      # Example: https://charades-directors-cut.vercel.app,https://charades-directors-cut-*.vercel.app
       - key: CLIENT_URL
         sync: false
