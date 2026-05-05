@@ -1,6 +1,5 @@
 'use client';
 
-import { useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Zap } from 'lucide-react';
 import { type SabotageAction } from '@ai-charades/shared';
@@ -24,28 +23,23 @@ export default function DirectorView() {
   const roomCode = useGameStore(state => state.gameState?.room.code);
   const players = useGameStore(state => state.gameState?.room.players);
 
-  const handleDeploySabotage = useCallback(
-    (sabotage: SabotageAction) => {
-      if (roomCode && round) {
-        emit('deploy_sabotage', {
-          roomCode,
-          sabotageId: sabotage.id,
-          directorId: round.directorId,
-          timestamp: Date.now(),
-        });
-      }
-    },
-    [emit, roomCode, round]
-  );
+  const handleDeploySabotage = (sabotage: SabotageAction) => {
+    if (roomCode && round) {
+      emit('deploy_sabotage', {
+        roomCode,
+        sabotageId: sabotage.id,
+        directorId: round.directorId,
+        // eslint-disable-next-line react-hooks/purity -- event-time timestamp; called on click, not during render
+        timestamp: Date.now(),
+      });
+    }
+  };
 
-  const onSelectWinnerAction = useCallback(
-    (winnerId: string) => {
-      if (roomCode) {
-        emit('end_round', { roomCode, winnerId });
-      }
-    },
-    [emit, roomCode]
-  );
+  const onSelectWinnerAction = (winnerId: string) => {
+    if (roomCode) {
+      emit('end_round', { roomCode, winnerId });
+    }
+  };
 
   if (!round || !gameConfig || !roomCode || !players) {
     return null;
