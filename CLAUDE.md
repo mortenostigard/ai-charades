@@ -65,6 +65,10 @@ Event names are defined in `docs/api_spec.md` — that's the source of truth, do
 - **Console**: `no-console` is set to warn with `console.warn` / `console.error` allowed. The repo currently has many `console.log` warnings — don't add more, prefer `warn`/`error`.
 - **Types live in `@ai-charades/shared`**: `Player`, `Room`, `GameState`, `CurrentRound`, `SabotageAction`, `GamePrompt`, `ScoreUpdate`, `CompletedRound`, `GameConfig`. Don't redefine these in app code; import them.
 
+## Pull requests
+
+PR descriptions and commit messages stand on their own — no references to chat context.
+
 ## Reference docs
 
 Game/protocol details live in `docs/`. Treat these as the source of truth and link to them from code/PRs rather than duplicating:
