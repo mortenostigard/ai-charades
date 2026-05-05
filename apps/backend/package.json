@@ -17,13 +17,13 @@
     "@types/node": "^20.19.0",
     "@typescript-eslint/eslint-plugin": "^8.33.1",
     "@typescript-eslint/parser": "^8.33.1",
-    "dotenv": "^16.5.0",
-    "eslint": "^9",
+    "dotenv": "^17.4.2",
+    "eslint": "^9.39.4",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-prettier": "^5.4.1",
     "ts-node": "^10.9.2",
     "tsc-alias": "^1.8.16",
     "tsconfig-paths": "^4.2.0",
-    "typescript": "^5"
+    "typescript": "^6.0.3"
   }
 }
