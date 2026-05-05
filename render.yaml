@@ -2,14 +2,6 @@
 # Deploys apps/backend as a single web service. Render reads pnpm from the
 # root packageManager field via corepack and the Node version from .nvmrc.
 
-# Per-PR preview backends: https://render.com/docs/service-previews
-# `previews.generation: automatic` spins up an ephemeral instance per pull
-# request at https://charades-directors-cut-backend-pr-<N>.onrender.com.
-# Free-tier service hours apply across prod + previews; close stale PRs to
-# release capacity.
-previews:
-  generation: automatic
-
 services:
   - type: web
     name: charades-directors-cut-backend
@@ -18,6 +10,18 @@ services:
     buildCommand: pnpm install --frozen-lockfile && pnpm --filter @charades/backend build
     startCommand: pnpm --filter @charades/backend start
     healthCheckPath: /health
+    # Per-PR Service Preview for this service:
+    # https://render.com/docs/service-previews#pull-request-previews-git-backed
+    # `previews.generation: automatic` spins up an ephemeral instance per PR
+    # at https://charades-directors-cut-backend-pr-<N>.onrender.com.
+    #
+    # Note: a top-level `previews:` block (not used here) configures Render's
+    # paid Preview Environments feature, which replicates the entire
+    # blueprint. We only need single-service PR previews, which work on the
+    # free tier. Free-tier service hours apply across prod + previews; close
+    # stale PRs to release capacity.
+    previews:
+      generation: automatic
     envVars:
       - key: NODE_ENV
         value: production
