@@ -1,0 +1,18 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Deploys apps/backend as a single web service. Render reads pnpm from the
+# root packageManager field via corepack and the Node version from .nvmrc.
+services:
+  - type: web
+    name: ai-charades-backend
+    runtime: node
+    plan: free
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @ai-charades/backend... build
+    startCommand: pnpm --filter @ai-charades/backend start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Set CLIENT_URL in the Render dashboard. Comma-separated; supports `*`.
+      # Example: https://ai-charades.vercel.app,https://ai-charades-*.vercel.app
+      - key: CLIENT_URL
+        sync: false

@@ -8,25 +8,63 @@ import { initializeSocketHandlers } from './src/socket/handlers.js';
 // Load environment variables from .env.local
 config({ path: '.env.local' });
 
-// Create a standard Node.js HTTP server.
-const httpServer = createServer();
+// Parse CLIENT_URL: comma-separated list, each entry can use `*` as a wildcard.
+// Examples:
+//   CLIENT_URL=http://localhost:3000
+//   CLIENT_URL=https://ai-charades.vercel.app,https://ai-charades-*.vercel.app
+const allowedOriginPatterns = (
+  process.env.CLIENT_URL || 'http://localhost:3000'
+)
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
 
-// Attach Socket.IO to the HTTP server.
+const allowedOriginRegexes = allowedOriginPatterns.map(pattern => {
+  if (!pattern.includes('*')) {
+    return { exact: pattern };
+  }
+  const escaped = pattern
+    .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+    .replace(/\*/g, '.*');
+  return { regex: new RegExp(`^${escaped}$`) };
+});
+
+const isAllowedOrigin = (origin: string | undefined): boolean => {
+  if (!origin) return true; // non-browser (e.g. server-to-server, native clients)
+  return allowedOriginRegexes.some(o =>
+    'exact' in o ? o.exact === origin : o.regex.test(origin)
+  );
+};
+
+// Create the HTTP server with a /health endpoint for platform health checks.
+// All other paths fall through to Socket.IO's upgrade handling.
+const httpServer = createServer((req, res) => {
+  if (req.url === '/health' || req.url === '/healthz') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('ok');
+    return;
+  }
+  // Anything that isn't a Socket.IO handshake/upgrade hits this fallthrough.
+  res.writeHead(404, { 'Content-Type': 'text/plain' });
+  res.end('not found');
+});
+
 const io = new Server(httpServer, {
-  // Configure CORS to allow connections from our Vercel-deployed frontend.
-  // We use an environment variable to make this flexible for different environments.
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
+    },
     methods: ['GET', 'POST'],
     credentials: true,
   },
   transports: ['polling', 'websocket'],
-
-  // Accept both `/socket.io` and `/socket.io/` endpoints
   addTrailingSlash: false,
 });
 
-// Add connection debugging
 io.on('connection', socket => {
   console.log(`🔌 New client connected: ${socket.id}`);
 
@@ -35,20 +73,14 @@ io.on('connection', socket => {
   });
 });
 
-// Initialize all our existing event handlers
 initializeSocketHandlers(io);
 
-// Define the port the server will listen on.
-// Use the host's PORT environment variable, or default to 3001 for local testing.
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
-// Start the server.
 httpServer.listen(Number(PORT), HOST, () => {
   console.log(`🚀 Socket.IO server running on port ${PORT}`);
   console.log(`🌐 Server accessible at: http://${HOST}:${PORT}`);
-  console.log(
-    `🌐 CORS origin: ${process.env.CLIENT_URL || 'http://localhost:3000'}`
-  );
+  console.log(`🌐 CORS allowed origins: ${allowedOriginPatterns.join(', ')}`);
   console.log(`⚙️  Ping timeout: 20000ms, Ping interval: 25000ms`);
 });
