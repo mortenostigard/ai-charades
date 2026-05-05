@@ -6,7 +6,7 @@ services:
     name: charades-directors-cut-backend
     runtime: node
     plan: free
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @charades/backend... build
+    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @charades/backend build
     startCommand: pnpm --filter @charades/backend start
     healthCheckPath: /health
     envVars:
