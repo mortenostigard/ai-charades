@@ -1,7 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
-
 import { useGameStore } from '@/stores/gameStore';
 
 interface UseSabotageReturn {
@@ -22,8 +20,7 @@ export function useSabotage(): UseSabotageReturn {
   const timeRemaining = useGameStore(state => state.timeRemaining);
   const currentRole = useGameStore(state => state.getCurrentRole());
 
-  // Compute grace period state with React memoization
-  const gracePeriodState = useMemo(() => {
+  const gracePeriodState = ((): UseSabotageReturn['gracePeriodState'] => {
     if (!gameState?.currentRound) {
       return { isInGracePeriod: false, remainingSeconds: 0 };
     }
@@ -31,7 +28,6 @@ export function useSabotage(): UseSabotageReturn {
     const { gracePeriod } = gameState.gameConfig;
     const { duration } = gameState.currentRound;
 
-    // Grace period is active when timeRemaining > (duration - gracePeriod)
     const gracePeriodThreshold = duration - gracePeriod;
     const isInGracePeriod = timeRemaining > gracePeriodThreshold;
 
@@ -39,14 +35,13 @@ export function useSabotage(): UseSabotageReturn {
       return { isInGracePeriod: false, remainingSeconds: 0 };
     }
 
-    // Calculate remaining grace period time
     const remainingGraceMs = timeRemaining - gracePeriodThreshold;
     const remainingSeconds = Math.ceil(remainingGraceMs / 1000);
 
     return { isInGracePeriod, remainingSeconds };
-  }, [gameState?.currentRound, gameState?.gameConfig, timeRemaining]);
+  })();
 
-  const canDeploySabotage = (() => {
+  const canDeploySabotage = ((): boolean => {
     if (!gameState?.currentRound) return false;
 
     const { currentSabotage, sabotagesDeployedCount } = gameState.currentRound;

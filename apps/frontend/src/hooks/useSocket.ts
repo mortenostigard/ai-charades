@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import {
   type GameState,
@@ -31,18 +31,18 @@ export const useSocket = () => {
     removeActiveSabotage,
   } = useGameStore.getState();
 
-  const requestResync = useCallback(() => {
-    if (socket?.connected) {
-      const { playerId } = useGameStore.getState();
-      if (playerId) {
-        console.log('Requesting game state resync...');
-        socket.emit('request_game_state', { playerId });
-      }
-    }
-  }, []);
-
   useEffect(() => {
     if (socket) return;
+
+    const requestResync = () => {
+      if (socket?.connected) {
+        const { playerId } = useGameStore.getState();
+        if (playerId) {
+          console.log('Requesting game state resync...');
+          socket.emit('request_game_state', { playerId });
+        }
+      }
+    };
 
     const socketUrl =
       process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
@@ -251,7 +251,6 @@ export const useSocket = () => {
     updateScores,
     deployActiveSabotage,
     removeActiveSabotage,
-    requestResync,
   ]);
 
   const emit = (event: string, data: unknown) => {

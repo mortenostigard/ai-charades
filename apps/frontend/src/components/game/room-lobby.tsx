@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Copy, Crown, Users } from 'lucide-react';
@@ -55,12 +55,12 @@ export function RoomLobby({ roomCode }: RoomLobbyProps) {
     }
   };
 
-  const handleStartGame = useCallback(() => {
+  const handleStartGame = () => {
     if (canStartGame && roomCode) {
       console.log("Emitting 'start_game'", { roomCode });
       emit('start_game', { roomCode, requestedBy: playerId });
     }
-  }, [canStartGame, roomCode, playerId, emit]);
+  };
 
   if (error) {
     return (

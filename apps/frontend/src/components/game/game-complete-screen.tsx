@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Crown, Home, RotateCcw } from 'lucide-react';
@@ -19,19 +19,19 @@ export function GameCompleteScreen() {
 
   const [showWinner, setShowWinner] = useState(false);
 
-  const onPlayAgainAction = useCallback(() => {
+  const onPlayAgainAction = () => {
     if (gameState?.room.code && myPlayer?.id) {
       emit('start_game', {
         roomCode: gameState.room.code,
         requestedBy: myPlayer.id,
       });
     }
-  }, [emit, gameState, myPlayer]);
+  };
 
-  const onBackToHomeAction = useCallback(() => {
+  const onBackToHomeAction = () => {
     resetState();
     router.push('/');
-  }, [resetState, router]);
+  };
 
   // Animation sequence
   useEffect(() => {
