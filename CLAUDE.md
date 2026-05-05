@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **Monorepo**: pnpm workspaces — `apps/frontend`, `apps/backend`, `packages/shared`. Pinned via `packageManager` field; corepack picks it up.
 - **Frontend**: Next.js 16 (App Router, Turbopack dev), React 19, Zustand, Tailwind v4 + shadcn/ui, framer-motion
-- **Backend**: standalone Node + Socket.IO server (NOT Vercel-compatible)
+- **Backend**: standalone Node + Socket.IO server (deployed to Render; NOT Vercel-compatible)
 - **Shared**: TypeScript types only, consumed via `@ai-charades/shared`
 - **Lint/format**: ESLint flat config (root `eslint.config.mjs`) + Prettier
 
@@ -89,5 +89,11 @@ Each app has its own `.env.example` (`apps/frontend/.env.example`, `apps/backend
 
 Key vars worth knowing:
 
-- Backend: `PORT` (default 3001), `CLIENT_URL` (CORS origin, default `http://localhost:3000`)
+- Backend: `PORT` (default 3001), `CLIENT_URL` — comma-separated list of allowed CORS origins, supports `*` wildcards (default `http://localhost:3000`)
 - Frontend: `NEXT_PUBLIC_SOCKET_URL` (default `http://localhost:3001`)
+
+## Deployment
+
+- **Frontend → Vercel**. Auto-deploys from GitHub: production from `master`, preview deployments per PR. Set `Root Directory` to `apps/frontend` in the project settings; everything else is auto-detected from `packageManager`. Set `NEXT_PUBLIC_SOCKET_URL` in Vercel project settings (Production + Preview) to the backend's URL.
+- **Backend → Render** (free tier). Configured via `render.yaml` Blueprint; deploys from `master`. Health check at `/health`. Free-tier services spin down after 15 min idle and cold-start in ~30s — acceptable for solo dev. Set `CLIENT_URL` in the Render dashboard to the Vercel URLs that should be allowed (e.g. `https://ai-charades.vercel.app,https://ai-charades-*.vercel.app`).
+- The backend is **not** Vercel-compatible (Socket.IO needs a long-running process; Vercel's serverless model doesn't support that).

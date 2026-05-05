@@ -93,62 +93,21 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ## Deployment
 
-The monorepo structure enables independent deployment of frontend and backend applications.
+The monorepo splits between two hosts:
 
-### Frontend (Next.js)
+- **Frontend → [Vercel](https://vercel.com)**. Auto-deploys from GitHub: production from `master`, a preview deployment per PR. Set Root Directory to `apps/frontend`; pnpm and Node version are auto-detected. Configure `NEXT_PUBLIC_SOCKET_URL` (Production + Preview) to point at the backend.
+- **Backend → [Render](https://render.com)** (free tier). Configured declaratively via `render.yaml` (Blueprint) — point a new Render Blueprint at this repo and it picks up the file. Health check is at `/health`. Free-tier services spin down after 15 min of idle and cold-start in ~30s. Set `CLIENT_URL` in the Render dashboard.
 
-Deploy the frontend to [Vercel](https://vercel.com/new):
+The Socket.IO backend can't run on Vercel (it needs a long-running process; Vercel's serverless model doesn't support that), which is why the backend lives on Render.
 
-```bash
-# Build the frontend
-pnpm build:frontend
+### Environment variables
 
-# Start production server
-pnpm start:frontend
-```
+**Backend** (Render dashboard):
 
-**Vercel Configuration**: Point your Vercel project to the `apps/frontend` directory.
+- `CLIENT_URL` — comma-separated list of allowed CORS origins; supports `*` wildcards. Example: `https://ai-charades.vercel.app,https://ai-charades-*.vercel.app`
+- `PORT` — Render injects this automatically; default `3001` for local
 
-### Backend (Socket.io Server)
+**Frontend** (Vercel project settings):
 
-Deploy the backend to your preferred Node.js hosting service:
-
-```bash
-# Build shared dependencies first
-pnpm build:shared
-
-# Build the server
-pnpm build:backend
-
-# Start production server
-pnpm start:backend
-```
-
-### CI/CD with GitHub Actions
-
-This project is configured for independent deployments using GitHub Actions:
-
-- **Frontend**: Automatically deploys to Vercel when `apps/frontend/` or `packages/shared/` changes
-- **Backend**: Automatically deploys to your chosen platform when `apps/backend/` or `packages/shared/` changes
-
-### Environment Variables
-
-Configure these environment variables for your deployments:
-
-**Backend:**
-
-- `CLIENT_URL`: Your frontend's URL (e.g., `https://your-app.vercel.app`)
-- `PORT`: The port your server should listen on (default: 3001)
-
-### Recommended Deployment Platforms
-
-- **Frontend**: [Vercel](https://vercel.com) (recommended), Netlify, or Cloudflare Pages
-- **Backend**: [Railway](https://railway.app), [Render](https://render.com), Heroku, or any Node.js hosting service
-
-### Workspace Dependencies
-
-The monorepo automatically handles shared dependencies:
-
-- Both frontend and backend depend on `@ai-charades/shared`
-- Changes to shared types automatically propagate to both applications
+- `NEXT_PUBLIC_SOCKET_URL` — backend URL, e.g. `https://ai-charades-backend.onrender.com`
 - Independent versioning and deployment of each application
