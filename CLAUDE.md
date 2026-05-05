@@ -70,6 +70,8 @@ Event names are defined in `docs/api_spec.md` — that's the source of truth, do
 
 PR descriptions and commit messages stand on their own — no references to chat context.
 
+Branch names follow conventional-commit prefixes: `feat/`, `fix/`, `chore/`, `refactor/`, `docs/`, `build/`, `ci/`, `test/`, `perf/`. Use a short kebab-case description after the prefix (e.g. `fix/vercel-shared-package-resolution`, `refactor/shared-types-only`). Do not use tool- or session-scoped prefixes like `claude/...`.
+
 ## Reference docs
 
 Game/protocol details live in `docs/`. Treat these as the source of truth and link to them from code/PRs rather than duplicating:
