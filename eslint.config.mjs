@@ -13,7 +13,12 @@ const compat = new FlatCompat({
 const eslintConfig = [
   ...compat.extends('next/core-web-vitals', 'next/typescript'),
   {
-    ignores: ['design-mockups/**/*'],
+    ignores: [
+      'design-mockups/**/*',
+      'apps/*/dist/**',
+      'apps/*/.next/**',
+      'packages/*/dist/**',
+    ],
     rules: {
       '@typescript-eslint/no-unused-vars': [
         'error',
