@@ -19,8 +19,7 @@ pnpm install                   # bootstrap all workspaces
 pnpm dev                       # frontend (3000) + backend (3001) concurrently
 pnpm dev:frontend              # frontend only
 pnpm dev:backend               # backend only
-pnpm build                     # build all workspaces
-pnpm build:shared              # rebuild shared types (frontend/backend consume dist/)
+pnpm build                     # build frontend + backend (shared has no build step)
 pnpm type-check                # tsc --noEmit across all workspaces
 pnpm lint                      # eslint across workspaces (--if-present skips shared)
 pnpm format:check              # prettier --check
@@ -29,7 +28,7 @@ pnpm format                    # prettier --write
 
 There are no automated tests in this repo yet — `pnpm test` will not work. CI (`.github/workflows/ci.yml`) runs format-check → lint → type-check → build on every PR to `main`.
 
-`packages/shared` must be built before frontend/backend type-check or build, because both consume its compiled `dist/`. The root `pnpm build` handles ordering; if you're running things piecemeal, `build:shared` first.
+`packages/shared` ships TypeScript source directly — its `package.json` `types`/`exports` point at `src/index.ts`, so frontend and backend resolve types from source with no build step. The frontend's `next.config.ts` lists it under `transpilePackages` so Next/Turbopack inlines the source. The backend never imports it at runtime (all imports are type-only and elided by `tsc`).
 
 `.npmrc` at the root has `public-hoist-pattern[]=*eslint*` and `@typescript-eslint/*` so the shared root `eslint.config.mjs` can resolve `eslint-config-next` (declared only in the frontend workspace) without a phantom-dependency error. If you add new shared lint plugins, hoist them the same way or move them to the root `package.json`.
 
