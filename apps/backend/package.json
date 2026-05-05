@@ -13,7 +13,7 @@
     "type-check": "tsc --project tsconfig.server.json --noEmit"
   },
   "dependencies": {
-    "@ai-charades/shared": "*",
+    "@ai-charades/shared": "workspace:*",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {

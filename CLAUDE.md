@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Stack at a glance
 
-- **Monorepo**: npm workspaces — `apps/frontend`, `apps/backend`, `packages/shared`
+- **Monorepo**: pnpm workspaces — `apps/frontend`, `apps/backend`, `packages/shared`. Pinned via `packageManager` field; corepack picks it up.
 - **Frontend**: Next.js 16 (App Router, Turbopack dev), React 19, Zustand, Tailwind v4 + shadcn/ui, framer-motion
 - **Backend**: standalone Node + Socket.IO server (NOT Vercel-compatible)
 - **Shared**: TypeScript types only, consumed via `@ai-charades/shared`
@@ -15,21 +15,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Run from the repo root unless noted.
 
 ```bash
-npm install                    # bootstrap all workspaces
-npm run dev                    # frontend (3000) + backend (3001) concurrently
-npm run dev:frontend           # frontend only
-npm run dev:backend            # backend only
-npm run build                  # build all workspaces
-npm run build:shared           # rebuild shared types (frontend/backend consume dist/)
-npm run type-check             # tsc --noEmit across all workspaces
-npm run lint                   # eslint across workspaces (--if-present skips shared)
-npm run format:check           # prettier --check
-npm run format                 # prettier --write
+pnpm install                   # bootstrap all workspaces
+pnpm dev                       # frontend (3000) + backend (3001) concurrently
+pnpm dev:frontend              # frontend only
+pnpm dev:backend               # backend only
+pnpm build                     # build all workspaces
+pnpm build:shared              # rebuild shared types (frontend/backend consume dist/)
+pnpm type-check                # tsc --noEmit across all workspaces
+pnpm lint                      # eslint across workspaces (--if-present skips shared)
+pnpm format:check              # prettier --check
+pnpm format                    # prettier --write
 ```
 
-There are no automated tests in this repo yet — `npm test` will not work. CI (`.github/workflows/ci.yml`) runs format-check → lint → type-check → build on every PR to `master`.
+There are no automated tests in this repo yet — `pnpm test` will not work. CI (`.github/workflows/ci.yml`) runs format-check → lint → type-check → build on every PR to `master`.
 
-`packages/shared` must be built before frontend/backend type-check or build, because both consume its compiled `dist/`. The root `npm run build` handles ordering; if you're running things piecemeal, `build:shared` first.
+`packages/shared` must be built before frontend/backend type-check or build, because both consume its compiled `dist/`. The root `pnpm build` handles ordering; if you're running things piecemeal, `build:shared` first.
+
+`.npmrc` at the root has `public-hoist-pattern[]=*eslint*` and `@typescript-eslint/*` so the shared root `eslint.config.mjs` can resolve `eslint-config-next` (declared only in the frontend workspace) without a phantom-dependency error. If you add new shared lint plugins, hoist them the same way or move them to the root `package.json`.
 
 ## Architecture
 
