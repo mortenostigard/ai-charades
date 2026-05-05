@@ -3,7 +3,7 @@ import {
   type Player,
   type GameState,
   type GameConfig,
-} from '@ai-charades/shared';
+} from '@charades/shared';
 
 // Default game configuration
 const DEFAULT_CONFIG: GameConfig = {

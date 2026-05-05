@@ -1,7 +1,7 @@
 'use client';
 
 import { Wifi, WifiOff, RotateCcw } from 'lucide-react';
-import type { Player } from '@ai-charades/shared';
+import type { Player } from '@charades/shared';
 
 import { Badge } from '@/components/ui/badge';
 

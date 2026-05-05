@@ -1,5 +1,5 @@
 import { type Server } from 'socket.io';
-import { type GameState } from '@ai-charades/shared';
+import { type GameState } from '@charades/shared';
 
 type EndRoundCallback = (roomCode: string) => void;
 

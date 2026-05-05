@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Monorepo**: pnpm workspaces — `apps/frontend`, `apps/backend`, `packages/shared`. Pinned via `packageManager` field; corepack picks it up.
 - **Frontend**: Next.js 16 (App Router, Turbopack dev), React 19, Zustand, Tailwind v4 + shadcn/ui, framer-motion
 - **Backend**: standalone Node + Socket.IO server (deployed to Render; NOT Vercel-compatible)
-- **Shared**: TypeScript types only, consumed via `@ai-charades/shared`
+- **Shared**: TypeScript types only, consumed via `@charades/shared`
 - **Lint/format**: ESLint flat config (root `eslint.config.mjs`) + Prettier
 
 ## Common commands
@@ -27,7 +27,7 @@ pnpm format:check              # prettier --check
 pnpm format                    # prettier --write
 ```
 
-There are no automated tests in this repo yet — `pnpm test` will not work. CI (`.github/workflows/ci.yml`) runs format-check → lint → type-check → build on every PR to `master`.
+There are no automated tests in this repo yet — `pnpm test` will not work. CI (`.github/workflows/ci.yml`) runs format-check → lint → type-check → build on every PR to `main`.
 
 `packages/shared` must be built before frontend/backend type-check or build, because both consume its compiled `dist/`. The root `pnpm build` handles ordering; if you're running things piecemeal, `build:shared` first.
 
@@ -65,7 +65,7 @@ Event names are defined in `docs/api_spec.md` — that's the source of truth, do
 - **Component props**: every props interface uses `readonly` on every field.
 - **Imports**: ESLint enforces an `import/order` grouping (builtin → external → internal `@/` → parent → sibling → index) with newlines between groups.
 - **Console**: `no-console` is set to warn with `console.warn` / `console.error` allowed. The repo currently has many `console.log` warnings — don't add more, prefer `warn`/`error`.
-- **Types live in `@ai-charades/shared`**: `Player`, `Room`, `GameState`, `CurrentRound`, `SabotageAction`, `GamePrompt`, `ScoreUpdate`, `CompletedRound`, `GameConfig`. Don't redefine these in app code; import them.
+- **Types live in `@charades/shared`**: `Player`, `Room`, `GameState`, `CurrentRound`, `SabotageAction`, `GamePrompt`, `ScoreUpdate`, `CompletedRound`, `GameConfig`. Don't redefine these in app code; import them.
 
 ## Pull requests
 
@@ -94,6 +94,6 @@ Key vars worth knowing:
 
 ## Deployment
 
-- **Frontend → Vercel**. Auto-deploys from GitHub: production from `master`, preview deployments per PR. Set `Root Directory` to `apps/frontend` in the project settings; everything else is auto-detected from `packageManager`. Set `NEXT_PUBLIC_SOCKET_URL` in Vercel project settings (Production + Preview) to the backend's URL.
-- **Backend → Render** (free tier). Configured via `render.yaml` Blueprint; deploys from `master`. Health check at `/health`. Free-tier services spin down after 15 min idle and cold-start in ~30s — acceptable for solo dev. Set `CLIENT_URL` in the Render dashboard to the Vercel URLs that should be allowed (e.g. `https://ai-charades.vercel.app,https://ai-charades-*.vercel.app`).
+- **Frontend → Vercel**. Auto-deploys from GitHub: production from `main`, preview deployments per PR. Set `Root Directory` to `apps/frontend` in the project settings; everything else is auto-detected from `packageManager`. Set `NEXT_PUBLIC_SOCKET_URL` in Vercel project settings (Production + Preview) to the backend's URL.
+- **Backend → Render** (free tier). Configured via `render.yaml` Blueprint; deploys from `main`. Health check at `/health`. Free-tier services spin down after 15 min idle and cold-start in ~30s — acceptable for solo dev. Set `CLIENT_URL` in the Render dashboard to the Vercel URLs that should be allowed (e.g. `https://charades-directors-cut.vercel.app,https://charades-directors-cut-*.vercel.app`).
 - The backend is **not** Vercel-compatible (Socket.IO needs a long-running process; Vercel's serverless model doesn't support that).

@@ -1,5 +1,5 @@
 import { type Server, type Socket } from 'socket.io';
-import { type GameState, type GameConfig } from '@ai-charades/shared';
+import { type GameState, type GameConfig } from '@charades/shared';
 
 import { RoomManager, getErrorMessage } from '@/game/room-manager.js';
 import { RoundManager } from '@/game/round-manager.js';

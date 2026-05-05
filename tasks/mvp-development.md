@@ -1,4 +1,4 @@
-# AI Charades: Director's Cut - Development Plan
+# Charades: Director's Cut - Development Plan
 
 This document outlines the tasks required to complete the Minimum Viable Product (MVP) over a 3-day development period.
 

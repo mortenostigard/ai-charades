@@ -1,5 +1,5 @@
 {
-  "name": "@ai-charades/frontend",
+  "name": "@charades/frontend",
   "version": "0.1.0",
   "private": true,
   "engines": {
@@ -15,7 +15,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@ai-charades/shared": "workspace:*",
+    "@charades/shared": "workspace:*",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-slot": "^1.2.3",

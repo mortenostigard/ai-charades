@@ -4,7 +4,7 @@ import {
   type GamePrompt,
   type GameState,
   type Player,
-} from '@ai-charades/shared';
+} from '@charades/shared';
 
 import { ScoringEngine, type ScoringData } from './scoring-engine.js';
 import { SabotageManager } from './sabotage-manager.js';

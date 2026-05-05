@@ -1,4 +1,4 @@
-import { type GamePrompt } from '@ai-charades/shared';
+import { type GamePrompt } from '@charades/shared';
 
 import { GAME_PROMPTS } from './data/prompts.js';
 
