@@ -1,6 +1,6 @@
 import { GamePrompt } from '@ai-charades/shared';
 
-import { GAME_PROMPTS } from './data/prompts';
+import { GAME_PROMPTS } from './data/prompts.js';
 
 /**
  * Manages game prompts, ensuring variety and preventing repetition.
