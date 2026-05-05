@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, ReactNode } from 'react';
-import { Player } from '@ai-charades/shared';
+import { useState, type ReactNode } from 'react';
+import { type Player } from '@ai-charades/shared';
 
 import { Button } from '@/components/ui/button';
 import {

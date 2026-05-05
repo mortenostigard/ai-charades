@@ -1,4 +1,9 @@
-import { Room, Player, GameState, GameConfig } from '@ai-charades/shared';
+import {
+  type Room,
+  type Player,
+  type GameState,
+  type GameConfig,
+} from '@ai-charades/shared';
 
 // Default game configuration
 const DEFAULT_CONFIG: GameConfig = {

@@ -1,12 +1,12 @@
 import {
-  CompletedRound,
-  CurrentRound,
-  GamePrompt,
-  GameState,
-  Player,
+  type CompletedRound,
+  type CurrentRound,
+  type GamePrompt,
+  type GameState,
+  type Player,
 } from '@ai-charades/shared';
 
-import { ScoringEngine, ScoringData } from './scoring-engine.js';
+import { ScoringEngine, type ScoringData } from './scoring-engine.js';
 import { SabotageManager } from './sabotage-manager.js';
 
 /**
@@ -137,12 +137,11 @@ export class RoundManager {
 
     // Case 1: This is the first round of the game.
     if (!lastRound) {
-      if (this.players.length < 2) {
-        throw new Error('Not enough players to start the game.');
-      }
-      // Assign the first player as Director and the second as Actor.
       const newDirector = this.players[0];
       const newActor = this.players[1];
+      if (!newDirector || !newActor) {
+        throw new Error('Not enough players to start the game.');
+      }
       return { newActor, newDirector };
     }
 
@@ -150,13 +149,20 @@ export class RoundManager {
     const lastActorIndex = this.players.findIndex(
       p => p.id === lastRound.actorId
     );
+    if (lastActorIndex === -1) {
+      throw new Error(
+        `Last actor ${lastRound.actorId} no longer in player list`
+      );
+    }
 
     // The new Director is the player who was just the Actor.
     const newDirector = this.players[lastActorIndex];
-
     // The new Actor is the next player in the list, wrapping around if necessary.
     const newActorIndex = (lastActorIndex + 1) % this.players.length;
     const newActor = this.players[newActorIndex];
+    if (!newDirector || !newActor) {
+      throw new Error('Player index out of bounds during role rotation');
+    }
 
     return { newActor, newDirector };
   }

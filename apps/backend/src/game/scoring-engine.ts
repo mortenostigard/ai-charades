@@ -1,4 +1,4 @@
-import { PlayerScoreChange, CurrentRound } from '@ai-charades/shared';
+import { type PlayerScoreChange, type CurrentRound } from '@ai-charades/shared';
 
 /**
  * Data needed to calculate scores from a completed round.

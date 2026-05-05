@@ -1,12 +1,14 @@
 {
   "compilerOptions": {
-    "target": "es2018",
-    "lib": ["es2018"],
+    "target": "ES2023",
+    "lib": ["ES2023"],
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
     "noEmit": false,
     "esModuleInterop": true,
     "resolveJsonModule": true,
