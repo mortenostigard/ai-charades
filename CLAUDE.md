@@ -22,11 +22,12 @@ pnpm dev:backend               # backend only
 pnpm build                     # build frontend + backend (shared has no build step)
 pnpm type-check                # tsc --noEmit across all workspaces
 pnpm lint                      # eslint across workspaces (--if-present skips shared)
+pnpm test                      # vitest across workspaces (--if-present skips shared/frontend)
 pnpm format:check              # prettier --check
 pnpm format                    # prettier --write
 ```
 
-There are no automated tests in this repo yet — `pnpm test` will not work. CI (`.github/workflows/ci.yml`) runs format-check → lint → type-check → build on every PR to `main`.
+Tests live next to the code they cover (e.g. `apps/backend/src/game/room-manager.test.ts`) and run via Vitest. The backend's engine modules (`apps/backend/src/game/`) are the primary test target. CI (`.github/workflows/ci.yml`) runs format-check → lint → type-check → test → build on every PR to `main`.
 
 `packages/shared` ships TypeScript source directly — its `package.json` `types`/`exports` point at `src/index.ts`, so frontend and backend resolve types from source with no build step. The frontend's `next.config.ts` lists it under `transpilePackages` so Next/Turbopack inlines the source. The backend never imports it at runtime (all imports are type-only and elided by `tsc`).
 
