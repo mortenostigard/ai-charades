@@ -32,7 +32,7 @@ concurrency:
 
 jobs:
   validate:
-    name: Lint, type-check & build
+    name: Lint, type-check, test & build
     runs-on: ubuntu-latest
 
     steps:
@@ -62,6 +62,9 @@ jobs:
 
       - name: Type check
         run: pnpm type-check
+
+      - name: Test
+        run: pnpm test
 
       - name: Build
         run: pnpm build

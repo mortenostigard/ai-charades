@@ -54,6 +54,12 @@ const eslintConfig = [
       ],
     },
   },
+  {
+    files: ['**/*.test.ts', '**/*.test.tsx'],
+    rules: {
+      '@typescript-eslint/no-non-null-assertion': 'off',
+    },
+  },
 ];
 
 export default eslintConfig;
