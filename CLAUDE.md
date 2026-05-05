@@ -2,12 +2,6 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Pull request merging
-
-Never merge a PR until the user explicitly tells you in chat to merge it. Do not call `mcp__github__merge_pull_request` otherwise — not even speculatively. If the user says "merge it" but the context is ambiguous, ask first.
-
-(GitHub does not allow PR authors to self-approve, so "approval" for this solo project lives in the chat instruction + the harness's permission prompt — not in a GitHub review.)
-
 ## Stack at a glance
 
 - **Monorepo**: npm workspaces — `apps/frontend`, `apps/backend`, `packages/shared`
@@ -62,20 +56,6 @@ The game timer is **driven entirely by the backend**, not the client. `apps/back
 - `socket.emit(...)` → just the sender (confirmations, errors)
 
 Event names are defined in `docs/api_spec.md` — that's the source of truth, don't invent new ones inline.
-
-### ESLint flat config quirks
-
-`eslint.config.mjs` imports `eslint-config-next/core-web-vitals` and `eslint-config-next/typescript` directly (no `FlatCompat`). Two things to know:
-
-1. The `ignores` block must be in **its own config object** to act as global ignores. Putting `ignores` alongside `rules` makes it scoped, not global, and build outputs (`dist/`, `.next/`) leak back into linting.
-2. The `--ext` CLI flag is ignored under flat config. The backend's `eslint .` still picks up `dist/*.js` unless those paths are in the global `ignores`.
-
-### React Compiler readiness
-
-`eslint-config-next` 16 ships `react-hooks/preserve-manual-memoization` and `react-hooks/set-state-in-effect`. They flag patterns React Compiler can't optimize, even though we don't enable RC yet. When they fire:
-
-- `set-state-in-effect` — usually a `key={resetKey}` on the parent is the right fix (lets React unmount/remount instead of resetting state imperatively).
-- `preserve-manual-memoization` — drop the `useCallback`/`useMemo` rather than fighting the dep list. The body is almost always cheap enough to recompute, and RC (when enabled) will memoize automatically.
 
 ## Conventions
 
