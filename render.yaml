@@ -1,6 +1,15 @@
 # Render Blueprint — https://render.com/docs/blueprint-spec
 # Deploys apps/backend as a single web service. Render reads pnpm from the
 # root packageManager field via corepack and the Node version from .nvmrc.
+
+# Per-PR preview backends: https://render.com/docs/service-previews
+# `previews.generation: automatic` spins up an ephemeral instance per pull
+# request at https://charades-directors-cut-backend-pr-<N>.onrender.com.
+# Free-tier service hours apply across prod + previews; close stale PRs to
+# release capacity.
+previews:
+  generation: automatic
+
 services:
   - type: web
     name: charades-directors-cut-backend
@@ -12,7 +21,14 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      # Set CLIENT_URL in the Render dashboard. Comma-separated; supports `*`.
-      # Example: https://charades-directors-cut.vercel.app,https://charades-directors-cut-*.vercel.app
+      # Set CLIENT_URL in the Render dashboard for production. Comma-separated;
+      # supports `*`. Example:
+      # https://charades-directors-cut.vercel.app,https://charades-directors-cut-*.vercel.app
+      #
+      # `sync: false` env vars are NOT auto-copied to PR previews, so we set a
+      # `previewValue` permissive enough to allow any Vercel preview URL for
+      # this project. Frontend Vercel previews compute the matching backend
+      # preview URL at build time (see apps/frontend/next.config.ts).
       - key: CLIENT_URL
         sync: false
+        previewValue: https://charades-directors-cut.vercel.app,https://charades-directors-cut-*.vercel.app,https://charades-directors-cut-*-mortenostigards-projects.vercel.app

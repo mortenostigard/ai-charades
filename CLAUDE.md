@@ -95,6 +95,16 @@ Key vars worth knowing:
 
 ## Deployment
 
-- **Frontend → Vercel**. Auto-deploys from GitHub: production from `main`, preview deployments per PR. Set `Root Directory` to `apps/frontend` in the project settings; everything else is auto-detected from `packageManager`. Set `NEXT_PUBLIC_SOCKET_URL` in Vercel project settings (Production + Preview) to the backend's URL.
-- **Backend → Render** (free tier). Configured via `render.yaml` Blueprint; deploys from `main`. Health check at `/health`. Free-tier services spin down after 15 min idle and cold-start in ~30s — acceptable for solo dev. Set `CLIENT_URL` in the Render dashboard to the Vercel URLs that should be allowed (e.g. `https://charades-directors-cut.vercel.app,https://charades-directors-cut-*.vercel.app`).
+- **Frontend → Vercel**. Auto-deploys from GitHub: production from `main`, preview deployments per PR. Set `Root Directory` to `apps/frontend` in the project settings; everything else is auto-detected from `packageManager`. Set `NEXT_PUBLIC_SOCKET_URL` in Vercel project settings (Production + Preview) to the production backend URL — PR-triggered preview builds override this at build time (see below).
+- **Backend → Render** (free tier). Configured via `render.yaml` Blueprint; production deploys from `main`. Health check at `/health`. Free-tier services spin down after 15 min idle and cold-start in ~30s — acceptable for solo dev. Set `CLIENT_URL` in the Render dashboard to the Vercel URLs that should be allowed (e.g. `https://charades-directors-cut.vercel.app,https://charades-directors-cut-*.vercel.app`).
 - The backend is **not** Vercel-compatible (Socket.IO needs a long-running process; Vercel's serverless model doesn't support that).
+
+### Per-PR preview workflow
+
+Backend changes can be tested end-to-end from any device (e.g. a phone) before merging:
+
+- **Render** spins up a service preview at `https://charades-directors-cut-backend-pr-<N>.onrender.com` for every open PR (enabled via `previews.generation: automatic` in `render.yaml`). Free-tier service hours are shared across production and all open PR previews — close stale PRs to release capacity.
+- **Vercel**'s preview frontend computes `NEXT_PUBLIC_SOCKET_URL` at build time from `VERCEL_GIT_PULL_REQUEST_ID` (see `apps/frontend/next.config.ts`), pointing the preview UI at the matching Render preview backend.
+- **CORS** for previews: `CLIENT_URL` is `sync: false` in `render.yaml`, so it isn't auto-copied to PR previews. The `previewValue` provides a default permissive enough to allow Vercel preview hostnames for this project.
+- **Sanity-checking a preview**: hit `https://charades-directors-cut-backend-pr-<N>.onrender.com/health` — should return `ok` once the cold-start finishes (~1–2 min on the first build).
+- **Branch-only deploys** (push to a branch with no open PR) don't get `VERCEL_GIT_PULL_REQUEST_ID`, so they keep targeting the production backend.
