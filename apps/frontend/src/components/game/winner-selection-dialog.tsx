@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, ReactNode } from 'react';
+import { useState, ReactNode } from 'react';
 import { Player } from '@ai-charades/shared';
 
 import { Button } from '@/components/ui/button';
@@ -18,24 +18,18 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 interface WinnerSelectionDialogProps {
   readonly audience: Player[];
   readonly onSelectWinnerAction: (playerId: string) => void;
-  readonly roundNumber: number;
   readonly children: ReactNode;
 }
 
+// Parent should pass key={roundNumber} so this component remounts (and its
+// state resets) whenever a new round begins.
 export function WinnerSelectionDialog({
   audience,
   onSelectWinnerAction,
-  roundNumber,
   children,
 }: WinnerSelectionDialogProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedWinnerId, setSelectedWinnerId] = useState<string | null>(null);
-
-  // Reset the modal and winner selection UI whenever a new round begins.
-  useEffect(() => {
-    setIsModalOpen(false);
-    setSelectedWinnerId(null);
-  }, [roundNumber]);
 
   return (
     <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

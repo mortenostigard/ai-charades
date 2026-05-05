@@ -48,12 +48,12 @@ export function RoomLobby({ roomCode }: RoomLobbyProps) {
     }
   }, [myPlayer, gameState, router, error]);
 
-  const handleCopyCode = useCallback(() => {
+  const handleCopyCode = () => {
     if (gameState?.room.code) {
       navigator.clipboard.writeText(gameState.room.code);
       toast.success('Room code copied to clipboard!');
     }
-  }, [gameState?.room.code]);
+  };
 
   const handleStartGame = useCallback(() => {
     if (canStartGame && roomCode) {

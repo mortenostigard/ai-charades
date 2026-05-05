@@ -46,32 +46,19 @@ export function useSabotage(): UseSabotageReturn {
     return { isInGracePeriod, remainingSeconds };
   }, [gameState?.currentRound, gameState?.gameConfig, timeRemaining]);
 
-  // Compute sabotage deployment eligibility with React memoization
-  const canDeploySabotage = useMemo(() => {
+  const canDeploySabotage = (() => {
     if (!gameState?.currentRound) return false;
 
     const { currentSabotage, sabotagesDeployedCount } = gameState.currentRound;
     const { maxSabotages } = gameState.gameConfig;
 
-    // Only director can deploy sabotage
     if (currentRole !== 'director') return false;
-
-    // Grace period must be over
     if (gracePeriodState.isInGracePeriod) return false;
-
-    // Check max sabotages limit
     if (sabotagesDeployedCount >= maxSabotages) return false;
-
-    // No sabotage can be active
     if (currentSabotage) return false;
 
     return true;
-  }, [
-    gameState?.currentRound,
-    gameState?.gameConfig,
-    currentRole,
-    gracePeriodState.isInGracePeriod,
-  ]);
+  })();
 
   return {
     canDeploySabotage,

@@ -175,9 +175,9 @@ export default function DirectorView() {
       {/* Footer Section - Correct Guess Button */}
       <div className='flex-shrink-0 pt-4 pb-8 text-center'>
         <WinnerSelectionDialog
+          key={roundNumber}
           audience={audience}
           onSelectWinnerAction={onSelectWinnerAction}
-          roundNumber={roundNumber}
         >
           <Button
             size='lg'
