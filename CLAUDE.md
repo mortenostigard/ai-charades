@@ -67,7 +67,7 @@ Event names are defined in `docs/api_spec.md` — that's the source of truth, do
 
 ## Pull requests
 
-PR descriptions and commit messages must stand on their own. Future readers — including future Claude sessions reviewing the merged commit — only see the PR text, not the chat that produced it. Don't reference "the rundown," "Tier 1," "from our discussion," "as I mentioned," or similar; explain what changed and why on its own merits.
+PR descriptions and commit messages stand on their own — no references to chat context.
 
 ## Reference docs
 
