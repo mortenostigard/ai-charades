@@ -1,4 +1,4 @@
-import { GameState, ActiveSabotage } from '@ai-charades/shared';
+import { type GameState, type ActiveSabotage } from '@ai-charades/shared';
 
 import { SABOTAGE_ACTIONS } from './data/sabotages.js';
 

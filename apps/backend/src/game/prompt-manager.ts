@@ -1,4 +1,4 @@
-import { GamePrompt } from '@ai-charades/shared';
+import { type GamePrompt } from '@ai-charades/shared';
 
 import { GAME_PROMPTS } from './data/prompts.js';
 
@@ -37,7 +37,11 @@ export class PromptManager {
     }
 
     const randomIndex = Math.floor(Math.random() * availablePrompts.length);
-    return availablePrompts[randomIndex];
+    const prompt = availablePrompts[randomIndex];
+    if (!prompt) {
+      throw new Error('No unused prompts available');
+    }
+    return prompt;
   }
 
   /**

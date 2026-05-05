@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { ActiveSabotage } from '@ai-charades/shared';
+import { type ActiveSabotage } from '@ai-charades/shared';
 
 import { Badge } from '@/components/ui/badge';
 

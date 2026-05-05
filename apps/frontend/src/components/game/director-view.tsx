@@ -3,7 +3,7 @@
 import { useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Zap } from 'lucide-react';
-import { SabotageAction } from '@ai-charades/shared';
+import { type SabotageAction } from '@ai-charades/shared';
 
 import { Button } from '@/components/ui/button';
 import { useSabotage } from '@/hooks/useSabotage';

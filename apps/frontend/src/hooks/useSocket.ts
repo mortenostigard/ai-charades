@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useCallback } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { io, type Socket } from 'socket.io-client';
 import {
-  GameState,
-  Player,
-  Room,
-  ActiveSabotage,
-  CompletedRound,
+  type GameState,
+  type Player,
+  type Room,
+  type ActiveSabotage,
+  type CompletedRound,
 } from '@ai-charades/shared';
 
 import { useGameStore } from '@/stores/gameStore';

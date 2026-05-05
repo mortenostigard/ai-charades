@@ -1,4 +1,4 @@
-import { GamePrompt } from '@ai-charades/shared';
+import { type GamePrompt } from '@ai-charades/shared';
 
 /**
  * A collection of game prompts organized by category and difficulty.
