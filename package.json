@@ -16,7 +16,7 @@
     "build:shared": "npm run build --workspace=packages/shared",
     "start:frontend": "npm run start --workspace=apps/frontend",
     "start:backend": "npm run start --workspace=apps/backend",
-    "lint": "npm run lint --workspaces",
+    "lint": "npm run lint --workspaces --if-present",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "type-check": "npm run type-check --workspaces",
