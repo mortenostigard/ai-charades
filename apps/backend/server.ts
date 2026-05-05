@@ -3,7 +3,7 @@ import { createServer } from 'http';
 import { config } from 'dotenv';
 import { Server } from 'socket.io';
 
-import { initializeSocketHandlers } from './src/socket/handlers';
+import { initializeSocketHandlers } from './src/socket/handlers.js';
 
 // Load environment variables from .env.local
 config({ path: '.env.local' });

@@ -1,6 +1,6 @@
 import { GameState, ActiveSabotage } from '@ai-charades/shared';
 
-import { SABOTAGE_ACTIONS } from './data/sabotages';
+import { SABOTAGE_ACTIONS } from './data/sabotages.js';
 
 /**
  * Manages the deployment and state of sabotages within a game round.

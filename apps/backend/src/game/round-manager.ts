@@ -6,8 +6,8 @@ import {
   Player,
 } from '@ai-charades/shared';
 
-import { ScoringEngine, ScoringData } from './scoring-engine';
-import { SabotageManager } from './sabotage-manager';
+import { ScoringEngine, ScoringData } from './scoring-engine.js';
+import { SabotageManager } from './sabotage-manager.js';
 
 /**
  * Manages the lifecycle of rounds within a game, including role rotation

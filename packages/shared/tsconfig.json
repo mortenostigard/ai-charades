@@ -2,9 +2,8 @@
   "compilerOptions": {
     "target": "ES2017",
     "lib": ["ES2017"],
-    "module": "commonjs",
-    "moduleResolution": "node",
-    "ignoreDeprecations": "6.0",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,

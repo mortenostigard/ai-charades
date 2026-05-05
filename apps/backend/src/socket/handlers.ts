@@ -1,11 +1,11 @@
 import { Server, Socket } from 'socket.io';
 import { GameState, GameConfig } from '@ai-charades/shared';
 
-import { RoomManager, getErrorMessage } from '@/game/room-manager';
-import { RoundManager } from '@/game/round-manager';
-import { PromptManager } from '@/game/prompt-manager';
-import { SabotageManager } from '@/game/sabotage-manager';
-import { gameLoopManager } from '@/game/game-loop';
+import { RoomManager, getErrorMessage } from '@/game/room-manager.js';
+import { RoundManager } from '@/game/round-manager.js';
+import { PromptManager } from '@/game/prompt-manager.js';
+import { SabotageManager } from '@/game/sabotage-manager.js';
+import { gameLoopManager } from '@/game/game-loop.js';
 
 // --- In-memory state management with HMR (Hot Module Replacement) support ---
 
