@@ -23,18 +23,18 @@ ai-charades/
 - **State Management**: [Zustand](https://github.com/pmndrs/zustand)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/) with [shadcn/ui](https://ui.shadcn.com/)
-- **Monorepo**: npm workspaces
+- **Monorepo**: pnpm workspaces
 - **Linting & Formatting**: ESLint & Prettier
 
 ## Getting Started
 
-This monorepo uses npm workspaces to manage dependencies and run scripts across multiple applications.
+This monorepo uses pnpm workspaces to manage dependencies and run scripts across multiple applications. The package manager is pinned via the root `packageManager` field; corepack picks it up automatically on Node ≥ 22.
 
 ### Prerequisites
 
 ```bash
 # Install all dependencies for all workspaces
-npm install
+pnpm install
 ```
 
 ### Development Mode
@@ -42,7 +42,7 @@ npm install
 **Option 1: Start Everything (Recommended)**
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 This will start:
@@ -55,13 +55,13 @@ This will start:
 
 ```bash
 # Start only the frontend
-npm run dev:frontend
+pnpm dev:frontend
 
 # Start only the backend
-npm run dev:backend
+pnpm dev:backend
 
 # Build shared package
-npm run build:shared
+pnpm build:shared
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
@@ -70,26 +70,26 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ### Root Level Scripts (Workspace Management)
 
-- `npm run dev`: Starts all applications in development mode
-- `npm run build`: Builds all applications for production
-- `npm run lint`: Lints all workspaces
-- `npm run type-check`: Type checks all workspaces
+- `pnpm dev`: Starts all applications in development mode
+- `pnpm build`: Builds all applications for production
+- `pnpm lint`: Lints all workspaces
+- `pnpm type-check`: Type checks all workspaces
 
 ### Frontend Scripts
 
-- `npm run dev:frontend`: Starts the Next.js development server
-- `npm run build:frontend`: Creates a production build of the Next.js app
-- `npm run start:frontend`: Starts the production Next.js server
+- `pnpm dev:frontend`: Starts the Next.js development server
+- `pnpm build:frontend`: Creates a production build of the Next.js app
+- `pnpm start:frontend`: Starts the production Next.js server
 
 ### Backend Scripts
 
-- `npm run dev:backend`: Starts the Socket.io development server
-- `npm run build:backend`: Compiles the Socket.io server for production
-- `npm run start:backend`: Starts the production Socket.io server
+- `pnpm dev:backend`: Starts the Socket.io development server
+- `pnpm build:backend`: Compiles the Socket.io server for production
+- `pnpm start:backend`: Starts the production Socket.io server
 
 ### Shared Package Scripts
 
-- `npm run build:shared`: Builds the shared types and utilities package
+- `pnpm build:shared`: Builds the shared types and utilities package
 
 ## Deployment
 
@@ -101,10 +101,10 @@ Deploy the frontend to [Vercel](https://vercel.com/new):
 
 ```bash
 # Build the frontend
-npm run build:frontend
+pnpm build:frontend
 
 # Start production server
-npm run start:frontend
+pnpm start:frontend
 ```
 
 **Vercel Configuration**: Point your Vercel project to the `apps/frontend` directory.
@@ -115,13 +115,13 @@ Deploy the backend to your preferred Node.js hosting service:
 
 ```bash
 # Build shared dependencies first
-npm run build:shared
+pnpm build:shared
 
 # Build the server
-npm run build:backend
+pnpm build:backend
 
 # Start production server
-npm run start:backend
+pnpm start:backend
 ```
 
 ### CI/CD with GitHub Actions
