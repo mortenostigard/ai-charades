@@ -7,6 +7,13 @@ import { PromptManager } from '@/game/prompt-manager.js';
 import { SabotageManager } from '@/game/sabotage-manager.js';
 import { gameLoopManager } from '@/game/game-loop.js';
 
+declare module 'socket.io' {
+  interface SocketData {
+    playerId?: string;
+    roomCode?: string;
+  }
+}
+
 // --- In-memory state management with HMR (Hot Module Replacement) support ---
 
 // In development, we use a global variable to preserve state across hot reloads.
@@ -36,6 +43,20 @@ function bindSocketIdentity(
 ) {
   socket.data.playerId = playerId;
   socket.data.roomCode = roomCode;
+}
+
+// Defense-in-depth check for privileged handlers: requires the socket's
+// bound roomCode to match the one in the event payload. A socket whose
+// identity was set via handshake auth but never validated against an actual
+// room (because the auto-rejoin block doesn't run, or the binding is stale)
+// will fail this check rather than silently acting on the payload's room.
+function getAuthedPlayerForRoom(
+  socket: Socket,
+  roomCode: string
+): string | undefined {
+  if (!socket.data.playerId) return undefined;
+  if (socket.data.roomCode !== roomCode) return undefined;
+  return socket.data.playerId;
 }
 
 // Helper function to find which room a player is in.
@@ -326,7 +347,7 @@ export function handleRejoinRoom(socket: Socket) {
 export function handleLeaveRoom(socket: Socket) {
   return async () => {
     try {
-      const playerId = socket.data.playerId as string | undefined;
+      const playerId = socket.data.playerId;
       if (!playerId) return;
 
       const roomCode = findRoomCodeByPlayerId(playerId);
@@ -369,7 +390,7 @@ export function handleLeaveRoom(socket: Socket) {
 
 export function handleRequestGameState(socket: Socket) {
   return () => {
-    const playerId = socket.data.playerId as string | undefined;
+    const playerId = socket.data.playerId;
     try {
       if (!playerId) return;
 
@@ -400,7 +421,7 @@ export function handleDisconnect(io: Server, socket: Socket) {
   return async () => {
     console.log(`Client disconnected: ${socket.id}`);
 
-    const disconnectedPlayerId = socket.data.playerId as string | undefined;
+    const disconnectedPlayerId = socket.data.playerId;
     if (!disconnectedPlayerId) return;
 
     const roomCode = findRoomCodeByPlayerId(disconnectedPlayerId);
@@ -475,7 +496,7 @@ export function handleStartGame(io: Server, socket: Socket) {
       // Validate that the request comes from the room host (the socket bound
       // to the host playerId via auth handshake or create/join).
       const hostId = gameState.room.players[0]?.id;
-      const requesterId = socket.data.playerId as string | undefined;
+      const requesterId = getAuthedPlayerForRoom(socket, roomCode);
       if (!requesterId || requesterId !== hostId) {
         socket.emit('game_error', {
           code: 'UNAUTHORIZED',
@@ -553,7 +574,7 @@ export function handleStartRound(io: Server, socket: Socket) {
 
       // Validate that the request comes from the room host
       const hostId = currentGameState.room.players[0]?.id;
-      const requesterId = socket.data.playerId as string | undefined;
+      const requesterId = getAuthedPlayerForRoom(socket, roomCode);
       if (!requesterId || requesterId !== hostId) {
         socket.emit('game_error', {
           code: 'UNAUTHORIZED',
@@ -612,7 +633,7 @@ export function handleDeploySabotage(io: Server, socket: Socket) {
 
       // Director identity is derived from the socket binding, not the payload.
       // SabotageManager will reject if this id doesn't match currentRound.directorId.
-      const directorId = socket.data.playerId as string | undefined;
+      const directorId = getAuthedPlayerForRoom(socket, roomCode);
       if (!directorId) {
         socket.emit('game_error', {
           code: 'UNAUTHORIZED',
@@ -684,7 +705,7 @@ export function handleEndRound(io: Server, socket: Socket) {
       if (!gameState) return;
 
       // Security Check: Validate that the person ending the round is the director
-      const requesterId = socket.data.playerId as string | undefined;
+      const requesterId = getAuthedPlayerForRoom(socket, roomCode);
       const directorId = gameState.currentRound?.directorId;
       if (!requesterId || !directorId || requesterId !== directorId) {
         return socket.emit('game_error', {
@@ -716,6 +737,12 @@ export function initializeSocketHandlers(io: Server) {
   // auth are still allowed — they're for create_room / join_room / fresh
   // joiners. Privileged handlers verify socket.data.playerId at call time.
   //
+  // Both playerId and roomCode must be present and well-formed; otherwise
+  // neither is bound. This guarantees the auto-rejoin block below always has
+  // a chance to validate the (playerId, roomCode) pair against an actual
+  // room — half-bound state would leave socket.data.playerId set without
+  // any membership check.
+  //
   // Skipped on socket.recovered (see connectionStateRecovery.skipMiddlewares
   // in server.ts), which is correct because socket.data is preserved across
   // the recovery window.
@@ -724,11 +751,17 @@ export function initializeSocketHandlers(io: Server) {
       playerId?: unknown;
       roomCode?: unknown;
     };
-    if (typeof auth.playerId === 'string' && auth.playerId.length > 0) {
-      socket.data.playerId = auth.playerId;
-    }
-    if (typeof auth.roomCode === 'string' && /^\d{4}$/.test(auth.roomCode)) {
-      socket.data.roomCode = auth.roomCode;
+    const playerId =
+      typeof auth.playerId === 'string' && auth.playerId.length > 0
+        ? auth.playerId
+        : undefined;
+    const roomCode =
+      typeof auth.roomCode === 'string' && /^\d{4}$/.test(auth.roomCode)
+        ? auth.roomCode
+        : undefined;
+    if (playerId && roomCode) {
+      socket.data.playerId = playerId;
+      socket.data.roomCode = roomCode;
     }
     next();
   });
@@ -751,22 +784,21 @@ export function initializeSocketHandlers(io: Server) {
 
     // Auto-rejoin via handshake auth on a fresh connection. Recovered sockets
     // already have their rooms restored, so no rejoin is needed there.
-    if (!socket.recovered) {
-      const playerId = socket.data.playerId as string | undefined;
-      const roomCode = socket.data.roomCode as string | undefined;
-      if (playerId && roomCode) {
-        rejoinPlayerToRoom(socket, playerId, roomCode).then(result => {
-          if (!result.ok) {
-            // Clear stale identity so this socket doesn't carry it forward.
-            socket.data.playerId = undefined;
-            socket.data.roomCode = undefined;
-            socket.emit('room_error', {
-              code: result.code,
-              message: result.message,
-            });
-          }
-        });
-      }
+    // The middleware guarantees playerId and roomCode are either both set or
+    // both unset, so a single presence check covers both.
+    if (!socket.recovered && socket.data.playerId && socket.data.roomCode) {
+      const { playerId, roomCode } = socket.data;
+      rejoinPlayerToRoom(socket, playerId, roomCode).then(result => {
+        if (!result.ok) {
+          // Clear stale identity so this socket doesn't carry it forward.
+          socket.data.playerId = undefined;
+          socket.data.roomCode = undefined;
+          socket.emit('room_error', {
+            code: result.code,
+            message: result.message,
+          });
+        }
+      });
     }
   });
 }
