@@ -696,7 +696,13 @@ export function initializeSocketHandlers(io: Server) {
   });
 
   io.on('connection', (socket: Socket) => {
-    console.log(`Client connected: ${socket.id}`);
+    // On `socket.recovered`, Socket.IO has restored this socket's id, rooms,
+    // and any packets emitted to its rooms during the disconnect window.
+    // Handlers must still be wired (the underlying Socket instance is new),
+    // and the rejoin_room flow remains the long-disconnect fallback.
+    console.log(
+      `Client ${socket.recovered ? 'recovered' : 'connected'}: ${socket.id}`
+    );
 
     socket.on('create_room', handleCreateRoom(socket));
     socket.on('join_room', handleJoinRoom(socket));

@@ -63,10 +63,22 @@ const io = new Server(httpServer, {
   },
   transports: ['polling', 'websocket'],
   addTrailingSlash: false,
+  // Buffers missed packets and restores socket state (id, rooms, data) when a
+  // client reconnects within the window. Covers brief disconnects (network
+  // blips, app backgrounding, transport switches). The custom rejoin_room
+  // handler remains the fallback for longer disconnects, server restarts,
+  // and tab-close scenarios where the socket id is gone client-side.
+  // https://socket.io/docs/v4/connection-state-recovery
+  connectionStateRecovery: {
+    maxDisconnectionDuration: 3 * 60 * 1000,
+    skipMiddlewares: true,
+  },
 });
 
 io.on('connection', socket => {
-  console.log(`🔌 New client connected: ${socket.id}`);
+  console.log(
+    `🔌 Client ${socket.recovered ? 'recovered' : 'connected'}: ${socket.id}`
+  );
 
   socket.on('disconnect', reason => {
     console.log(`🔌 Client disconnected: ${socket.id}, reason: ${reason}`);
