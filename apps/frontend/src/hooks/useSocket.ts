@@ -11,11 +11,7 @@ import {
 } from '@charades/shared';
 
 import { useGameStore } from '@/stores/gameStore';
-import {
-  clearPlayerSession,
-  loadPlayerSession,
-  savePlayerSession,
-} from '@/lib/playerSession';
+import { loadPlayerSession, savePlayerSession } from '@/lib/playerSession';
 
 // This ensures the hook only runs once, preventing multiple socket connections.
 let socket: Socket | null = null;
@@ -58,6 +54,15 @@ export const useSocket = () => {
     // Read any persisted session and pass it via handshake auth so the server
     // can auto-rejoin us on connect. Falls back to undefined for a fresh user.
     const session = loadPlayerSession();
+
+    // Restore playerId in the store immediately so getMyPlayer() resolves
+    // once gameState arrives. Without this, a page refresh leaves playerId
+    // null even though the server-side auto-rejoin succeeds, and components
+    // treat the local user as a stranger.
+    if (session) {
+      setPlayerId(session.playerId);
+      setLoading(true);
+    }
 
     socket = io(socketUrl, {
       addTrailingSlash: false,
@@ -192,18 +197,20 @@ export const useSocket = () => {
     });
 
     socket.on('room_error', (error: { code: string; message: string }) => {
-      // If we don't have an active player in memory but localStorage has a
-      // session, this error is from a failed auto-rejoin (e.g. server
-      // restarted, room expired, or player removed after the grace window).
-      // Clear the stale session so we don't keep retrying on every reconnect.
-      const { playerId } = useGameStore.getState();
+      // If we have a persisted session and an optimistically-restored
+      // playerId but no synced gameState yet, this error is from a failed
+      // server-side auto-rejoin (server restarted, room expired, or player
+      // removed after the grace window). Reset the store and clear the
+      // stale session so we don't keep retrying on every reconnect.
+      // resetState() handles both.
+      const { gameState, resetState } = useGameStore.getState();
       const staleAutoRejoin =
-        !playerId &&
+        !gameState &&
         (error.code === 'ROOM_NOT_FOUND' ||
           error.code === 'PLAYER_NOT_FOUND' ||
           error.code === 'INVALID_CODE');
       if (staleAutoRejoin) {
-        clearPlayerSession();
+        resetState();
       }
       setError(error.message);
       setLoading(false);
