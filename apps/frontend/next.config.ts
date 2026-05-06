@@ -14,6 +14,13 @@ if (prNumber) {
   env.NEXT_PUBLIC_SOCKET_URL = `https://charades-directors-cut-backend-pr-${prNumber}.onrender.com`;
 }
 
+// Surfaced in Vercel build logs so the resolved socket URL is verifiable
+// without inspecting the deployed bundle. When the override is empty, the
+// frontend falls through to Vercel project env / .env.local / localhost.
+console.warn(
+  `[next.config] NEXT_PUBLIC_SOCKET_URL override = ${env.NEXT_PUBLIC_SOCKET_URL ?? '(none — using project env)'}`
+);
+
 const nextConfig: NextConfig = {
   reactCompiler: true,
   transpilePackages: ['@charades/shared'],
