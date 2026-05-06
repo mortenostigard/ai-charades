@@ -11,6 +11,8 @@ import type {
   CompletedRound,
 } from '@charades/shared';
 
+import { clearPlayerSession } from '@/lib/playerSession';
+
 interface GameStore {
   // Core State
   gameState: GameState | null;
@@ -199,7 +201,10 @@ export const useGameStore = create<GameStore>()(
       }),
 
     // Reset state (for leaving room, etc.)
-    resetState: () => set(initialState),
+    resetState: () => {
+      clearPlayerSession();
+      set(initialState);
+    },
 
     // Computed selectors
     getCurrentRole: () => {

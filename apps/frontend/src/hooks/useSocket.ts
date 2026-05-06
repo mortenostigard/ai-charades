@@ -11,6 +11,11 @@ import {
 } from '@charades/shared';
 
 import { useGameStore } from '@/stores/gameStore';
+import {
+  clearPlayerSession,
+  loadPlayerSession,
+  savePlayerSession,
+} from '@/lib/playerSession';
 
 // This ensures the hook only runs once, preventing multiple socket connections.
 let socket: Socket | null = null;
@@ -36,11 +41,8 @@ export const useSocket = () => {
 
     const requestResync = () => {
       if (socket?.connected) {
-        const { playerId } = useGameStore.getState();
-        if (playerId) {
-          console.log('Requesting game state resync...');
-          socket.emit('request_game_state', { playerId });
-        }
+        console.log('Requesting game state resync...');
+        socket.emit('request_game_state');
       }
     };
 
@@ -53,11 +55,16 @@ export const useSocket = () => {
       process.env.NEXT_PUBLIC_SOCKET_URL
     );
 
+    // Read any persisted session and pass it via handshake auth so the server
+    // can auto-rejoin us on connect. Falls back to undefined for a fresh user.
+    const session = loadPlayerSession();
+
     socket = io(socketUrl, {
       addTrailingSlash: false,
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
+      auth: session ?? undefined,
     });
 
     // Basic transport-level error logging
@@ -75,23 +82,19 @@ export const useSocket = () => {
       setError(null);
       setSocketReady(true);
 
-      // Check for existing session data for automatic rejoining
-      const storedPlayerId = sessionStorage.getItem('charades-playerId');
-      const storedRoomCode = sessionStorage.getItem('charades-roomCode');
-
-      if (storedPlayerId && storedRoomCode && socket) {
+      // Auto-rejoin is handled server-side via the handshake auth payload
+      // we passed when constructing the socket. The server will emit a
+      // game_state_update on success. Show a reconnecting state in the UI
+      // while we wait for that, and resync if there's no persisted session.
+      const persisted = loadPlayerSession();
+      if (persisted) {
         console.log(
-          'Found session data, attempting to rejoin room:',
-          storedRoomCode
+          'Auto-rejoin via handshake auth for room:',
+          persisted.roomCode
         );
-        updatePlayer(storedPlayerId, { connectionStatus: 'reconnecting' });
+        updatePlayer(persisted.playerId, { connectionStatus: 'reconnecting' });
         setLoading(true);
-        socket.emit('rejoin_room', {
-          playerId: storedPlayerId,
-          roomCode: storedRoomCode,
-        });
       } else {
-        // If we are reconnecting without session data, we might want to resync state
         requestResync();
       }
     });
@@ -146,9 +149,7 @@ export const useSocket = () => {
         setPlayerId(data.playerId);
         setLoading(false);
 
-        // Store session data for reconnection
-        sessionStorage.setItem('charades-playerId', data.playerId);
-        sessionStorage.setItem('charades-roomCode', data.room.code);
+        savePlayerSession(data.playerId, data.room.code);
       }
     );
 
@@ -159,9 +160,7 @@ export const useSocket = () => {
         setPlayerId(data.playerId);
         setLoading(false);
 
-        // Store session data for reconnection
-        sessionStorage.setItem('charades-playerId', data.playerId);
-        sessionStorage.setItem('charades-roomCode', data.room.code);
+        savePlayerSession(data.playerId, data.room.code);
       }
     );
 
@@ -193,6 +192,19 @@ export const useSocket = () => {
     });
 
     socket.on('room_error', (error: { code: string; message: string }) => {
+      // If we don't have an active player in memory but localStorage has a
+      // session, this error is from a failed auto-rejoin (e.g. server
+      // restarted, room expired, or player removed after the grace window).
+      // Clear the stale session so we don't keep retrying on every reconnect.
+      const { playerId } = useGameStore.getState();
+      const staleAutoRejoin =
+        !playerId &&
+        (error.code === 'ROOM_NOT_FOUND' ||
+          error.code === 'PLAYER_NOT_FOUND' ||
+          error.code === 'INVALID_CODE');
+      if (staleAutoRejoin) {
+        clearPlayerSession();
+      }
       setError(error.message);
       setLoading(false);
     });

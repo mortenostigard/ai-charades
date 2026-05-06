@@ -48,11 +48,13 @@ Key interfaces include:
 }
 
 // Leave current room
-'leave_room': {
-  playerId: string
-}
+// Identity is derived from the socket's auth binding (set on create/join/rejoin
+// or via handshake auth). No payload is required.
+'leave_room': Record<string, never>
 
-// Rejoin room after disconnection
+// Rejoin room after disconnection. Establishing event — payload is the source
+// of identity. Auto-rejoin on (re)connect is also supported via handshake auth
+// (`io(url, { auth: { playerId, roomCode } })`).
 'rejoin_room': {
   playerId: string
   roomCode: string
@@ -123,18 +125,15 @@ Key interfaces include:
 #### Client → Server
 
 ```typescript
-// Start new round
+// Start new round (host only — verified via socket auth binding)
 'start_round': {
   roomCode: string
-  requestedBy: string
 }
 
-// Deploy sabotage (Director only)
+// Deploy sabotage (Director only — verified via socket auth binding)
 'deploy_sabotage': {
   sabotageId: string
-  directorId: string
   roomCode: string
-  timestamp: number
 }
 
 // Send emoji reaction (Audience only)
@@ -149,16 +148,14 @@ Key interfaces include:
   winnerId: string // The player who guessed correctly
 }
 
-// Start new game
+// Start new game (host only — verified via socket auth binding)
 'start_game': {
   roomCode: string
-  requestedBy: string
 }
 
-// Request current game state (for reconnection)
-'request_game_state': {
-  playerId: string
-}
+// Request current game state (for reconnection). Identity is derived from
+// the socket's auth binding; no payload is required.
+'request_game_state': Record<string, never>
 ```
 
 #### Server → Client

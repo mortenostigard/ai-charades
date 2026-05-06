@@ -58,7 +58,7 @@ export function RoomLobby({ roomCode }: RoomLobbyProps) {
   const handleStartGame = () => {
     if (canStartGame && roomCode) {
       console.log("Emitting 'start_game'", { roomCode });
-      emit('start_game', { roomCode, requestedBy: playerId });
+      emit('start_game', { roomCode });
     }
   };
 
