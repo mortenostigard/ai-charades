@@ -65,12 +65,13 @@ export class RoundManager {
   }
 
   /**
-   * Ends the current round, calculates scores, and returns the new state.
+   * Ends the current round, calculates scores, and returns the new state
+   * along with the round record that was just appended to history.
    * @param winnerId The ID of the player who won the round, if any.
-   * @returns An object containing the updated GameState.
    */
   public endRound(winnerId?: string): {
     newGameState: GameState;
+    completedRound: CompletedRound;
   } {
     if (!this.gameState.currentRound) {
       // This should ideally not be reached if called correctly
@@ -106,7 +107,7 @@ export class RoundManager {
       scores: newScores,
     };
 
-    return { newGameState };
+    return { newGameState, completedRound };
   }
 
   /**

@@ -70,7 +70,9 @@ function processRoundCompletion(
   gameLoopManager.removeLoop(roomCode);
 
   const roundManager = new RoundManager(gameState);
-  let { newGameState } = roundManager.endRound(winnerId);
+  const ended = roundManager.endRound(winnerId);
+  const { completedRound } = ended;
+  let { newGameState } = ended;
 
   const updatedRoundManager = new RoundManager(newGameState);
   if (updatedRoundManager.isGameComplete()) {
@@ -90,12 +92,7 @@ function processRoundCompletion(
     console.log(`Game completed in room ${roomCode}`);
   } else {
     roomStore.set(roomCode, newGameState);
-
-    const completedRound =
-      newGameState.roundHistory[newGameState.roundHistory.length - 1];
-    if (completedRound) {
-      io.to(roomCode).emit('round_complete', { completedRound });
-    }
+    io.to(roomCode).emit('round_complete', { completedRound });
   }
 }
 
