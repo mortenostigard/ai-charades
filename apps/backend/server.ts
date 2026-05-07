@@ -2,6 +2,11 @@ import { createServer } from 'http';
 
 import { config } from 'dotenv';
 import { Server } from 'socket.io';
+import {
+  type ClientToServerEvents,
+  type ServerToClientEvents,
+  type SocketData,
+} from '@charades/shared';
 
 import { initializeSocketHandlers } from './src/socket/handlers.js';
 
@@ -49,7 +54,12 @@ const httpServer = createServer((req, res) => {
   res.end('not found');
 });
 
-const io = new Server(httpServer, {
+const io = new Server<
+  ClientToServerEvents,
+  ServerToClientEvents,
+  Record<string, never>,
+  SocketData
+>(httpServer, {
   cors: {
     origin: (origin, callback) => {
       if (isAllowedOrigin(origin)) {
