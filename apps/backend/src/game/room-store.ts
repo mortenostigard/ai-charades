@@ -7,15 +7,20 @@ import { RoomManager } from './room-manager.js';
 const globalForState = globalThis as unknown as {
   gameStates?: Map<string, GameState>;
   pendingRemovals?: Map<string, NodeJS.Timeout>;
+  sessionTokens?: Map<string, string>;
 };
 
 const gameStates = globalForState.gameStates ?? new Map<string, GameState>();
 const pendingRemovals =
   globalForState.pendingRemovals ?? new Map<string, NodeJS.Timeout>();
+// Side table mapping playerId -> sessionToken. Kept off the broadcast Player
+// shape so peers never see another player's token. Cleared on player removal.
+const sessionTokens = globalForState.sessionTokens ?? new Map<string, string>();
 
 if (process.env.NODE_ENV !== 'production') {
   globalForState.gameStates = gameStates;
   globalForState.pendingRemovals = pendingRemovals;
+  globalForState.sessionTokens = sessionTokens;
 }
 
 export type ConnectionUpdate = { state: GameState; player: Player };
@@ -111,13 +116,42 @@ export const roomStore = {
     const state = gameStates.get(code);
     if (!state) return { status: 'not_found' };
 
+    const wasMember = state.room.players.some(p => p.id === playerId);
     const newState = RoomManager.leaveRoom(state, playerId);
     if (newState === null) {
+      // Room is being evicted: drop tokens for every player who was in it.
+      for (const player of state.room.players) {
+        sessionTokens.delete(player.id);
+      }
       gameStates.delete(code);
       return { status: 'emptied' };
     }
+    if (wasMember) {
+      sessionTokens.delete(playerId);
+    }
     gameStates.set(code, newState);
     return { status: 'removed', state: newState };
+  },
+
+  /**
+   * Persist the cryptographically random session token for a player.
+   * Subsequent reconnect attempts must present this token to claim that
+   * playerId. Stored in a side table so it never appears on the broadcast
+   * Player shape.
+   */
+  setSessionToken(playerId: string, token: string): void {
+    sessionTokens.set(playerId, token);
+  },
+
+  /**
+   * Returns true iff the supplied token matches the one stored for the
+   * given playerId. Returns false if no token is stored or the values
+   * differ — callers should treat both cases as auth failure.
+   */
+  verifySessionToken(playerId: string, token: string): boolean {
+    const stored = sessionTokens.get(playerId);
+    if (!stored) return false;
+    return stored === token;
   },
 
   /**

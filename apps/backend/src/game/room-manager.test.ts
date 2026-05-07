@@ -49,6 +49,24 @@ describe('RoomManager', () => {
       expect(gameState.gameConfig.gracePeriod).toBe(20000);
       expect(gameState.gameConfig.maxSabotages).toBe(3);
     });
+
+    it('issues a long, unguessable session token distinct per call', () => {
+      const a = RoomManager.createRoom('Alice', []);
+      const b = RoomManager.createRoom('Bob', []);
+
+      // base64url of 32 random bytes is 43 chars; require enough entropy that
+      // two calls never collide.
+      expect(a.sessionToken).toMatch(/^[A-Za-z0-9_-]{40,}$/);
+      expect(b.sessionToken).toMatch(/^[A-Za-z0-9_-]{40,}$/);
+      expect(a.sessionToken).not.toBe(b.sessionToken);
+    });
+
+    it('omits the session token from the broadcastable Player shape', () => {
+      const { room } = RoomManager.createRoom('Alice', []);
+      // sessionToken belongs to the side channel only — it must not leak via
+      // the Player record that's broadcast on every state update.
+      expect(room.players[0]).not.toHaveProperty('sessionToken');
+    });
   });
 
   describe('joinRoom', () => {
@@ -87,6 +105,14 @@ describe('RoomManager', () => {
       expect(() => RoomManager.joinRoom(state, 'BOB')).toThrow(
         'PLAYER_NAME_TAKEN'
       );
+    });
+
+    it('issues a fresh session token for the joiner that differs from the host', () => {
+      const initial = RoomManager.createRoom('Alice', []);
+      const joined = RoomManager.joinRoom(initial.gameState, 'Bob');
+
+      expect(joined.sessionToken).toMatch(/^[A-Za-z0-9_-]{40,}$/);
+      expect(joined.sessionToken).not.toBe(initial.sessionToken);
     });
   });
 

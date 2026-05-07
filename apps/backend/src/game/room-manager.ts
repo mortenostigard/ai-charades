@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto';
+
 import {
   type Room,
   type Player,
@@ -44,21 +46,37 @@ export class RoomManager {
   }
 
   /**
+   * Generates a cryptographically random session token used by the server
+   * to authenticate subsequent connections by an existing player. The token
+   * is delivered exactly once to the originating socket and must never be
+   * included in broadcast payloads.
+   */
+  public static generateSessionToken(): string {
+    return randomBytes(32).toString('base64url');
+  }
+
+  /**
    * Creates a new room and its initial game state.
    * @param hostPlayerName The name of the host player.
    * @param existingRoomCodes A list of all current room codes to ensure uniqueness.
    * @param config Optional custom game configuration.
-   * @returns The newly created Room, the host's player ID, and the initial GameState.
+   * @returns The newly created Room, the host's player ID, the host's session token, and the initial GameState.
    */
   public static createRoom(
     hostPlayerName: string,
     existingRoomCodes: string[],
     config?: Partial<GameConfig>
-  ): { room: Room; playerId: string; gameState: GameState } {
+  ): {
+    room: Room;
+    playerId: string;
+    sessionToken: string;
+    gameState: GameState;
+  } {
     const roomCode = this.generateUniqueRoomCode(existingRoomCodes);
     const playerId = `player_${Date.now()}_${Math.random()
       .toString(36)
       .substring(2, 11)}`;
+    const sessionToken = this.generateSessionToken();
 
     const hostPlayer: Player = {
       id: playerId,
@@ -83,7 +101,7 @@ export class RoomManager {
       roundHistory: [],
     };
 
-    return { room, playerId, gameState };
+    return { room, playerId, sessionToken, gameState };
   }
 
   /**
@@ -96,7 +114,7 @@ export class RoomManager {
   public static joinRoom(
     gameState: GameState,
     playerName: string
-  ): { newGameState: GameState; newPlayer: Player } {
+  ): { newGameState: GameState; newPlayer: Player; sessionToken: string } {
     const { room, scores } = gameState;
 
     if (room.players.length >= room.maxPlayers) {
@@ -117,6 +135,7 @@ export class RoomManager {
       connectionStatus: 'connected',
       joinedAt: Date.now(),
     };
+    const sessionToken = this.generateSessionToken();
 
     const newPlayers = [...room.players, newPlayer];
     const newScores = { ...scores, [newPlayer.id]: 0 };
@@ -125,6 +144,7 @@ export class RoomManager {
     return {
       newGameState: { ...gameState, room: newRoom, scores: newScores },
       newPlayer,
+      sessionToken,
     };
   }
 

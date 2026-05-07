@@ -8,12 +8,14 @@ const TTL_MS = 60 * 60 * 1000; // 1 hour
 interface StoredSession {
   readonly playerId: string;
   readonly roomCode: string;
+  readonly sessionToken: string;
   readonly savedAt: number;
 }
 
 export interface PlayerSession {
   readonly playerId: string;
   readonly roomCode: string;
+  readonly sessionToken: string;
 }
 
 function getStorage(): Storage | null {
@@ -25,12 +27,17 @@ function getStorage(): Storage | null {
   }
 }
 
-export function savePlayerSession(playerId: string, roomCode: string): void {
+export function savePlayerSession(
+  playerId: string,
+  roomCode: string,
+  sessionToken: string
+): void {
   const storage = getStorage();
   if (!storage) return;
   const payload: StoredSession = {
     playerId,
     roomCode,
+    sessionToken,
     savedAt: Date.now(),
   };
   try {
@@ -50,6 +57,7 @@ export function loadPlayerSession(): PlayerSession | null {
     if (
       typeof parsed.playerId !== 'string' ||
       typeof parsed.roomCode !== 'string' ||
+      typeof parsed.sessionToken !== 'string' ||
       typeof parsed.savedAt !== 'number'
     ) {
       storage.removeItem(KEY);
@@ -59,7 +67,11 @@ export function loadPlayerSession(): PlayerSession | null {
       storage.removeItem(KEY);
       return null;
     }
-    return { playerId: parsed.playerId, roomCode: parsed.roomCode };
+    return {
+      playerId: parsed.playerId,
+      roomCode: parsed.roomCode,
+      sessionToken: parsed.sessionToken,
+    };
   } catch {
     storage.removeItem(KEY);
     return null;

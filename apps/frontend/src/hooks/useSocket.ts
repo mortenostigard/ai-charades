@@ -8,7 +8,11 @@ import {
 } from '@charades/shared';
 
 import { useGameStore } from '@/stores/gameStore';
-import { loadPlayerSession, savePlayerSession } from '@/lib/playerSession';
+import {
+  clearPlayerSession,
+  loadPlayerSession,
+  savePlayerSession,
+} from '@/lib/playerSession';
 
 type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -68,7 +72,13 @@ export const useSocket = () => {
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
-      auth: session ?? undefined,
+      auth: session
+        ? {
+            playerId: session.playerId,
+            roomCode: session.roomCode,
+            sessionToken: session.sessionToken,
+          }
+        : undefined,
     });
 
     // Basic transport-level error logging
@@ -140,6 +150,15 @@ export const useSocket = () => {
 
     socket.on('connect_error', err => {
       console.error('Connection error:', err);
+      // The server's io.use middleware rejects handshakes whose auth payload
+      // doesn't match a stored session token. Drop the stale session so we
+      // don't loop reconnecting with the same bad credentials.
+      if (err.message === 'AUTH_FAILED') {
+        clearPlayerSession();
+        useGameStore.getState().resetState();
+        setError('Your session is no longer valid. Please rejoin manually.');
+        return;
+      }
       setError(
         'Failed to connect to the server. Check your connection or try again later.'
       );
@@ -151,7 +170,7 @@ export const useSocket = () => {
       setPlayerId(data.playerId);
       setLoading(false);
 
-      savePlayerSession(data.playerId, data.room.code);
+      savePlayerSession(data.playerId, data.room.code, data.sessionToken);
     });
 
     socket.on('room_joined', data => {
@@ -159,7 +178,7 @@ export const useSocket = () => {
       setPlayerId(data.playerId);
       setLoading(false);
 
-      savePlayerSession(data.playerId, data.room.code);
+      savePlayerSession(data.playerId, data.room.code, data.sessionToken);
     });
 
     socket.on('player_joined', data => {
