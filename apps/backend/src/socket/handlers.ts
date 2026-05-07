@@ -782,20 +782,15 @@ export function initializeSocketHandlers(io: Server) {
     socket.on('end_round', handleEndRound(io, socket));
     socket.on('disconnecting', handleDisconnect(io, socket));
 
-    // Auto-rejoin via handshake auth on a fresh connection. Recovered sockets
-    // already have their rooms restored, so no rejoin is needed there.
-    // The middleware guarantees playerId and roomCode are either both set or
-    // both unset, so a single presence check covers both.
     if (!socket.recovered && socket.data.playerId && socket.data.roomCode) {
       const { playerId, roomCode } = socket.data;
       rejoinPlayerToRoom(socket, playerId, roomCode).then(result => {
         if (!result.ok) {
-          // Clear stale identity so this socket doesn't carry it forward.
           socket.data.playerId = undefined;
           socket.data.roomCode = undefined;
           socket.emit('room_error', {
-            code: result.code,
-            message: result.message,
+            code: 'AUTO_REJOIN_FAILED',
+            message: 'Your previous session is no longer valid.',
           });
         }
       });

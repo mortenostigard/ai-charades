@@ -197,20 +197,8 @@ export const useSocket = () => {
     });
 
     socket.on('room_error', (error: { code: string; message: string }) => {
-      // If we have a persisted session and an optimistically-restored
-      // playerId but no synced gameState yet, this error is from a failed
-      // server-side auto-rejoin (server restarted, room expired, or player
-      // removed after the grace window). Reset the store and clear the
-      // stale session so we don't keep retrying on every reconnect.
-      // resetState() handles both.
-      const { gameState, resetState } = useGameStore.getState();
-      const staleAutoRejoin =
-        !gameState &&
-        (error.code === 'ROOM_NOT_FOUND' ||
-          error.code === 'PLAYER_NOT_FOUND' ||
-          error.code === 'INVALID_CODE');
-      if (staleAutoRejoin) {
-        resetState();
+      if (error.code === 'AUTO_REJOIN_FAILED') {
+        useGameStore.getState().resetState();
       }
       setError(error.message);
       setLoading(false);

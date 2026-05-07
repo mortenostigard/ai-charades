@@ -86,7 +86,7 @@ Key interfaces include:
 
 // Error joining/creating room
 'room_error': {
-  code: 'ROOM_NOT_FOUND' | 'ROOM_FULL' | 'INVALID_CODE' | 'PLAYER_NAME_TAKEN'
+  code: 'ROOM_NOT_FOUND' | 'ROOM_FULL' | 'INVALID_CODE' | 'PLAYER_NAME_TAKEN' | 'AUTO_REJOIN_FAILED'
   message: string
 }
 
