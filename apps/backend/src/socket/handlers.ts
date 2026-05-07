@@ -28,6 +28,11 @@ function bindSocketIdentity(
   socket.data.roomCode = roomCode;
 }
 
+function clearSocketIdentity(socket: Socket) {
+  socket.data.playerId = undefined;
+  socket.data.roomCode = undefined;
+}
+
 // Defense-in-depth check for privileged handlers: requires the socket's
 // bound roomCode to match the one in the event payload. A socket whose
 // identity was set via handshake auth but never validated against an actual
@@ -50,17 +55,13 @@ function processRoundCompletion(
   const gameState = roomStore.get(roomCode);
   if (!gameState) return;
 
-  // Stop the timer loop
   gameLoopManager.removeLoop(roomCode);
 
-  // Use the RoundManager to handle the core logic of ending a round.
   const roundManager = new RoundManager(gameState);
   let { newGameState } = roundManager.endRound(winnerId);
 
-  // Check if the game is complete after this round
   const updatedRoundManager = new RoundManager(newGameState);
   if (updatedRoundManager.isGameComplete()) {
-    // Update game state to complete status
     newGameState = {
       ...newGameState,
       room: { ...newGameState.room, status: 'complete' },
@@ -68,7 +69,6 @@ function processRoundCompletion(
 
     roomStore.set(roomCode, newGameState);
 
-    // Broadcast game completion
     io.to(roomCode).emit('game_state_update', {
       gameState: newGameState,
       message: 'Game complete! All players have acted.',
@@ -79,7 +79,6 @@ function processRoundCompletion(
   } else {
     roomStore.set(roomCode, newGameState);
 
-    // Notify all clients that the round is complete with the results
     io.to(roomCode).emit('round_complete', {
       completedRound:
         newGameState.roundHistory[newGameState.roundHistory.length - 1],
@@ -188,7 +187,6 @@ export function handleJoinRoom(socket: Socket) {
         gameState: newGameState,
       });
 
-      // Notify other players in the room
       socket.to(roomCode).emit('player_joined', {
         player: newPlayer,
         room: newGameState.room,
@@ -229,8 +227,8 @@ async function rejoinPlayerToRoom(
     };
   }
 
-  const newGameState = roomStore.markPlayerConnected(roomCode, playerId);
-  if (!newGameState) {
+  const update = roomStore.markPlayerConnected(roomCode, playerId);
+  if (!update) {
     return {
       ok: false,
       code: 'PLAYER_NOT_FOUND',
@@ -245,30 +243,18 @@ async function rejoinPlayerToRoom(
   bindSocketIdentity(socket, playerId, roomCode);
   await socket.join(roomCode);
 
-  const reconnectedPlayer = newGameState.room.players.find(
-    p => p.id === playerId
-  );
-  if (!reconnectedPlayer) {
-    // Unreachable: markPlayerConnected just returned a state containing this player.
-    throw new Error(
-      `Player ${playerId} missing from state after markPlayerConnected`
-    );
-  }
-
   socket.emit('game_state_update', {
-    gameState: newGameState,
+    gameState: update.state,
     message: 'Successfully rejoined the room.',
     shouldReconnect: false,
   });
 
   socket.to(roomCode).emit('player_reconnected', {
-    player: reconnectedPlayer,
-    room: newGameState.room,
+    player: update.player,
+    room: update.state.room,
   });
 
-  console.log(
-    `${reconnectedPlayer.name} (${playerId}) rejoined room ${roomCode}`
-  );
+  console.log(`${update.player.name} (${playerId}) rejoined room ${roomCode}`);
   return { ok: true };
 }
 
@@ -309,27 +295,34 @@ export function handleLeaveRoom(socket: Socket) {
       const roomCode = socket.data.roomCode;
       if (!playerId || !roomCode) return;
 
-      // If game is in progress, stop the loop
+      // Drop any pending disconnect-removal timer so it doesn't fire after
+      // the explicit leave and emit a phantom player_left.
+      roomStore.cancelRemoval(playerId);
+
       const currentState = roomStore.get(roomCode);
       if (currentState?.room.status === 'playing') {
         gameLoopManager.removeLoop(roomCode);
       }
 
-      const newGameState = roomStore.removePlayer(roomCode, playerId);
+      const result = roomStore.removePlayer(roomCode, playerId);
 
-      socket.data.playerId = undefined;
-      socket.data.roomCode = undefined;
+      clearSocketIdentity(socket);
       await socket.leave(roomCode);
 
-      if (newGameState) {
-        socket.to(roomCode).emit('player_left', {
-          playerId,
-          room: newGameState.room,
-        });
-        console.log(`Player ${playerId} left room ${roomCode}`);
-      } else {
-        gameLoopManager.removeLoop(roomCode);
-        console.log(`Room ${roomCode} cleaned up - no players remaining`);
+      switch (result.status) {
+        case 'removed':
+          socket.to(roomCode).emit('player_left', {
+            playerId,
+            room: result.state.room,
+          });
+          console.log(`Player ${playerId} left room ${roomCode}`);
+          break;
+        case 'emptied':
+          gameLoopManager.removeLoop(roomCode);
+          console.log(`Room ${roomCode} cleaned up - no players remaining`);
+          break;
+        case 'not_found':
+          break;
       }
     } catch (error) {
       console.error('Error leaving room:', error);
@@ -372,32 +365,27 @@ export function handleDisconnect(io: Server, socket: Socket) {
     const roomCode = socket.data.roomCode;
     if (!disconnectedPlayerId || !roomCode) return;
 
-    const newGameState = roomStore.markPlayerDisconnected(
+    const update = roomStore.markPlayerDisconnected(
       roomCode,
       disconnectedPlayerId
     );
-    if (!newGameState) return;
+    if (!update) return;
 
-    // Broadcast player disconnection status to other clients (using io)
     io.to(roomCode).emit('player_disconnected', {
       playerId: disconnectedPlayerId,
-      room: newGameState.room,
+      room: update.state.room,
     });
 
-    // Start 30-second countdown before permanent removal
     roomStore.scheduleRemoval(
       disconnectedPlayerId,
       roomCode,
       () => {
         console.log(`Removing player ${disconnectedPlayerId} after timeout`);
-        const updatedState = roomStore.removePlayer(
-          roomCode,
-          disconnectedPlayerId
-        );
-        if (updatedState) {
+        const result = roomStore.removePlayer(roomCode, disconnectedPlayerId);
+        if (result.status === 'removed') {
           io.to(roomCode).emit('player_left', {
             playerId: disconnectedPlayerId,
-            room: updatedState.room,
+            room: result.state.room,
           });
         }
       },
@@ -512,7 +500,6 @@ export function handleStartRound(io: Server, socket: Socket) {
       const roundManager = new RoundManager(currentGameState);
 
       if (roundManager.isGameComplete()) {
-        // --- END THE GAME ---
         const finalGameState: GameState = {
           ...currentGameState,
           room: { ...currentGameState.room, status: 'complete' },
@@ -523,7 +510,6 @@ export function handleStartRound(io: Server, socket: Socket) {
         });
         console.log(`Game completed in room ${roomCode}`);
       } else {
-        // --- START NEXT ROUND ---
         const promptManager = new PromptManager(
           currentGameState.roundHistory.map(r => r.prompt.id)
         );
@@ -588,7 +574,6 @@ export function handleDeploySabotage(io: Server, socket: Socket) {
         targetPlayerId: newGameState.currentRound?.actorId,
       });
 
-      // --- Set Timer to End Sabotage ---
       setTimeout(() => {
         const currentGameState = roomStore.get(roomCode);
         if (
@@ -628,7 +613,6 @@ export function handleEndRound(io: Server, socket: Socket) {
       const gameState = roomStore.get(roomCode);
       if (!gameState) return;
 
-      // Security Check: Validate that the person ending the round is the director
       const requesterId = getAuthedPlayerForRoom(socket, roomCode);
       const directorId = gameState.currentRound?.directorId;
       if (!requesterId || !directorId || requesterId !== directorId) {
@@ -710,8 +694,7 @@ export function initializeSocketHandlers(io: Server) {
       const { playerId, roomCode } = socket.data;
       rejoinPlayerToRoom(socket, playerId, roomCode).then(result => {
         if (!result.ok) {
-          socket.data.playerId = undefined;
-          socket.data.roomCode = undefined;
+          clearSocketIdentity(socket);
           socket.emit('room_error', {
             code: 'AUTO_REJOIN_FAILED',
             message: 'Your previous session is no longer valid.',

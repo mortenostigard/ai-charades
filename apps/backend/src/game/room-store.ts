@@ -1,4 +1,4 @@
-import { type GameState } from '@charades/shared';
+import { type GameState, type Player } from '@charades/shared';
 
 import { RoomManager } from './room-manager.js';
 
@@ -18,19 +18,27 @@ if (process.env.NODE_ENV !== 'production') {
   globalForState.pendingRemovals = pendingRemovals;
 }
 
+export type ConnectionUpdate = { state: GameState; player: Player };
+
+export type RemovePlayerResult =
+  | { status: 'removed'; state: GameState }
+  | { status: 'emptied' }
+  | { status: 'not_found' };
+
 function setPlayerConnectionStatus(
   code: string,
   playerId: string,
   status: 'connected' | 'disconnected'
-): GameState | undefined {
+): ConnectionUpdate | undefined {
   const state = gameStates.get(code);
   if (!state) return undefined;
 
-  const player = state.room.players.find(p => p.id === playerId);
-  if (!player) return undefined;
+  const existing = state.room.players.find(p => p.id === playerId);
+  if (!existing) return undefined;
 
+  const updatedPlayer: Player = { ...existing, connectionStatus: status };
   const updatedPlayers = state.room.players.map(p =>
-    p.id === playerId ? { ...p, connectionStatus: status } : p
+    p.id === playerId ? updatedPlayer : p
   );
 
   const newState: GameState = {
@@ -39,7 +47,7 @@ function setPlayerConnectionStatus(
   };
 
   gameStates.set(code, newState);
-  return newState;
+  return { state: newState, player: updatedPlayer };
 }
 
 /**
@@ -70,40 +78,46 @@ export const roomStore = {
   },
 
   /**
-   * Mark the given player as connected and persist. Returns the updated
-   * GameState, or undefined if the room or player isn't found.
+   * Mark the given player as connected and persist. Returns the new state
+   * along with the updated player record, or undefined if the room or
+   * player isn't found.
    */
-  markPlayerConnected(code: string, playerId: string): GameState | undefined {
+  markPlayerConnected(
+    code: string,
+    playerId: string
+  ): ConnectionUpdate | undefined {
     return setPlayerConnectionStatus(code, playerId, 'connected');
   },
 
   /**
-   * Mark the given player as disconnected and persist. Returns the updated
-   * GameState, or undefined if the room or player isn't found.
+   * Mark the given player as disconnected and persist. Returns the new
+   * state along with the updated player record, or undefined if the room
+   * or player isn't found.
    */
   markPlayerDisconnected(
     code: string,
     playerId: string
-  ): GameState | undefined {
+  ): ConnectionUpdate | undefined {
     return setPlayerConnectionStatus(code, playerId, 'disconnected');
   },
 
   /**
-   * Remove a player from the room. Returns the new GameState, or null if the
-   * room is now gone (either empty after removal, or never existed). When
-   * empty, the room is also evicted from the store.
+   * Remove a player from the room. Distinguishes the three outcomes so the
+   * caller can react accordingly: the room still has players (`removed`),
+   * the room is now empty and was evicted (`emptied`), or the room never
+   * existed (`not_found`).
    */
-  removePlayer(code: string, playerId: string): GameState | null {
+  removePlayer(code: string, playerId: string): RemovePlayerResult {
     const state = gameStates.get(code);
-    if (!state) return null;
+    if (!state) return { status: 'not_found' };
 
     const newState = RoomManager.leaveRoom(state, playerId);
     if (newState === null) {
       gameStates.delete(code);
-      return null;
+      return { status: 'emptied' };
     }
     gameStates.set(code, newState);
-    return newState;
+    return { status: 'removed', state: newState };
   },
 
   /**
