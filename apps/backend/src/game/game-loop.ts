@@ -1,5 +1,17 @@
 import { type Server } from 'socket.io';
-import { type GameState } from '@charades/shared';
+import {
+  type ClientToServerEvents,
+  type GameState,
+  type ServerToClientEvents,
+  type SocketData,
+} from '@charades/shared';
+
+type TypedServer = Server<
+  ClientToServerEvents,
+  ServerToClientEvents,
+  Record<string, never>,
+  SocketData
+>;
 
 type EndRoundCallback = (roomCode: string) => void;
 
@@ -8,13 +20,13 @@ type EndRoundCallback = (roomCode: string) => void;
  */
 class GameLoop {
   private timer: NodeJS.Timeout | null = null;
-  private readonly io: Server;
+  private readonly io: TypedServer;
   private readonly roomCode: string;
   private readonly gameState: GameState;
   private readonly onRoundEnd: EndRoundCallback;
 
   constructor(
-    io: Server,
+    io: TypedServer,
     roomCode: string,
     gameState: GameState,
     onRoundEnd: EndRoundCallback
@@ -59,7 +71,7 @@ class GameLoop {
 class GameLoopManager {
   private static instance: GameLoopManager;
   private readonly loops: Map<string, GameLoop> = new Map();
-  private io: Server | null = null;
+  private io: TypedServer | null = null;
   private onRoundEnd: EndRoundCallback | null = null;
 
   private constructor() {}
@@ -71,7 +83,7 @@ class GameLoopManager {
     return GameLoopManager.instance;
   }
 
-  public init(io: Server, onRoundEnd: EndRoundCallback) {
+  public init(io: TypedServer, onRoundEnd: EndRoundCallback) {
     this.io = io;
     this.onRoundEnd = onRoundEnd;
   }

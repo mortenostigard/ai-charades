@@ -1,3 +1,9 @@
+export type {
+  ClientToServerEvents,
+  ServerToClientEvents,
+  SocketData,
+} from './events.js';
+
 /**
  * Represents a player in the game room.
  * Players can join/leave rooms and participate in rounds with different roles.

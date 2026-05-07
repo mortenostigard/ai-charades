@@ -3,18 +3,17 @@
 import { useEffect } from 'react';
 import { io, type Socket } from 'socket.io-client';
 import {
-  type GameState,
-  type Player,
-  type Room,
-  type ActiveSabotage,
-  type CompletedRound,
+  type ClientToServerEvents,
+  type ServerToClientEvents,
 } from '@charades/shared';
 
 import { useGameStore } from '@/stores/gameStore';
 import { loadPlayerSession, savePlayerSession } from '@/lib/playerSession';
 
+type TypedSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
+
 // This ensures the hook only runs once, preventing multiple socket connections.
-let socket: Socket | null = null;
+let socket: TypedSocket | null = null;
 
 export const useSocket = () => {
   const {
@@ -147,56 +146,43 @@ export const useSocket = () => {
     });
 
     // --- Room Management Events ---
-    socket.on(
-      'room_created',
-      (data: { room: Room; playerId: string; gameState: GameState }) => {
-        setGameState(data.gameState);
-        setPlayerId(data.playerId);
-        setLoading(false);
+    socket.on('room_created', data => {
+      setGameState(data.gameState);
+      setPlayerId(data.playerId);
+      setLoading(false);
 
-        savePlayerSession(data.playerId, data.room.code);
-      }
-    );
+      savePlayerSession(data.playerId, data.room.code);
+    });
 
-    socket.on(
-      'room_joined',
-      (data: { room: Room; playerId: string; gameState: GameState }) => {
-        setGameState(data.gameState);
-        setPlayerId(data.playerId);
-        setLoading(false);
+    socket.on('room_joined', data => {
+      setGameState(data.gameState);
+      setPlayerId(data.playerId);
+      setLoading(false);
 
-        savePlayerSession(data.playerId, data.room.code);
-      }
-    );
+      savePlayerSession(data.playerId, data.room.code);
+    });
 
-    socket.on('player_joined', (data: { player: Player; room: Room }) => {
+    socket.on('player_joined', data => {
       addPlayer(data.player);
       updateRoom(data.room);
     });
 
-    socket.on('player_left', (data: { playerId: string; room: Room }) => {
+    socket.on('player_left', data => {
       removePlayer(data.playerId);
       updateRoom(data.room);
     });
 
-    socket.on('player_reconnected', (data: { player: Player; room: Room }) => {
+    socket.on('player_reconnected', data => {
       updatePlayer(data.player.id, data.player);
       updateRoom(data.room);
     });
 
-    socket.on(
-      'player_disconnected',
-      (data: { playerId: string; room: Room }) => {
-        updatePlayer(data.playerId, { connectionStatus: 'disconnected' });
-        updateRoom(data.room);
-      }
-    );
-
-    socket.on('room_updated', (data: { room: Room }) => {
+    socket.on('player_disconnected', data => {
+      updatePlayer(data.playerId, { connectionStatus: 'disconnected' });
       updateRoom(data.room);
     });
 
-    socket.on('room_error', (error: { code: string; message: string }) => {
+    socket.on('room_error', error => {
       if (error.code === 'AUTO_REJOIN_FAILED') {
         useGameStore.getState().resetState();
       }
@@ -205,32 +191,32 @@ export const useSocket = () => {
     });
 
     // --- Game Flow Events ---
-    socket.on('round_complete', (data: { completedRound: CompletedRound }) => {
+    socket.on('round_complete', data => {
       const { setRoundComplete } = useGameStore.getState();
       setRoundComplete(data.completedRound);
     });
 
-    socket.on('sabotage_deployed', (data: { sabotage: ActiveSabotage }) => {
+    socket.on('sabotage_deployed', data => {
       deployActiveSabotage(data.sabotage);
     });
 
-    socket.on('sabotage_ended', (_data: { sabotageId: string }) => {
+    socket.on('sabotage_ended', () => {
       removeActiveSabotage();
     });
 
     // --- Timer Events ---
-    socket.on('timer_update', (data: { timeRemaining: number }) => {
+    socket.on('timer_update', data => {
       const { setTimeRemaining } = useGameStore.getState();
       setTimeRemaining(data.timeRemaining);
     });
 
     // --- Generic Error/State Sync ---
-    socket.on('game_error', (error: { code: string; message: string }) => {
+    socket.on('game_error', error => {
       setError(error.message);
       setLoading(false);
     });
 
-    socket.on('game_state_update', (data: { gameState: GameState }) => {
+    socket.on('game_state_update', data => {
       console.log('Received game_state_update, syncing state.');
       setGameState(data.gameState);
       setLoading(false);
@@ -260,12 +246,15 @@ export const useSocket = () => {
     removeActiveSabotage,
   ]);
 
-  const emit = (event: string, data: unknown) => {
+  const emit = <E extends keyof ClientToServerEvents>(
+    event: E,
+    ...args: Parameters<ClientToServerEvents[E]>
+  ): void => {
     if (socket) {
       if (event === 'create_room' || event === 'join_room') {
         setLoading(true);
       }
-      socket.emit(event, data);
+      socket.emit(event, ...args);
     } else {
       console.error('Socket not connected. Cannot emit event.');
       setError('Cannot connect to the server. Please refresh the page.');

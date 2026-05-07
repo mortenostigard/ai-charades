@@ -1,5 +1,10 @@
 import { type Server, type Socket } from 'socket.io';
-import { type GameState, type GameConfig } from '@charades/shared';
+import {
+  type ClientToServerEvents,
+  type GameState,
+  type ServerToClientEvents,
+  type SocketData,
+} from '@charades/shared';
 
 import { RoomManager, getErrorMessage } from '@/game/room-manager.js';
 import { RoundManager } from '@/game/round-manager.js';
@@ -8,19 +13,26 @@ import { SabotageManager } from '@/game/sabotage-manager.js';
 import { gameLoopManager } from '@/game/game-loop.js';
 import { roomStore } from '@/game/room-store.js';
 
-declare module 'socket.io' {
-  interface SocketData {
-    playerId?: string;
-    roomCode?: string;
-  }
-}
+type TypedServer = Server<
+  ClientToServerEvents,
+  ServerToClientEvents,
+  Record<string, never>,
+  SocketData
+>;
+
+type TypedSocket = Socket<
+  ClientToServerEvents,
+  ServerToClientEvents,
+  Record<string, never>,
+  SocketData
+>;
 
 // Per-socket auth state. Set by the io.use middleware on connection from the
 // handshake auth payload, and by create_room/join_room/rejoin_room after a
 // successful join. All privileged handlers derive playerId from here rather
 // than trusting client-supplied payload fields.
 function bindSocketIdentity(
-  socket: Socket,
+  socket: TypedSocket,
   playerId: string,
   roomCode: string
 ) {
@@ -28,7 +40,7 @@ function bindSocketIdentity(
   socket.data.roomCode = roomCode;
 }
 
-function clearSocketIdentity(socket: Socket) {
+function clearSocketIdentity(socket: TypedSocket) {
   socket.data.playerId = undefined;
   socket.data.roomCode = undefined;
 }
@@ -39,7 +51,7 @@ function clearSocketIdentity(socket: Socket) {
 // room (because the auto-rejoin block doesn't run, or the binding is stale)
 // will fail this check rather than silently acting on the payload's room.
 function getAuthedPlayerForRoom(
-  socket: Socket,
+  socket: TypedSocket,
   roomCode: string
 ): string | undefined {
   if (!socket.data.playerId) return undefined;
@@ -48,7 +60,7 @@ function getAuthedPlayerForRoom(
 }
 
 function processRoundCompletion(
-  io: Server,
+  io: TypedServer,
   roomCode: string,
   winnerId?: string
 ) {
@@ -58,7 +70,9 @@ function processRoundCompletion(
   gameLoopManager.removeLoop(roomCode);
 
   const roundManager = new RoundManager(gameState);
-  let { newGameState } = roundManager.endRound(winnerId);
+  const ended = roundManager.endRound(winnerId);
+  const { completedRound } = ended;
+  let { newGameState } = ended;
 
   const updatedRoundManager = new RoundManager(newGameState);
   if (updatedRoundManager.isGameComplete()) {
@@ -78,21 +92,16 @@ function processRoundCompletion(
     console.log(`Game completed in room ${roomCode}`);
   } else {
     roomStore.set(roomCode, newGameState);
-
-    io.to(roomCode).emit('round_complete', {
-      completedRound:
-        newGameState.roundHistory[newGameState.roundHistory.length - 1],
-    });
+    io.to(roomCode).emit('round_complete', { completedRound });
   }
 }
 
 // --- Socket Event Handlers ---
 
-export function handleCreateRoom(socket: Socket) {
-  return async (data: {
-    playerName: string;
-    gameConfig?: Partial<GameConfig>;
-  }) => {
+export function handleCreateRoom(
+  socket: TypedSocket
+): ClientToServerEvents['create_room'] {
+  return async data => {
     try {
       if (!data.playerName || data.playerName.trim().length < 2) {
         socket.emit('room_error', {
@@ -132,8 +141,10 @@ export function handleCreateRoom(socket: Socket) {
   };
 }
 
-export function handleJoinRoom(socket: Socket) {
-  return async (data: { roomCode: string; playerName: string }) => {
+export function handleJoinRoom(
+  socket: TypedSocket
+): ClientToServerEvents['join_room'] {
+  return async data => {
     try {
       if (!data.roomCode || !data.playerName) {
         socket.emit('room_error', {
@@ -207,7 +218,7 @@ export function handleJoinRoom(socket: Socket) {
 // Shared rejoin logic used by both the explicit `rejoin_room` event and the
 // auto-rejoin path triggered by handshake auth on a fresh connection.
 async function rejoinPlayerToRoom(
-  socket: Socket,
+  socket: TypedSocket,
   playerId: string,
   roomCode: string
 ): Promise<{ ok: true } | { ok: false; code: string; message: string }> {
@@ -258,8 +269,10 @@ async function rejoinPlayerToRoom(
   return { ok: true };
 }
 
-export function handleRejoinRoom(socket: Socket) {
-  return async (data: { playerId: string; roomCode: string }) => {
+export function handleRejoinRoom(
+  socket: TypedSocket
+): ClientToServerEvents['rejoin_room'] {
+  return async data => {
     try {
       const { playerId, roomCode } = data;
 
@@ -288,7 +301,9 @@ export function handleRejoinRoom(socket: Socket) {
   };
 }
 
-export function handleLeaveRoom(socket: Socket) {
+export function handleLeaveRoom(
+  socket: TypedSocket
+): ClientToServerEvents['leave_room'] {
   return async () => {
     try {
       const playerId = socket.data.playerId;
@@ -330,7 +345,9 @@ export function handleLeaveRoom(socket: Socket) {
   };
 }
 
-export function handleRequestGameState(socket: Socket) {
+export function handleRequestGameState(
+  socket: TypedSocket
+): ClientToServerEvents['request_game_state'] {
   return () => {
     const playerId = socket.data.playerId;
     const roomCode = socket.data.roomCode;
@@ -357,7 +374,7 @@ export function handleRequestGameState(socket: Socket) {
   };
 }
 
-export function handleDisconnect(io: Server, socket: Socket) {
+export function handleDisconnect(io: TypedServer, socket: TypedSocket) {
   return async () => {
     console.log(`Client disconnected: ${socket.id}`);
 
@@ -398,8 +415,11 @@ export function handleDisconnect(io: Server, socket: Socket) {
   };
 }
 
-export function handleStartGame(io: Server, socket: Socket) {
-  return (data: { roomCode: string }) => {
+export function handleStartGame(
+  io: TypedServer,
+  socket: TypedSocket
+): ClientToServerEvents['start_game'] {
+  return data => {
     try {
       const { roomCode } = data;
       const gameState = roomStore.get(roomCode);
@@ -472,8 +492,11 @@ export function handleStartGame(io: Server, socket: Socket) {
   };
 }
 
-export function handleStartRound(io: Server, socket: Socket) {
-  return (data: { roomCode: string }) => {
+export function handleStartRound(
+  io: TypedServer,
+  socket: TypedSocket
+): ClientToServerEvents['start_round'] {
+  return data => {
     try {
       const { roomCode } = data;
       const currentGameState = roomStore.get(roomCode);
@@ -534,8 +557,11 @@ export function handleStartRound(io: Server, socket: Socket) {
   };
 }
 
-export function handleDeploySabotage(io: Server, socket: Socket) {
-  return async (data: { sabotageId: string; roomCode: string }) => {
+export function handleDeploySabotage(
+  io: TypedServer,
+  socket: TypedSocket
+): ClientToServerEvents['deploy_sabotage'] {
+  return async data => {
     try {
       const { sabotageId, roomCode } = data;
       const gameState = roomStore.get(roomCode);
@@ -606,8 +632,11 @@ export function handleDeploySabotage(io: Server, socket: Socket) {
   };
 }
 
-export function handleEndRound(io: Server, socket: Socket) {
-  return (data: { roomCode: string; winnerId: string }) => {
+export function handleEndRound(
+  io: TypedServer,
+  socket: TypedSocket
+): ClientToServerEvents['end_round'] {
+  return data => {
     try {
       const { roomCode, winnerId } = data;
       const gameState = roomStore.get(roomCode);
@@ -633,7 +662,7 @@ export function handleEndRound(io: Server, socket: Socket) {
   };
 }
 
-export function initializeSocketHandlers(io: Server) {
+export function initializeSocketHandlers(io: TypedServer) {
   // Initialize the game loop manager with the server instance
   gameLoopManager.init(io, (roomCode: string) => {
     // This is the callback for when a round timer runs out
@@ -674,7 +703,7 @@ export function initializeSocketHandlers(io: Server) {
     next();
   });
 
-  io.on('connection', (socket: Socket) => {
+  io.on('connection', (socket: TypedSocket) => {
     console.log(
       `Client ${socket.recovered ? 'recovered' : 'connected'}: ${socket.id}`
     );

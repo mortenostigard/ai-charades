@@ -1,300 +1,73 @@
 # API Specification
 
-## TypeScript Interfaces
+Source of truth: [`packages/shared/src/events.ts`](../packages/shared/src/events.ts).
 
-All TypeScript interfaces are defined in `src/types/index.ts`. Import them as:
+`ClientToServerEvents`, `ServerToClientEvents`, and `SocketData` parameterise
+both the backend `Server` / `Socket` and the frontend `io(...)`. Renaming a
+field fails `pnpm type-check` on whichever side wasn't updated.
 
-```typescript
-import {
-  Player,
-  Room,
-  GameState,
-  CurrentRound,
-  CompletedRound,
-  ScoreUpdate,
-  GamePrompt,
-  SabotageAction,
-  ActiveSabotage,
-  GameConfig,
-  EmojiReaction,
-} from '@/types';
-```
+Domain types (`Player`, `Room`, `GameState`, `CurrentRound`, `CompletedRound`,
+`GamePrompt`, `SabotageAction`, `ActiveSabotage`, `GameConfig`,
+`EmojiReaction`) are also exported from `@charades/shared`.
 
-Key interfaces include:
+## Events
 
-- `Player` - Game room participant with connection status
-- `GameState` - Complete game state including room, scores, and round history
-- `CurrentRound` - Active round with timer, roles, and available sabotages
-- `CompletedRound` - Finished round with winner and sabotage count
-- `ScoreUpdate` - Point changes from round completion with reasoning
+### Client → Server
 
-## Socket Events
+| Event                | Payload                                            |
+| -------------------- | -------------------------------------------------- |
+| `create_room`        | `{ playerName; gameConfig?: Partial<GameConfig> }` |
+| `join_room`          | `{ roomCode; playerName }`                         |
+| `rejoin_room`        | `{ playerId; roomCode }`                           |
+| `leave_room`         | —                                                  |
+| `start_game`         | `{ roomCode }`                                     |
+| `start_round`        | `{ roomCode }`                                     |
+| `deploy_sabotage`    | `{ sabotageId; roomCode }`                         |
+| `end_round`          | `{ roomCode; winnerId }`                           |
+| `request_game_state` | —                                                  |
 
-### Room Management Events
+Identity for privileged events (`leave_room`, `start_*`, `deploy_sabotage`,
+`end_round`, `request_game_state`) is derived from the socket auth binding.
+Auto-rejoin: `io(url, { auth: { playerId, roomCode } })`.
 
-#### Client → Server
+### Server → Client
 
-```typescript
-// Join existing room
-'join_room': {
-  roomCode: string
-  playerName: string
-}
+| Event                 | Payload                                         |
+| --------------------- | ----------------------------------------------- |
+| `room_created`        | `{ room; playerId; gameState }`                 |
+| `room_joined`         | `{ room; playerId; gameState }`                 |
+| `player_joined`       | `{ player; room }`                              |
+| `player_left`         | `{ playerId; room }`                            |
+| `player_reconnected`  | `{ player; room }`                              |
+| `player_disconnected` | `{ playerId; room }`                            |
+| `game_state_update`   | `{ gameState; message?; shouldReconnect? }`     |
+| `timer_update`        | `{ timeRemaining }`                             |
+| `sabotage_deployed`   | `{ sabotage: ActiveSabotage; targetPlayerId? }` |
+| `sabotage_ended`      | `{ sabotageId }`                                |
+| `round_complete`      | `{ completedRound }`                            |
+| `game_complete`       | `{ scores: Record<string, number> }`            |
+| `room_error`          | `{ code; message }`                             |
+| `game_error`          | `{ code; message }`                             |
+| `sabotage_error`      | `{ code; message; attemptedSabotageId }`        |
 
-// Create new room
-'create_room': {
-  playerName: string
-  gameConfig?: Partial<GameConfig>
-}
+Error codes (non-exhaustive):
 
-// Leave current room
-// Identity is derived from the socket's auth binding (set on create/join/rejoin
-// or via handshake auth). No payload is required.
-'leave_room': Record<string, never>
+- `room_error`: `ROOM_NOT_FOUND`, `ROOM_FULL`, `INVALID_CODE`,
+  `INVALID_DATA`, `PLAYER_NAME_TAKEN`, `INVALID_PLAYER_NAME`,
+  `AUTO_REJOIN_FAILED`, `SERVER_ERROR`
+- `game_error`: `UNAUTHORIZED`, `ROUND_NOT_ACTIVE`, `PLAYER_NOT_FOUND`,
+  `START_GAME_FAILED`, `START_ROUND_FAILED`, `STATE_SYNC_ERROR`
+- `sabotage_error`: `SABOTAGE_NOT_FOUND`, `MAX_SABOTAGES_REACHED`,
+  `GRACE_PERIOD_ACTIVE`, `SABOTAGE_ALREADY_ACTIVE`
 
-// Rejoin room after disconnection. Establishing event — payload is the source
-// of identity. Auto-rejoin on (re)connect is also supported via handshake auth
-// (`io(url, { auth: { playerId, roomCode } })`).
-'rejoin_room': {
-  playerId: string
-  roomCode: string
-}
+## Validation
 
-// Update player info
-'update_player': {
-  playerId: string
-  name?: string
-}
-```
+- Room codes: 4 digits.
+- Player names: 2–20 characters.
+- Server enforces role-based authorization (host, director).
 
-#### Server → Client
+## Limits
 
-```typescript
-  // Room created successfully
-  'room_created': {
-    room: Room
-    playerId: string
-    gameState: GameState
-  }
-
-// Successfully joined room
-'room_joined': {
-  room: Room
-  playerId: string
-  gameState: GameState
-}
-
-// Error joining/creating room
-'room_error': {
-  code: 'ROOM_NOT_FOUND' | 'ROOM_FULL' | 'INVALID_CODE' | 'PLAYER_NAME_TAKEN' | 'AUTO_REJOIN_FAILED'
-  message: string
-}
-
-// Player joined the room
-'player_joined': {
-  player: Player
-  room: Room
-}
-
-// Player left the room
-'player_left': {
-  playerId: string
-  room: Room
-}
-
-// Player reconnected to the room
-'player_reconnected': {
-  player: Player
-  room: Room
-}
-
-// Player disconnected from the room (marked for removal)
-'player_disconnected': {
-  playerId: string
-  room: Room
-}
-
-// Room state changed
-'room_updated': {
-  room: Room
-}
-```
-
-### Game Flow Events
-
-#### Client → Server
-
-```typescript
-// Start new round (host only — verified via socket auth binding)
-'start_round': {
-  roomCode: string
-}
-
-// Deploy sabotage (Director only — verified via socket auth binding)
-'deploy_sabotage': {
-  sabotageId: string
-  roomCode: string
-}
-
-// Send emoji reaction (Audience only)
-'send_reaction': {
-  emoji: '😂' | '🔥' | '🤔' | '😴'
-  targetActorId: string
-}
-
-// End round (Director confirms a correct guess)
-'end_round': {
-  roomCode: string
-  winnerId: string // The player who guessed correctly
-}
-
-// Start new game (host only — verified via socket auth binding)
-'start_game': {
-  roomCode: string
-}
-
-// Request current game state (for reconnection). Identity is derived from
-// the socket's auth binding; no payload is required.
-'request_game_state': Record<string, never>
-```
-
-#### Server → Client
-
-```typescript
-// Sabotage deployed notification
-'sabotage_deployed': {
-  sabotage: ActiveSabotage;
-  targetPlayerId: string; // Only sent to actor
-}
-
-// Sabotage ended notification
-'sabotage_ended': {
-  sabotageId: string
-  endedAt: number
-}
-
-// Game timer update
-'timer_update': {
-  timeRemaining: number
-}
-
-// Game state synchronized
-'game_state_update': {
-  gameState: GameState
-  message: string
-  shouldReconnect: boolean
-}
-
-// Audience reaction was sent
-'reaction_sent': {
-  reaction: EmojiReaction
-}
-
-// Round completed
-'round_complete': {
-  round: CompletedRound
-  scores: ScoreUpdate[]
-  nextRoles?: {
-    actorId: string
-    directorId: string
-    audienceIds: string[]
-  }
-}
-```
-
-### Error Events
-
-#### Server → Client
-
-```typescript
-// General game error
-'game_error': {
-  code: 'INVALID_ACTION' | 'PLAYER_NOT_FOUND' | 'ROUND_NOT_ACTIVE' | 'UNAUTHORIZED'
-  message: string
-  details?: any
-}
-
-// Sabotage deployment error
-'sabotage_error': {
-  code:
-    | 'SABOTAGE_NOT_FOUND'
-    | 'MAX_SABOTAGES_REACHED'
-    | 'GRACE_PERIOD_ACTIVE'
-    | 'SABOTAGE_ALREADY_ACTIVE';
-  message: string;
-  attemptedSabotageId: string;
-}
-
-// Emoji reaction error
-'reaction_error': {
-  code: 'REACTION_LIMIT_REACHED' | 'INVALID_TARGET'
-  message: string
-}
-
-// Connection issues
-'connection_error': {
-  code: 'RECONNECTION_FAILED' | 'ROOM_EXPIRED' | 'SERVER_ERROR'
-  message: string
-  shouldReconnect: boolean
-}
-```
-
-## Event Flow Patterns
-
-### Typical Round Flow
-
-```
-1. Client: 'start_game'
-2. Server: 'game_state_update' (to all)
-3. Server: 'timer_update' (periodic)
-4. Client: 'deploy_sabotage' (Director)
-5. Server: 'sabotage_deployed' (to Actor)
-6. Client: 'end_round' (Director, declaring a winner)
-7. Server: 'round_complete' (to all, triggered by either Director's action or server-side timeout)
-```
-
-### Error Handling Flow
-
-```
-1. Client: Invalid action
-2. Server: Appropriate error event
-3. Client: Display error + retry logic
-4. Client: Syncs UI with current game state
-```
-
-### Reconnection Flow
-
-```
-1. Client: Detects disconnection
-2. Client: Attempts reconnection
-3. Server: 'room_joined' with current state
-4. Client: Syncs UI with current game state
-```
-
-## Data Validation
-
-### Client-Side Validation
-
-- Room codes: 4 digits, numeric only
-- Player names: 2-20 characters, alphanumeric + spaces
-
-### Server-Side Validation
-
-- All client inputs validated and sanitized
-- Rate limiting on room creation
-- Authorization checks for role-specific actions
-- Game state consistency validation
-
-## Rate Limiting
-
-### Per Client Limits
-
-- Room creation: 3 per minute
-- Sabotage deployment: 1 per 5 seconds
-- Reconnection attempts: 10 per minute
-
-### Per Room Limits
-
-- Maximum players: 8
-- Room lifetime: 2 hours
-- Rounds per game: No limit (until players leave)
+- Max players per room: 8.
+- Idle room lifetime: 2 hours.
+- Rounds per game: capped by player count (each player acts once).
