@@ -70,11 +70,7 @@ export function RoundSummaryScreen() {
 
   const handleNextRound = () => {
     if (gameState.room.code) {
-      const { playerId } = useGameStore.getState();
-      emit('start_round', {
-        roomCode: gameState.room.code,
-        requestedBy: playerId,
-      });
+      emit('start_round', { roomCode: gameState.room.code });
     }
   };
 

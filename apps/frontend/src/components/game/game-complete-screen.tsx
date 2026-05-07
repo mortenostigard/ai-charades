@@ -20,11 +20,8 @@ export function GameCompleteScreen() {
   const [showWinner, setShowWinner] = useState(false);
 
   const onPlayAgainAction = () => {
-    if (gameState?.room.code && myPlayer?.id) {
-      emit('start_game', {
-        roomCode: gameState.room.code,
-        requestedBy: myPlayer.id,
-      });
+    if (gameState?.room.code) {
+      emit('start_game', { roomCode: gameState.room.code });
     }
   };
 

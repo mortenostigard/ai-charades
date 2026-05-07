@@ -28,9 +28,6 @@ export default function DirectorView() {
       emit('deploy_sabotage', {
         roomCode,
         sabotageId: sabotage.id,
-        directorId: round.directorId,
-        // eslint-disable-next-line react-hooks/purity -- event-time timestamp; called on click, not during render
-        timestamp: Date.now(),
       });
     }
   };

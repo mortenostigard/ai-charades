@@ -7,25 +7,56 @@ import { PromptManager } from '@/game/prompt-manager.js';
 import { SabotageManager } from '@/game/sabotage-manager.js';
 import { gameLoopManager } from '@/game/game-loop.js';
 
+declare module 'socket.io' {
+  interface SocketData {
+    playerId?: string;
+    roomCode?: string;
+  }
+}
+
 // --- In-memory state management with HMR (Hot Module Replacement) support ---
 
 // In development, we use a global variable to preserve state across hot reloads.
 // In production, this is just a regular variable.
 const globalForState = globalThis as unknown as {
   gameStates: Map<string, GameState>;
-  playerSockets: Map<string, string>;
   pendingRemovals: Map<string, NodeJS.Timeout>;
 };
 
 const gameStates = globalForState.gameStates || new Map<string, GameState>();
-const playerSockets = globalForState.playerSockets || new Map<string, string>();
 const pendingRemovals =
   globalForState.pendingRemovals || new Map<string, NodeJS.Timeout>();
 
 if (process.env.NODE_ENV !== 'production') {
   globalForState.gameStates = gameStates;
-  globalForState.playerSockets = playerSockets;
   globalForState.pendingRemovals = pendingRemovals;
+}
+
+// Per-socket auth state. Set by the io.use middleware on connection from the
+// handshake auth payload, and by create_room/join_room/rejoin_room after a
+// successful join. All privileged handlers derive playerId from here rather
+// than trusting client-supplied payload fields.
+function bindSocketIdentity(
+  socket: Socket,
+  playerId: string,
+  roomCode: string
+) {
+  socket.data.playerId = playerId;
+  socket.data.roomCode = roomCode;
+}
+
+// Defense-in-depth check for privileged handlers: requires the socket's
+// bound roomCode to match the one in the event payload. A socket whose
+// identity was set via handshake auth but never validated against an actual
+// room (because the auto-rejoin block doesn't run, or the binding is stale)
+// will fail this check rather than silently acting on the payload's room.
+function getAuthedPlayerForRoom(
+  socket: Socket,
+  roomCode: string
+): string | undefined {
+  if (!socket.data.playerId) return undefined;
+  if (socket.data.roomCode !== roomCode) return undefined;
+  return socket.data.playerId;
 }
 
 // Helper function to find which room a player is in.
@@ -110,7 +141,7 @@ export function handleCreateRoom(socket: Socket) {
 
       // Store state
       gameStates.set(room.code, gameState);
-      playerSockets.set(playerId, socket.id);
+      bindSocketIdentity(socket, playerId, room.code);
 
       // Join the socket room
       await socket.join(room.code);
@@ -180,7 +211,7 @@ export function handleJoinRoom(socket: Socket) {
 
       // Update state
       gameStates.set(roomCode, newGameState);
-      playerSockets.set(newPlayer.id, socket.id);
+      bindSocketIdentity(socket, newPlayer.id, roomCode);
 
       // Join the socket room
       await socket.join(roomCode);
@@ -209,6 +240,80 @@ export function handleJoinRoom(socket: Socket) {
   };
 }
 
+// Shared rejoin logic used by both the explicit `rejoin_room` event and the
+// auto-rejoin path triggered by handshake auth on a fresh connection.
+async function rejoinPlayerToRoom(
+  socket: Socket,
+  playerId: string,
+  roomCode: string
+): Promise<{ ok: true } | { ok: false; code: string; message: string }> {
+  if (!/^\d{4}$/.test(roomCode)) {
+    return {
+      ok: false,
+      code: 'INVALID_CODE',
+      message: getErrorMessage('INVALID_CODE'),
+    };
+  }
+
+  const gameState = gameStates.get(roomCode);
+  if (!gameState) {
+    return {
+      ok: false,
+      code: 'ROOM_NOT_FOUND',
+      message: getErrorMessage('ROOM_NOT_FOUND'),
+    };
+  }
+
+  const player = gameState.room.players.find(p => p.id === playerId);
+  if (!player) {
+    return {
+      ok: false,
+      code: 'PLAYER_NOT_FOUND',
+      message: 'Player not found in the specified room.',
+    };
+  }
+
+  // Cancel any pending removal timer for this player
+  const pendingTimer = pendingRemovals.get(playerId);
+  if (pendingTimer) {
+    clearTimeout(pendingTimer);
+    pendingRemovals.delete(playerId);
+    console.log(`Cancelled pending removal for player ${playerId}`);
+  }
+
+  const updatedPlayer = {
+    ...player,
+    connectionStatus: 'connected' as const,
+  };
+  const updatedPlayers = gameState.room.players.map(p =>
+    p.id === playerId ? updatedPlayer : p
+  );
+
+  const newGameState = {
+    ...gameState,
+    room: { ...gameState.room, players: updatedPlayers },
+  };
+
+  gameStates.set(roomCode, newGameState);
+  bindSocketIdentity(socket, playerId, roomCode);
+
+  await socket.join(roomCode);
+
+  socket.emit('game_state_update', {
+    gameState: newGameState,
+    message: 'Successfully rejoined the room.',
+    shouldReconnect: false,
+  });
+
+  socket.to(roomCode).emit('player_reconnected', {
+    player: updatedPlayer,
+    room: newGameState.room,
+  });
+
+  console.log(`${player.name} (${playerId}) rejoined room ${roomCode}`);
+  return { ok: true };
+}
+
 export function handleRejoinRoom(socket: Socket) {
   return async (data: { playerId: string; roomCode: string }) => {
     try {
@@ -222,76 +327,13 @@ export function handleRejoinRoom(socket: Socket) {
         return;
       }
 
-      if (!/^\d{4}$/.test(roomCode)) {
+      const result = await rejoinPlayerToRoom(socket, playerId, roomCode);
+      if (!result.ok) {
         socket.emit('room_error', {
-          code: 'INVALID_CODE',
-          message: getErrorMessage('INVALID_CODE'),
+          code: result.code,
+          message: result.message,
         });
-        return;
       }
-
-      const gameState = gameStates.get(roomCode);
-      if (!gameState) {
-        socket.emit('room_error', {
-          code: 'ROOM_NOT_FOUND',
-          message: getErrorMessage('ROOM_NOT_FOUND'),
-        });
-        return;
-      }
-
-      // Find the player in the room
-      const player = gameState.room.players.find(p => p.id === playerId);
-      if (!player) {
-        socket.emit('room_error', {
-          code: 'PLAYER_NOT_FOUND',
-          message: 'Player not found in the specified room.',
-        });
-        return;
-      }
-
-      // Cancel any pending removal timer for this player
-      const pendingTimer = pendingRemovals.get(playerId);
-      if (pendingTimer) {
-        clearTimeout(pendingTimer);
-        pendingRemovals.delete(playerId);
-        console.log(`Cancelled pending removal for player ${playerId}`);
-      }
-
-      // Update the player's connection status and socket mapping
-      const updatedPlayer = {
-        ...player,
-        connectionStatus: 'connected' as const,
-      };
-      const updatedPlayers = gameState.room.players.map(p =>
-        p.id === playerId ? updatedPlayer : p
-      );
-
-      const newGameState = {
-        ...gameState,
-        room: { ...gameState.room, players: updatedPlayers },
-      };
-
-      // Update state and socket mapping
-      gameStates.set(roomCode, newGameState);
-      playerSockets.set(playerId, socket.id);
-
-      // Join the socket room
-      await socket.join(roomCode);
-
-      // Emit full game state back to the rejoining client
-      socket.emit('game_state_update', {
-        gameState: newGameState,
-        message: 'Successfully rejoined the room.',
-        shouldReconnect: false,
-      });
-
-      // Broadcast to other players that this player has reconnected
-      socket.to(roomCode).emit('player_reconnected', {
-        player: updatedPlayer,
-        room: newGameState.room,
-      });
-
-      console.log(`${player.name} (${playerId}) rejoined room ${roomCode}`);
     } catch (error) {
       console.error('Error rejoining room:', error);
       socket.emit('room_error', {
@@ -303,40 +345,42 @@ export function handleRejoinRoom(socket: Socket) {
 }
 
 export function handleLeaveRoom(socket: Socket) {
-  return async (data: { playerId: string }) => {
+  return async () => {
     try {
-      const { playerId } = data;
+      const playerId = socket.data.playerId;
+      if (!playerId) return;
+
       const roomCode = findRoomCodeByPlayerId(playerId);
+      if (!roomCode) return;
 
-      if (roomCode) {
-        const gameState = gameStates.get(roomCode);
-        if (!gameState) return;
+      const gameState = gameStates.get(roomCode);
+      if (!gameState) return;
 
-        // If game is in progress, stop the loop
-        if (gameState.room.status === 'playing') {
-          gameLoopManager.removeLoop(roomCode);
-        }
+      // If game is in progress, stop the loop
+      if (gameState.room.status === 'playing') {
+        gameLoopManager.removeLoop(roomCode);
+      }
 
-        const newGameState = RoomManager.leaveRoom(gameState, playerId);
+      const newGameState = RoomManager.leaveRoom(gameState, playerId);
 
-        // Remove player-socket mapping
-        playerSockets.delete(playerId);
-        await socket.leave(roomCode);
+      // Clear identity binding on this socket and leave the socket.io room
+      socket.data.playerId = undefined;
+      socket.data.roomCode = undefined;
+      await socket.leave(roomCode);
 
-        if (newGameState) {
-          gameStates.set(roomCode, newGameState);
-          // Notify remaining players
-          socket.to(roomCode).emit('player_left', {
-            playerId,
-            room: newGameState.room,
-          });
-          console.log(`Player ${playerId} left room ${roomCode}`);
-        } else {
-          // Room is empty, clean it up
-          gameStates.delete(roomCode);
-          gameLoopManager.removeLoop(roomCode);
-          console.log(`Room ${roomCode} cleaned up - no players remaining`);
-        }
+      if (newGameState) {
+        gameStates.set(roomCode, newGameState);
+        // Notify remaining players
+        socket.to(roomCode).emit('player_left', {
+          playerId,
+          room: newGameState.room,
+        });
+        console.log(`Player ${playerId} left room ${roomCode}`);
+      } else {
+        // Room is empty, clean it up
+        gameStates.delete(roomCode);
+        gameLoopManager.removeLoop(roomCode);
+        console.log(`Room ${roomCode} cleaned up - no players remaining`);
       }
     } catch (error) {
       console.error('Error leaving room:', error);
@@ -345,23 +389,24 @@ export function handleLeaveRoom(socket: Socket) {
 }
 
 export function handleRequestGameState(socket: Socket) {
-  return (data: { playerId: string }) => {
+  return () => {
+    const playerId = socket.data.playerId;
     try {
-      const { playerId } = data;
-      const roomCode = findRoomCodeByPlayerId(playerId);
+      if (!playerId) return;
 
-      if (roomCode) {
-        const gameState = gameStates.get(roomCode);
-        if (gameState) {
-          console.log(
-            `Resyncing game state for player ${playerId} in room ${roomCode}`
-          );
-          socket.emit('game_state_update', { gameState });
-        }
+      const roomCode = findRoomCodeByPlayerId(playerId);
+      if (!roomCode) return;
+
+      const gameState = gameStates.get(roomCode);
+      if (gameState) {
+        console.log(
+          `Resyncing game state for player ${playerId} in room ${roomCode}`
+        );
+        socket.emit('game_state_update', { gameState });
       }
     } catch (error) {
       console.error(
-        `Error resyncing game state for player ${data.playerId}:`,
+        `Error resyncing game state for player ${playerId ?? 'unknown'}:`,
         error
       );
       socket.emit('game_error', {
@@ -375,99 +420,84 @@ export function handleRequestGameState(socket: Socket) {
 export function handleDisconnect(io: Server, socket: Socket) {
   return async () => {
     console.log(`Client disconnected: ${socket.id}`);
-    let disconnectedPlayerId: string | undefined;
 
-    // Find player associated with this socket
-    for (const [playerId, socketId] of playerSockets.entries()) {
-      if (socketId === socket.id) {
-        disconnectedPlayerId = playerId;
-        break;
-      }
-    }
+    const disconnectedPlayerId = socket.data.playerId;
+    if (!disconnectedPlayerId) return;
 
-    if (disconnectedPlayerId) {
-      const roomCode = findRoomCodeByPlayerId(disconnectedPlayerId);
+    const roomCode = findRoomCodeByPlayerId(disconnectedPlayerId);
+    if (!roomCode) return;
 
-      if (roomCode) {
-        const gameState = gameStates.get(roomCode);
-        if (!gameState) return;
+    const gameState = gameStates.get(roomCode);
+    if (!gameState) return;
 
-        // Find and update the player's connection status to 'disconnected'
-        const updatedPlayers = gameState.room.players.map(player =>
-          player.id === disconnectedPlayerId
-            ? { ...player, connectionStatus: 'disconnected' as const }
-            : player
-        );
+    // Find and update the player's connection status to 'disconnected'
+    const updatedPlayers = gameState.room.players.map(player =>
+      player.id === disconnectedPlayerId
+        ? { ...player, connectionStatus: 'disconnected' as const }
+        : player
+    );
 
-        const newGameState = {
-          ...gameState,
-          room: { ...gameState.room, players: updatedPlayers },
-        };
+    const newGameState = {
+      ...gameState,
+      room: { ...gameState.room, players: updatedPlayers },
+    };
 
-        gameStates.set(roomCode, newGameState);
+    gameStates.set(roomCode, newGameState);
 
-        // Broadcast player disconnection status to other clients (using io)
-        io.to(roomCode).emit('player_disconnected', {
+    // Broadcast player disconnection status to other clients (using io)
+    io.to(roomCode).emit('player_disconnected', {
+      playerId: disconnectedPlayerId,
+      room: newGameState.room,
+    });
+
+    // Start 30-second countdown before permanent removal
+    const removalTimer = setTimeout(() => {
+      if (!gameStates.has(roomCode)) return;
+
+      console.log(`Removing player ${disconnectedPlayerId} after timeout`);
+
+      pendingRemovals.delete(disconnectedPlayerId);
+
+      const latestState = gameStates.get(roomCode);
+      if (!latestState) return;
+
+      const updatedState = RoomManager.leaveRoom(
+        latestState,
+        disconnectedPlayerId
+      );
+
+      if (updatedState) {
+        gameStates.set(roomCode, updatedState);
+        io.to(roomCode).emit('player_left', {
           playerId: disconnectedPlayerId,
-          room: newGameState.room,
+          room: updatedState.room,
         });
-
-        // Start 30-second countdown before permanent removal
-        const removalTimer = setTimeout(() => {
-          if (!gameStates.has(roomCode)) return;
-
-          console.log(`Removing player ${disconnectedPlayerId} after timeout`);
-
-          // Remove from pending removals map
-          pendingRemovals.delete(disconnectedPlayerId);
-
-          // Perform permanent removal using RoomManager without relying on stale socket
-          const latestState = gameStates.get(roomCode);
-          if (!latestState) return;
-
-          const updatedState = RoomManager.leaveRoom(
-            latestState,
-            disconnectedPlayerId
-          );
-
-          if (updatedState) {
-            gameStates.set(roomCode, updatedState);
-
-            // Notify remaining players of the departure
-            io.to(roomCode).emit('player_left', {
-              playerId: disconnectedPlayerId,
-              room: updatedState.room,
-            });
-          }
-
-          // Finally clean up mapping
-          playerSockets.delete(disconnectedPlayerId);
-        }, 30000); // 30 seconds
-
-        // Store the timer so it can be cancelled if player rejoins
-        pendingRemovals.set(disconnectedPlayerId, removalTimer);
-
-        console.log(
-          `Player ${disconnectedPlayerId} marked as disconnected, will be removed in 30 seconds if not reconnected`
-        );
       }
-    }
+    }, 30000);
+
+    pendingRemovals.set(disconnectedPlayerId, removalTimer);
+
+    console.log(
+      `Player ${disconnectedPlayerId} marked as disconnected, will be removed in 30 seconds if not reconnected`
+    );
   };
 }
 
 export function handleStartGame(io: Server, socket: Socket) {
-  return (data: { roomCode: string; requestedBy: string }) => {
+  return (data: { roomCode: string }) => {
     try {
-      const { roomCode, requestedBy } = data;
+      const { roomCode } = data;
       const gameState = gameStates.get(roomCode);
 
       if (!gameState) {
         throw new Error('Game state not found');
       }
 
-      // Validate that the request comes from the room host
+      // Validate that the request comes from the room host (the socket bound
+      // to the host playerId via auth handshake or create/join).
       const hostId = gameState.room.players[0]?.id;
-      if (requestedBy !== hostId) {
+      const requesterId = getAuthedPlayerForRoom(socket, roomCode);
+      if (!requesterId || requesterId !== hostId) {
         socket.emit('game_error', {
           code: 'UNAUTHORIZED',
           message: 'Only the host can start the game.',
@@ -529,9 +559,9 @@ export function handleStartGame(io: Server, socket: Socket) {
 }
 
 export function handleStartRound(io: Server, socket: Socket) {
-  return (data: { roomCode: string; requestedBy: string }) => {
+  return (data: { roomCode: string }) => {
     try {
-      const { roomCode, requestedBy } = data;
+      const { roomCode } = data;
       const currentGameState = gameStates.get(roomCode);
 
       if (!currentGameState) {
@@ -544,7 +574,8 @@ export function handleStartRound(io: Server, socket: Socket) {
 
       // Validate that the request comes from the room host
       const hostId = currentGameState.room.players[0]?.id;
-      if (requestedBy !== hostId) {
+      const requesterId = getAuthedPlayerForRoom(socket, roomCode);
+      if (!requesterId || requesterId !== hostId) {
         socket.emit('game_error', {
           code: 'UNAUTHORIZED',
           message: 'Only the host can start the next round.',
@@ -592,16 +623,23 @@ export function handleStartRound(io: Server, socket: Socket) {
 }
 
 export function handleDeploySabotage(io: Server, socket: Socket) {
-  return async (data: {
-    sabotageId: string;
-    directorId: string;
-    roomCode: string;
-  }) => {
+  return async (data: { sabotageId: string; roomCode: string }) => {
     try {
-      const { sabotageId, directorId, roomCode } = data;
+      const { sabotageId, roomCode } = data;
       const gameState = gameStates.get(roomCode);
       if (!gameState) {
         throw new Error(`Game state not found for room ${roomCode}`);
+      }
+
+      // Director identity is derived from the socket binding, not the payload.
+      // SabotageManager will reject if this id doesn't match currentRound.directorId.
+      const directorId = getAuthedPlayerForRoom(socket, roomCode);
+      if (!directorId) {
+        socket.emit('game_error', {
+          code: 'UNAUTHORIZED',
+          message: 'You must be in a room to deploy sabotage.',
+        });
+        return;
       }
 
       const sabotageManager = new SabotageManager(gameState);
@@ -667,10 +705,9 @@ export function handleEndRound(io: Server, socket: Socket) {
       if (!gameState) return;
 
       // Security Check: Validate that the person ending the round is the director
-      const directorSocketId = playerSockets.get(
-        gameState.currentRound?.directorId ?? ''
-      );
-      if (socket.id !== directorSocketId) {
+      const requesterId = getAuthedPlayerForRoom(socket, roomCode);
+      const directorId = gameState.currentRound?.directorId;
+      if (!requesterId || !directorId || requesterId !== directorId) {
         return socket.emit('game_error', {
           code: 'UNAUTHORIZED',
           message: 'Only the director can end the round.',
@@ -695,11 +732,41 @@ export function initializeSocketHandlers(io: Server) {
     processRoundCompletion(io, roomCode); // No winnerId
   });
 
+  // Connection-time auth middleware. Bind the socket to a player identity if
+  // the client supplies a session via handshake auth. Connections without
+  // auth are still allowed — they're for create_room / join_room / fresh
+  // joiners. Privileged handlers verify socket.data.playerId at call time.
+  //
+  // Both playerId and roomCode must be present and well-formed; otherwise
+  // neither is bound. This guarantees the auto-rejoin block below always has
+  // a chance to validate the (playerId, roomCode) pair against an actual
+  // room — half-bound state would leave socket.data.playerId set without
+  // any membership check.
+  //
+  // Skipped on socket.recovered (see connectionStateRecovery.skipMiddlewares
+  // in server.ts), which is correct because socket.data is preserved across
+  // the recovery window.
+  io.use((socket, next) => {
+    const auth = (socket.handshake.auth ?? {}) as {
+      playerId?: unknown;
+      roomCode?: unknown;
+    };
+    const playerId =
+      typeof auth.playerId === 'string' && auth.playerId.length > 0
+        ? auth.playerId
+        : undefined;
+    const roomCode =
+      typeof auth.roomCode === 'string' && /^\d{4}$/.test(auth.roomCode)
+        ? auth.roomCode
+        : undefined;
+    if (playerId && roomCode) {
+      socket.data.playerId = playerId;
+      socket.data.roomCode = roomCode;
+    }
+    next();
+  });
+
   io.on('connection', (socket: Socket) => {
-    // On `socket.recovered`, Socket.IO has restored this socket's id, rooms,
-    // and any packets emitted to its rooms during the disconnect window.
-    // Handlers must still be wired (the underlying Socket instance is new),
-    // and the rejoin_room flow remains the long-disconnect fallback.
     console.log(
       `Client ${socket.recovered ? 'recovered' : 'connected'}: ${socket.id}`
     );
@@ -714,5 +781,19 @@ export function initializeSocketHandlers(io: Server) {
     socket.on('request_game_state', handleRequestGameState(socket));
     socket.on('end_round', handleEndRound(io, socket));
     socket.on('disconnecting', handleDisconnect(io, socket));
+
+    if (!socket.recovered && socket.data.playerId && socket.data.roomCode) {
+      const { playerId, roomCode } = socket.data;
+      rejoinPlayerToRoom(socket, playerId, roomCode).then(result => {
+        if (!result.ok) {
+          socket.data.playerId = undefined;
+          socket.data.roomCode = undefined;
+          socket.emit('room_error', {
+            code: 'AUTO_REJOIN_FAILED',
+            message: 'Your previous session is no longer valid.',
+          });
+        }
+      });
+    }
   });
 }
