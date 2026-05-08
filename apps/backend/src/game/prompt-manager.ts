@@ -15,31 +15,37 @@ export class PromptManager {
   }
 
   /**
-   * Gets a random prompt that hasn't been used yet.
+   * Gets a random prompt, preferring ones that haven't been used yet.
+   * If every matching prompt has been used, wraps around and draws from
+   * the full matching pool — a slight repeat risk is preferable to a
+   * crash mid-game in long sessions.
    * @param category Optional category filter
    * @param difficulty Optional difficulty filter
-   * @returns A random GamePrompt that hasn't been used
-   * @throws Error if no unused prompts are available
+   * @returns A random GamePrompt
+   * @throws Error if no prompts match the requested filters at all
    */
   public getRandomPrompt(
     category?: GamePrompt['category'],
     difficulty?: GamePrompt['difficulty']
   ): GamePrompt {
-    const availablePrompts = GAME_PROMPTS.filter(
-      prompt =>
-        !this.usedPromptIds.has(prompt.id) &&
-        (!category || prompt.category === category) &&
-        (!difficulty || prompt.difficulty === difficulty)
-    );
+    const matchesFilters = (prompt: GamePrompt) =>
+      (!category || prompt.category === category) &&
+      (!difficulty || prompt.difficulty === difficulty);
 
-    if (availablePrompts.length === 0) {
-      throw new Error('No unused prompts available');
+    const unused = GAME_PROMPTS.filter(
+      p => !this.usedPromptIds.has(p.id) && matchesFilters(p)
+    );
+    const pool =
+      unused.length > 0 ? unused : GAME_PROMPTS.filter(matchesFilters);
+
+    if (pool.length === 0) {
+      throw new Error('No prompts match the requested filters');
     }
 
-    const randomIndex = Math.floor(Math.random() * availablePrompts.length);
-    const prompt = availablePrompts[randomIndex];
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    const prompt = pool[randomIndex];
     if (!prompt) {
-      throw new Error('No unused prompts available');
+      throw new Error('No prompts match the requested filters');
     }
     return prompt;
   }

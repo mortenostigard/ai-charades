@@ -16,12 +16,19 @@ describe('PromptManager', () => {
     }
   });
 
-  it('throws when every prompt has already been used', () => {
+  it('wraps around to the full pool when every prompt has been used', () => {
     const allUsed = GAME_PROMPTS.map(p => p.id);
     const manager = new PromptManager(allUsed);
 
-    expect(() => manager.getRandomPrompt()).toThrow(
-      'No unused prompts available'
+    const prompt = manager.getRandomPrompt();
+    expect(GAME_PROMPTS.some(p => p.id === prompt.id)).toBe(true);
+  });
+
+  it('throws only when no prompts match the requested filters', () => {
+    const manager = new PromptManager();
+    const fakeCategory = 'does_not_exist' as never;
+    expect(() => manager.getRandomPrompt(fakeCategory)).toThrow(
+      'No prompts match the requested filters'
     );
   });
 
