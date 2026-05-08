@@ -47,7 +47,6 @@ on every subsequent connection.
 | `sabotage_deployed`   | `{ sabotage: ActiveSabotage; targetPlayerId? }` |
 | `sabotage_ended`      | `{ sabotageId }`                                |
 | `round_complete`      | `{ completedRound }`                            |
-| `game_complete`       | `{ scores: Record<string, number> }`            |
 | `room_error`          | `{ code; message }`                             |
 | `game_error`          | `{ code; message }`                             |
 | `sabotage_error`      | `{ code; message; attemptedSabotageId }`        |

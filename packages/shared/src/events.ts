@@ -66,7 +66,6 @@ export interface ServerToClientEvents {
   player_reconnected: (data: { player: Player; room: Room }) => void;
   player_disconnected: (data: { playerId: string; room: Room }) => void;
   round_complete: (data: { completedRound: CompletedRound }) => void;
-  game_complete: (data: { scores: Record<string, number> }) => void;
   sabotage_deployed: (data: {
     sabotage: ActiveSabotage;
     targetPlayerId?: string;

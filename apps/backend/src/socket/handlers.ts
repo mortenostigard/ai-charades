@@ -541,14 +541,21 @@ export function handleStartRound(
 
       const roundManager = new RoundManager(currentGameState);
 
+      // The natural end-of-game path goes through processRoundCompletion,
+      // which sets room.status='complete' and emits game_state_update. By
+      // that point the host UI no longer surfaces a next-round affordance,
+      // so reaching this handler with isGameComplete() implies a stale
+      // client. Re-broadcast the completion so it converges.
       if (roundManager.isGameComplete()) {
         const finalGameState: GameState = {
           ...currentGameState,
           room: { ...currentGameState.room, status: 'complete' },
         };
         roomStore.set(roomCode, finalGameState);
-        io.to(roomCode).emit('game_complete', {
-          scores: finalGameState.scores,
+        io.to(roomCode).emit('game_state_update', {
+          gameState: finalGameState,
+          message: 'Game complete! All players have acted.',
+          shouldReconnect: false,
         });
         console.log(`Game completed in room ${roomCode}`);
       } else {
