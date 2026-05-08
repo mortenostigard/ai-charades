@@ -5,7 +5,7 @@ import { RoomManager, getErrorMessage } from './room-manager.js';
 
 describe('RoomManager', () => {
   describe('createRoom', () => {
-    it('creates a room with a 4-digit code, the host as the only player, and zero score', () => {
+    it('ROOM-1.1 ROOM-1.2 creates a room with a 4-digit code, the host as the only player, and zero score', () => {
       const { room, playerId, gameState } = RoomManager.createRoom('Alice', []);
 
       expect(room.code).toMatch(/^\d{4}$/);
@@ -21,7 +21,7 @@ describe('RoomManager', () => {
       expect(gameState.roundHistory).toEqual([]);
     });
 
-    it('generates a code that is not already in use', () => {
+    it('ROOM-1.1 generates a code that is not already in use', () => {
       // Generate a room, then create 50 more rooms making sure the new
       // codes are never one of the existing ones.
       const taken: string[] = [];
@@ -50,7 +50,7 @@ describe('RoomManager', () => {
       expect(gameState.gameConfig.maxSabotages).toBe(3);
     });
 
-    it('issues a long, unguessable session token distinct per call', () => {
+    it('ROOM-6.1 issues a long, unguessable session token distinct per call', () => {
       const a = RoomManager.createRoom('Alice', []);
       const b = RoomManager.createRoom('Bob', []);
 
@@ -61,7 +61,7 @@ describe('RoomManager', () => {
       expect(a.sessionToken).not.toBe(b.sessionToken);
     });
 
-    it('omits the session token from the broadcastable Player shape', () => {
+    it('ROOM-6.3 omits the session token from the broadcastable Player shape', () => {
       const { room } = RoomManager.createRoom('Alice', []);
       // sessionToken belongs to the side channel only — it must not leak via
       // the Player record that's broadcast on every state update.
@@ -72,7 +72,7 @@ describe('RoomManager', () => {
   describe('joinRoom', () => {
     const seed = (): GameState => RoomManager.createRoom('Alice', []).gameState;
 
-    it('adds a player and initialises their score', () => {
+    it('ROOM-2.1 adds a player and initialises their score', () => {
       const { newGameState, newPlayer } = RoomManager.joinRoom(seed(), 'Bob');
 
       expect(newGameState.room.players).toHaveLength(2);
@@ -80,7 +80,7 @@ describe('RoomManager', () => {
       expect(newGameState.scores[newPlayer.id]).toBe(0);
     });
 
-    it('throws ROOM_FULL when the room is at maxPlayers', () => {
+    it('ROOM-2.3 throws ROOM_FULL when the room is at maxPlayers', () => {
       let state = seed();
       // Already has Alice; add 7 more to reach 8.
       for (let i = 0; i < 7; i++) {
@@ -89,7 +89,7 @@ describe('RoomManager', () => {
       expect(() => RoomManager.joinRoom(state, 'TooMany')).toThrow('ROOM_FULL');
     });
 
-    it('throws GAME_IN_PROGRESS when the room is no longer waiting', () => {
+    it('ROOM-2.5 throws GAME_IN_PROGRESS when the room is no longer waiting', () => {
       const state = seed();
       const playing: GameState = {
         ...state,
@@ -100,14 +100,14 @@ describe('RoomManager', () => {
       );
     });
 
-    it('throws PLAYER_NAME_TAKEN regardless of casing', () => {
+    it('ROOM-2.4 throws PLAYER_NAME_TAKEN regardless of casing', () => {
       const state = RoomManager.joinRoom(seed(), 'Bob').newGameState;
       expect(() => RoomManager.joinRoom(state, 'BOB')).toThrow(
         'PLAYER_NAME_TAKEN'
       );
     });
 
-    it('issues a fresh session token for the joiner that differs from the host', () => {
+    it('ROOM-6.1 issues a fresh session token for the joiner that differs from the host', () => {
       const initial = RoomManager.createRoom('Alice', []);
       const joined = RoomManager.joinRoom(initial.gameState, 'Bob');
 
@@ -117,7 +117,7 @@ describe('RoomManager', () => {
   });
 
   describe('leaveRoom', () => {
-    it('removes the player and their score entry', () => {
+    it('ROOM-3.1 removes the player and their score entry', () => {
       const initial = RoomManager.createRoom('Alice', []).gameState;
       const aliceId = initial.room.players[0]!.id;
       const { newGameState } = RoomManager.joinRoom(initial, 'Bob');
@@ -132,7 +132,7 @@ describe('RoomManager', () => {
       expect(after!.scores[aliceId]).toBe(0);
     });
 
-    it('returns null when the last player leaves', () => {
+    it('ROOM-3.2 returns null when the last player leaves', () => {
       const initial = RoomManager.createRoom('Alice', []).gameState;
       const aliceId = initial.room.players[0]!.id;
 
