@@ -116,6 +116,76 @@ describe('RoomManager', () => {
     });
   });
 
+  describe('resetForPlayAgain', () => {
+    const seedComplete = (): GameState => {
+      const initial = RoomManager.createRoom('Alice', []).gameState;
+      const joined = RoomManager.joinRoom(initial, 'Bob').newGameState;
+      const withCharlie = RoomManager.joinRoom(joined, 'Charlie').newGameState;
+      const players = withCharlie.room.players;
+      return {
+        ...withCharlie,
+        room: {
+          ...withCharlie.room,
+          status: 'complete',
+          players: [
+            { ...players[0]!, connectionStatus: 'connected' },
+            { ...players[1]!, connectionStatus: 'disconnected' },
+            { ...players[2]!, connectionStatus: 'connected' },
+          ],
+        },
+        scores: {
+          [players[0]!.id]: 4,
+          [players[1]!.id]: 1,
+          [players[2]!.id]: 2,
+        },
+        roundHistory: [
+          {
+            roundNumber: 1,
+            actorId: players[0]!.id,
+            directorId: players[1]!.id,
+            prompt: {
+              id: 'p1',
+              text: 't',
+              category: 'modern_life',
+              difficulty: 'easy',
+            },
+            outcome: 'correct_guess',
+            winnerId: players[2]!.id,
+            sabotagesUsed: 0,
+            scoreChanges: [],
+            completedAt: 0,
+          },
+        ],
+      };
+    };
+
+    it('ROOM-5.5 drops disconnected players when returning to the lobby', () => {
+      const state = seedComplete();
+      const disconnectedId = state.room.players[1]!.id;
+
+      const { newGameState, removedPlayerIds } =
+        RoomManager.resetForPlayAgain(state);
+
+      expect(removedPlayerIds).toEqual([disconnectedId]);
+      expect(newGameState.room.players.map(p => p.id)).not.toContain(
+        disconnectedId
+      );
+      expect(newGameState.scores[disconnectedId]).toBeUndefined();
+    });
+
+    it('ROOM-5.5 returns the room to the lobby and clears history and scores', () => {
+      const state = seedComplete();
+      const aliceId = state.room.players[0]!.id;
+
+      const { newGameState } = RoomManager.resetForPlayAgain(state);
+
+      expect(newGameState.room.status).toBe('waiting');
+      expect(newGameState.currentRound).toBeNull();
+      expect(newGameState.roundHistory).toEqual([]);
+      expect(newGameState.scores[aliceId]).toBe(0);
+    });
+  });
+
   describe('leaveRoom', () => {
     it('ROOM-3.1 removes the player and their score entry', () => {
       const initial = RoomManager.createRoom('Alice', []).gameState;

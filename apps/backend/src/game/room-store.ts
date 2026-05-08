@@ -9,12 +9,15 @@ import { RoomManager } from './room-manager.js';
 const globalForState = globalThis as unknown as {
   gameStates?: Map<string, GameState>;
   pendingRemovals?: Map<string, NodeJS.Timeout>;
+  pendingAbandonments?: Map<string, NodeJS.Timeout>;
   sessionTokens?: Map<string, string>;
 };
 
 const gameStates = globalForState.gameStates ?? new Map<string, GameState>();
 const pendingRemovals =
   globalForState.pendingRemovals ?? new Map<string, NodeJS.Timeout>();
+const pendingAbandonments =
+  globalForState.pendingAbandonments ?? new Map<string, NodeJS.Timeout>();
 // Side table mapping playerId -> sessionToken. Kept off the broadcast Player
 // shape so peers never see another player's token. Cleared on player removal.
 const sessionTokens = globalForState.sessionTokens ?? new Map<string, string>();
@@ -22,6 +25,7 @@ const sessionTokens = globalForState.sessionTokens ?? new Map<string, string>();
 if (process.env.NODE_ENV !== 'production') {
   globalForState.gameStates = gameStates;
   globalForState.pendingRemovals = pendingRemovals;
+  globalForState.pendingAbandonments = pendingAbandonments;
   globalForState.sessionTokens = sessionTokens;
 }
 
@@ -145,6 +149,13 @@ export const roomStore = {
     sessionTokens.set(playerId, token);
   },
 
+  /** Drop session tokens for the given player ids. */
+  dropSessionTokens(playerIds: readonly string[]): void {
+    for (const id of playerIds) {
+      sessionTokens.delete(id);
+    }
+  },
+
   /** Constant-time match. Returns false if no token is stored for the player. */
   verifySessionToken(playerId: string, token: string): boolean {
     const stored = sessionTokens.get(playerId);
@@ -185,5 +196,59 @@ export const roomStore = {
     clearTimeout(timer);
     pendingRemovals.delete(playerId);
     return true;
+  },
+
+  /**
+   * Schedule a delayed abandonment task for a room. Used for the long-tail
+   * safety net when every player has been disconnected for a while. Replaces
+   * any existing pending task for the same room.
+   */
+  scheduleAbandonment(code: string, run: () => void, delayMs: number): void {
+    const existing = pendingAbandonments.get(code);
+    if (existing) {
+      clearTimeout(existing);
+    }
+    const timer = setTimeout(() => {
+      pendingAbandonments.delete(code);
+      if (!gameStates.has(code)) return;
+      run();
+    }, delayMs);
+    pendingAbandonments.set(code, timer);
+  },
+
+  /** Cancel a pending abandonment task. Returns true if a timer was cleared. */
+  cancelAbandonment(code: string): boolean {
+    const timer = pendingAbandonments.get(code);
+    if (!timer) return false;
+    clearTimeout(timer);
+    pendingAbandonments.delete(code);
+    return true;
+  },
+
+  /**
+   * Tear down a room and all its associated state: cancel any pending
+   * removal/abandonment timers for its players, drop session tokens, and
+   * delete the room record. No events are emitted.
+   */
+  evict(code: string): void {
+    const state = gameStates.get(code);
+    if (!state) return;
+
+    for (const player of state.room.players) {
+      const timer = pendingRemovals.get(player.id);
+      if (timer) {
+        clearTimeout(timer);
+        pendingRemovals.delete(player.id);
+      }
+      sessionTokens.delete(player.id);
+    }
+
+    const abandonmentTimer = pendingAbandonments.get(code);
+    if (abandonmentTimer) {
+      clearTimeout(abandonmentTimer);
+      pendingAbandonments.delete(code);
+    }
+
+    gameStates.delete(code);
   },
 };
