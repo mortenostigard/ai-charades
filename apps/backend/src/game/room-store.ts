@@ -1,3 +1,5 @@
+import { timingSafeEqual } from 'node:crypto';
+
 import { type GameState, type Player } from '@charades/shared';
 
 import { RoomManager } from './room-manager.js';
@@ -143,15 +145,14 @@ export const roomStore = {
     sessionTokens.set(playerId, token);
   },
 
-  /**
-   * Returns true iff the supplied token matches the one stored for the
-   * given playerId. Returns false if no token is stored or the values
-   * differ — callers should treat both cases as auth failure.
-   */
+  /** Constant-time match. Returns false if no token is stored for the player. */
   verifySessionToken(playerId: string, token: string): boolean {
     const stored = sessionTokens.get(playerId);
     if (!stored) return false;
-    return stored === token;
+    const a = Buffer.from(stored);
+    const b = Buffer.from(token);
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(a, b);
   },
 
   /**
