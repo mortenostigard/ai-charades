@@ -72,7 +72,7 @@ const buildRound = (overrides: Partial<CurrentRound> = {}): CurrentRound => ({
 const validSabotageId = SABOTAGE_ACTIONS[0]!.id;
 
 describe('SabotageManager.deploySabotage', () => {
-  it('SAB-010 SAB-011 deploys a sabotage past the grace period and updates the round', () => {
+  it('SAB-2.1 SAB-4.1 deploys a sabotage past the grace period and updates the round', () => {
     const state = buildState({ currentRound: buildRound() });
     const deployTime = gameConfig.gracePeriod + 1000;
 
@@ -91,7 +91,7 @@ describe('SabotageManager.deploySabotage', () => {
     expect(next.currentRound?.sabotagesDeployedCount).toBe(1);
   });
 
-  it('SAB-005 throws ROUND_NOT_ACTIVE when no round is active', () => {
+  it('SAB-2.3 throws ROUND_NOT_ACTIVE when no round is active', () => {
     const state = buildState({ currentRound: null });
     expect(() =>
       new SabotageManager(state).deploySabotage(
@@ -102,7 +102,7 @@ describe('SabotageManager.deploySabotage', () => {
     ).toThrow('ROUND_NOT_ACTIVE');
   });
 
-  it('SAB-005 throws ROUND_NOT_ACTIVE when round status is complete', () => {
+  it('SAB-2.3 throws ROUND_NOT_ACTIVE when round status is complete', () => {
     const state = buildState({
       currentRound: buildRound({ status: 'complete' }),
     });
@@ -115,7 +115,7 @@ describe('SabotageManager.deploySabotage', () => {
     ).toThrow('ROUND_NOT_ACTIVE');
   });
 
-  it('SAB-004 throws UNAUTHORIZED when a non-director attempts deploy', () => {
+  it('SAB-2.2 throws UNAUTHORIZED when a non-director attempts deploy', () => {
     const state = buildState({ currentRound: buildRound() });
     expect(() =>
       new SabotageManager(state).deploySabotage(
@@ -126,7 +126,7 @@ describe('SabotageManager.deploySabotage', () => {
     ).toThrow('UNAUTHORIZED');
   });
 
-  it('SAB-006 throws GRACE_PERIOD_ACTIVE before the grace period elapses', () => {
+  it('SAB-3.1 throws GRACE_PERIOD_ACTIVE before the grace period elapses', () => {
     const state = buildState({ currentRound: buildRound({ startTime: 0 }) });
     expect(() =>
       new SabotageManager(state).deploySabotage(
@@ -137,7 +137,7 @@ describe('SabotageManager.deploySabotage', () => {
     ).toThrow('GRACE_PERIOD_ACTIVE');
   });
 
-  it('SAB-007 throws MAX_SABOTAGES_REACHED at the configured cap', () => {
+  it('SAB-3.3 throws MAX_SABOTAGES_REACHED at the configured cap', () => {
     const state = buildState({
       currentRound: buildRound({
         sabotagesDeployedCount: gameConfig.maxSabotages,
@@ -152,7 +152,7 @@ describe('SabotageManager.deploySabotage', () => {
     ).toThrow('MAX_SABOTAGES_REACHED');
   });
 
-  it('SAB-008 throws SABOTAGE_ALREADY_ACTIVE while another sabotage is in progress', () => {
+  it('SAB-3.2 throws SABOTAGE_ALREADY_ACTIVE while another sabotage is in progress', () => {
     const round = buildRound();
     const state = buildState({
       currentRound: {
@@ -174,7 +174,7 @@ describe('SabotageManager.deploySabotage', () => {
     ).toThrow('SABOTAGE_ALREADY_ACTIVE');
   });
 
-  it('SAB-009 throws SABOTAGE_NOT_FOUND for an unknown id', () => {
+  it('SAB-2.4 throws SABOTAGE_NOT_FOUND for an unknown id', () => {
     const state = buildState({ currentRound: buildRound() });
     expect(() =>
       new SabotageManager(state).deploySabotage(
@@ -187,12 +187,12 @@ describe('SabotageManager.deploySabotage', () => {
 });
 
 describe('SabotageManager.selectRandomSabotages', () => {
-  it('SAB-001 returns the requested count', () => {
+  it('SAB-1.1 returns the requested count', () => {
     expect(SabotageManager.selectRandomSabotages(6)).toHaveLength(6);
     expect(SabotageManager.selectRandomSabotages(1)).toHaveLength(1);
   });
 
-  it('SAB-001 returns only valid SabotageAction objects from the master list', () => {
+  it('SAB-1.1 returns only valid SabotageAction objects from the master list', () => {
     const ids = new Set(SABOTAGE_ACTIONS.map(a => a.id));
     for (const action of SabotageManager.selectRandomSabotages(6)) {
       expect(ids.has(action.id)).toBe(true);
@@ -208,13 +208,13 @@ describe('SabotageManager.selectRandomSabotages', () => {
 });
 
 describe('SABOTAGE_ACTIONS master list', () => {
-  it('SAB-016 every entry has a duration of 20000 ms', () => {
+  it('SAB-6.1 every entry has a duration of 20000 ms', () => {
     for (const action of SABOTAGE_ACTIONS) {
       expect(action.duration).toBe(20000);
     }
   });
 
-  it('SAB-017 covers all six SabotageAction categories', () => {
+  it('SAB-6.2 covers all six SabotageAction categories', () => {
     const expectedCategories = [
       'emotion',
       'physical',

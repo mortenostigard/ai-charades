@@ -1,94 +1,124 @@
 # Requirements
 
-Source of truth for system behaviour rules. Each requirement has a stable ID and is linked to one or more tests via the ID embedded in the test description. Changing a rule means: edit the requirement here, change the linked test, change the code to make it pass.
+Source of truth for system behaviour rules. Requirements are written in EARS (Easy Approach to Requirements Syntax) and grouped by user-facing objective. Each acceptance criterion has a stable id and links to the test(s) that verify it.
 
 ## Convention
 
-- Requirements are identified by `<SYSTEM>-NNN` (e.g. `SAB-007`).
-- Tests link to a requirement by including the ID at the start of the `it(...)` / `test(...)` description:
+### Structure
+
+Each system has multiple **Requirements**, each of which states a user-facing **Objective** in user-story form and lists numbered **Acceptance Criteria** in EARS format:
+
+```
+### Requirement N: <Objective area>
+**Objective:** As a <role>, I want <capability>, so that <benefit>.
+
+**Acceptance Criteria:**
+1. WHEN <event> THEN <subject> SHALL <response>
+2. IF <precondition> THEN <subject> SHALL <response>
+3. WHILE <ongoing condition> THE <subject> SHALL <continuous behaviour>
+4. WHERE <context> THE <subject> SHALL <contextual behaviour>
+```
+
+### EARS keywords
+
+- **WHEN … THEN … SHALL …** — event-driven.
+- **IF … THEN … SHALL …** — unwanted behaviour or precondition.
+- **WHILE … THE … SHALL …** — state-driven, continuous.
+- **WHERE … THE … SHALL …** — feature- or context-driven.
+- Combine with **AND** for compound conditions.
+
+### Phrasing rules
+
+- Phrase at the domain level. Don't reference event names, internal state field names, error codes, or formulas — those are implementation. The requirement should make sense to a player or a non-engineer.
+- Pick a concrete subject (e.g. "the Director", "the Actor's device", "every player in the round", "the system") rather than a generic one.
+
+### Test linkage
+
+- Acceptance criteria are identified by `<SYSTEM>-N.M` (e.g. `SAB-2.3`).
+- Tests link to a criterion by including the id at the start of the `it(...)` description:
 
   ```ts
-  it('SAB-007 rejects deploy past the per-round limit', () => { ... });
+  it('SAB-2.3 rejects deploy when no round is active', () => { ... });
   ```
 
-- A test may cite multiple IDs (space-separated) when it covers more than one rule.
-- Find tests for a requirement: `grep -rn 'SAB-007' apps/ packages/`.
-- A requirement with no matching grep result is **uncovered** — surface it in PRs as a known gap or add a test.
-- Tests without an ID are allowed; they guard implementation details, not specified behaviour.
-- EARS keywords used: `When` (event-driven), `While` (state-driven), `If … then` (unwanted behaviour), or unprefixed (ubiquitous).
+- A test may cite multiple ids (space-separated) when it covers more than one criterion.
+- Find tests for a criterion: `grep -rn 'SAB-2.3' apps/ packages/`.
+- A criterion with no matching grep result is **uncovered** — surface in PRs as a known gap or add a test.
+- Tests without an id are allowed; they guard implementation details, not specified behaviour.
 
-## Reserved ID ranges
+## Reserved id ranges
 
-| System | Range            | Description                                                                    |
-| ------ | ---------------- | ------------------------------------------------------------------------------ |
-| ROOM   | `ROOM-001..099`  | Rooms, player sessions, lobby, reconnection                                    |
-| ROUND  | `ROUND-001..099` | Round lifecycle, role rotation, server-authoritative timer, director's verdict |
-| SAB    | `SAB-001..099`   | Sabotage                                                                       |
-| SCORE  | `SCORE-001..099` | Per-round scoring, end-of-game bonuses                                         |
-| NET    | `NET-001..099`   | Socket.IO event contract, client state mirror, connection lifecycle            |
+| System | Range       | Description                                                                    |
+| ------ | ----------- | ------------------------------------------------------------------------------ |
+| ROOM   | `ROOM-*.*`  | Rooms, player sessions, lobby, reconnection                                    |
+| ROUND  | `ROUND-*.*` | Round lifecycle, role rotation, server-authoritative timer, director's verdict |
+| SAB    | `SAB-*.*`   | Sabotage                                                                       |
+| SCORE  | `SCORE-*.*` | Per-round scoring, end-of-game bonuses                                         |
+| NET    | `NET-*.*`   | Socket.IO event contract, client state mirror, connection lifecycle            |
 
 ---
 
 ## SAB — Sabotage
 
-The Director can deploy short-lived constraints ("sabotages") on the Actor during a round. Sabotages are validated server-side, broadcast to all room sockets, and expire after a fixed duration.
+The Director can disrupt the Actor's performance during a round by deploying short-lived sabotages, adding tactical depth and audience entertainment.
 
-### Round setup
+### Requirement 1: Director's Hand
 
-- **SAB-001** — When a new round starts, the system shall assign the director an `availableSabotages` hand of 6 sabotages drawn at random from the master sabotage list.
+**Objective:** As the Director, I want a curated hand of sabotage options at the start of each round, so that my choices feel deliberate rather than scrolling through a long catalogue mid-performance.
 
-### Authorization
+**Acceptance Criteria:**
 
-- **SAB-002** — When handling `deploy_sabotage`, the system shall derive the director identity from the socket auth binding rather than from the event payload.
-- **SAB-003** — If the requesting socket is not authenticated for the room, then the system shall emit `game_error` with code `UNAUTHORIZED` and not deploy.
-- **SAB-004** — If a player who is not the current round's director attempts to deploy, then the system shall reject the request with `UNAUTHORIZED`.
+1. **SAB-1.1** — WHEN a round starts THEN the Director SHALL receive a hand of 6 sabotages drawn at random from the sabotage catalogue.
 
-### Round state preconditions
+### Requirement 2: Deploying a Sabotage
 
-- **SAB-005** — If `deploy_sabotage` is received while no round is active (`currentRound` is null or `status` is `complete`), then the system shall reject the request with `ROUND_NOT_ACTIVE`.
+**Objective:** As the Director, I want to deploy a sabotage during my turn, so that I can challenge the Actor's performance and entertain the audience.
 
-### Grace period
+**Acceptance Criteria:**
 
-- **SAB-006** — While the round is within its grace period (`deployTime − currentRound.startTime < gameConfig.gracePeriod`), the system shall reject any deploy with `GRACE_PERIOD_ACTIVE`.
+1. **SAB-2.1** — WHEN the Director chooses a sabotage from their hand THEN the system SHALL deploy it.
+2. **SAB-2.2** — IF a player who is not the Director attempts to deploy a sabotage THEN the system SHALL reject the attempt.
+3. **SAB-2.3** — IF a sabotage is deployed while no round is active THEN the system SHALL reject the attempt.
+4. **SAB-2.4** — IF a sabotage that does not exist in the catalogue is deployed THEN the system SHALL reject the attempt.
+5. **SAB-2.5** — WHEN a deployment is rejected THEN the Director SHALL be told why.
 
-### Per-round limit
+### Requirement 3: Constraining Sabotage Use
 
-- **SAB-007** — If `currentRound.sabotagesDeployedCount` has reached `gameConfig.maxSabotages`, then the system shall reject any further deploy with `MAX_SABOTAGES_REACHED`.
+**Objective:** As a player, I want sabotages to be a scarce, paced resource, so that the round doesn't devolve into nonstop disruption and the Actor has breathing room to perform.
 
-### No stacking
+**Acceptance Criteria:**
 
-- **SAB-008** — While a sabotage is currently active (`currentRound.currentSabotage` is non-null), the system shall reject any deploy with `SABOTAGE_ALREADY_ACTIVE`.
+1. **SAB-3.1** — WHILE a round is in its first 20 seconds (the grace period) THE system SHALL reject any sabotage deployment.
+2. **SAB-3.2** — WHILE a sabotage is active THE system SHALL reject any further sabotage deployment.
+3. **SAB-3.3** — WHILE a round is in progress THE system SHALL allow no more than 3 sabotage deployments in total.
 
-### Lookup
+### Requirement 4: Sabotage Lifetime
 
-- **SAB-009** — If the requested `sabotageId` is not present in the master sabotage list, then the system shall reject the request with `SABOTAGE_NOT_FOUND`.
+**Objective:** As a player, I want each sabotage to last a fixed, predictable time, so that the Actor can adapt and the round stays paced.
 
-### State transition on successful deploy
+**Acceptance Criteria:**
 
-- **SAB-010** — When a sabotage is successfully deployed, the system shall set `currentRound.currentSabotage` with `deployedBy` = director id, `deployedAt` = deploy time, and `endsAt` = deploy time + `action.duration`.
-- **SAB-011** — When a sabotage is successfully deployed, the system shall increment `currentRound.sabotagesDeployedCount` by 1.
+1. **SAB-4.1** — WHEN a sabotage is deployed THEN it SHALL remain in effect for 20 seconds.
+2. **SAB-4.2** — WHEN a sabotage's 20 seconds elapse THEN the system SHALL end it.
 
-### Broadcast on deploy
+### Requirement 5: Player Notifications
 
-- **SAB-012** — When a sabotage is successfully deployed, the system shall broadcast `sabotage_deployed` to every socket in the room with the active sabotage and the actor's id as `targetPlayerId`.
+**Objective:** As a player in the round, I want to know when sabotages start and end, so that I can follow what the Actor is dealing with and react accordingly.
 
-### Expiry
+**Acceptance Criteria:**
 
-- **SAB-013** — When a sabotage's duration elapses, if the same sabotage is still the current sabotage in the room, the system shall clear `currentRound.currentSabotage` and broadcast `sabotage_ended`.
-- **SAB-014** — If the current sabotage has changed before the expiry timer fires (round ended, replaced), then the system shall not clear state or emit `sabotage_ended` for the original sabotage.
+1. **SAB-5.1** — WHEN a sabotage is deployed THEN every player in the round SHALL be notified of which sabotage was deployed and which player it targets.
+2. **SAB-5.2** — WHEN a sabotage is deployed against the Actor THEN the Actor's device SHALL play an audible alert.
+3. **SAB-5.3** — WHEN a sabotage ends THEN every player in the round SHALL be notified.
 
-### Error reporting
+### Requirement 6: Sabotage Catalogue
 
-- **SAB-015** — When a deploy fails with a known engine reason code, the system shall emit `sabotage_error` to the requesting socket carrying the reason code, a message, and the attempted sabotage id.
+**Objective:** As a player, I want a varied catalogue of sabotages, so that rounds don't feel repetitive across a game session.
 
-### Master list invariants
+**Acceptance Criteria:**
 
-- **SAB-016** — Every entry in the master sabotage list shall have a `duration` of 20000 ms.
-- **SAB-017** — The master sabotage list shall include at least one entry in each of the six `SabotageAction.category` values: `emotion`, `physical`, `environment`, `character`, `sensory`, `meta`.
-
-### Actor notification
-
-- **SAB-018** — When the actor's client receives a `sabotage_deployed` event addressed to them, the client shall play an audible alert.
+1. **SAB-6.1** — Every sabotage in the catalogue SHALL last 20 seconds.
+2. **SAB-6.2** — The catalogue SHALL include sabotages from six distinct categories: emotion, physical, environment, character, sensory, meta.
 
 ---
 
