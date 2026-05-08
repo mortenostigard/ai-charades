@@ -73,6 +73,10 @@ PR descriptions and commit messages stand on their own — no references to chat
 
 Branch names follow conventional-commit prefixes: `feat/`, `fix/`, `chore/`, `refactor/`, `docs/`, `build/`, `ci/`, `test/`, `perf/`. Use a short kebab-case description after the prefix (e.g. `fix/vercel-shared-package-resolution`, `refactor/shared-types-only`). Do not use tool- or session-scoped prefixes like `claude/...`.
 
+### Reviewing PRs
+
+Check out the branch first, then read locally and run `pnpm type-check` / `test` / `lint`. Don't use `get_diff` — it truncates and duplicates what checkout gives you.
+
 ## Reference docs
 
 Game/protocol details live in `docs/`. Treat these as the source of truth and link to them from code/PRs rather than duplicating:

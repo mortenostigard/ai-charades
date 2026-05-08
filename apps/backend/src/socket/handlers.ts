@@ -111,20 +111,26 @@ export function handleCreateRoom(
         return;
       }
 
-      const { room, playerId, gameState } = RoomManager.createRoom(
-        data.playerName.trim(),
-        roomStore.codes(),
-        data.gameConfig
-      );
+      const { room, playerId, sessionToken, gameState } =
+        RoomManager.createRoom(
+          data.playerName.trim(),
+          roomStore.codes(),
+          data.gameConfig
+        );
 
       roomStore.set(room.code, gameState);
+      roomStore.setSessionToken(playerId, sessionToken);
       bindSocketIdentity(socket, playerId, room.code);
 
       await socket.join(room.code);
 
+      // sessionToken is delivered exactly once, only to the originating
+      // socket. It must never appear on broadcast events (player_joined,
+      // player_reconnected, game_state_update, etc.).
       socket.emit('room_created', {
         room,
         playerId,
+        sessionToken,
         gameState,
       });
 
@@ -182,19 +188,23 @@ export function handleJoinRoom(
         return;
       }
 
-      const { newGameState, newPlayer } = RoomManager.joinRoom(
+      const { newGameState, newPlayer, sessionToken } = RoomManager.joinRoom(
         gameState,
         playerName
       );
 
       roomStore.set(roomCode, newGameState);
+      roomStore.setSessionToken(newPlayer.id, sessionToken);
       bindSocketIdentity(socket, newPlayer.id, roomCode);
 
       await socket.join(roomCode);
 
+      // sessionToken is sent only to the originating socket. The peer
+      // broadcast below intentionally omits it.
       socket.emit('room_joined', {
         room: newGameState.room,
         playerId: newPlayer.id,
+        sessionToken,
         gameState: newGameState,
       });
 
@@ -274,12 +284,21 @@ export function handleRejoinRoom(
 ): ClientToServerEvents['rejoin_room'] {
   return async data => {
     try {
-      const { playerId, roomCode } = data;
+      const { playerId, roomCode, sessionToken } = data;
 
-      if (!playerId || !roomCode) {
+      if (!playerId || !roomCode || !sessionToken) {
         socket.emit('room_error', {
           code: 'INVALID_DATA',
-          message: 'Player ID and room code are required for rejoining.',
+          message:
+            'Player ID, room code, and session token are required for rejoining.',
+        });
+        return;
+      }
+
+      if (!roomStore.verifySessionToken(playerId, sessionToken)) {
+        socket.emit('room_error', {
+          code: 'AUTH_FAILED',
+          message: 'Your session is no longer valid. Please rejoin manually.',
         });
         return;
       }
@@ -670,15 +689,20 @@ export function initializeSocketHandlers(io: TypedServer) {
   });
 
   // Connection-time auth middleware. Bind the socket to a player identity if
-  // the client supplies a session via handshake auth. Connections without
-  // auth are still allowed — they're for create_room / join_room / fresh
-  // joiners. Privileged handlers verify socket.data.playerId at call time.
+  // the client supplies a valid session via handshake auth. Connections
+  // without auth are still allowed — they're for create_room / join_room /
+  // fresh joiners. Privileged handlers verify socket.data.playerId at call
+  // time.
   //
-  // Both playerId and roomCode must be present and well-formed; otherwise
-  // neither is bound. This guarantees the auto-rejoin block below always has
-  // a chance to validate the (playerId, roomCode) pair against an actual
-  // room — half-bound state would leave socket.data.playerId set without
-  // any membership check.
+  // playerId, roomCode, and sessionToken must all be present and well-formed
+  // and the sessionToken must match the server-stored token for the
+  // playerId. Knowing another player's id is not sufficient to claim their
+  // identity — the token (delivered only to the originator on
+  // room_created/room_joined) is required.
+  //
+  // If auth fields are partially supplied, or the token does not match, the
+  // connection is rejected with AUTH_FAILED rather than silently dropping
+  // identity, so the client cannot accidentally proceed unauthenticated.
   //
   // Skipped on socket.recovered (see connectionStateRecovery.skipMiddlewares
   // in server.ts), which is correct because socket.data is preserved across
@@ -687,7 +711,17 @@ export function initializeSocketHandlers(io: TypedServer) {
     const auth = (socket.handshake.auth ?? {}) as {
       playerId?: unknown;
       roomCode?: unknown;
+      sessionToken?: unknown;
     };
+    const hasAnyAuth =
+      auth.playerId !== undefined ||
+      auth.roomCode !== undefined ||
+      auth.sessionToken !== undefined;
+    if (!hasAnyAuth) {
+      next();
+      return;
+    }
+
     const playerId =
       typeof auth.playerId === 'string' && auth.playerId.length > 0
         ? auth.playerId
@@ -696,10 +730,23 @@ export function initializeSocketHandlers(io: TypedServer) {
       typeof auth.roomCode === 'string' && /^\d{4}$/.test(auth.roomCode)
         ? auth.roomCode
         : undefined;
-    if (playerId && roomCode) {
-      socket.data.playerId = playerId;
-      socket.data.roomCode = roomCode;
+    const sessionToken =
+      typeof auth.sessionToken === 'string' && auth.sessionToken.length > 0
+        ? auth.sessionToken
+        : undefined;
+
+    if (!playerId || !roomCode || !sessionToken) {
+      next(new Error('AUTH_FAILED'));
+      return;
     }
+
+    if (!roomStore.verifySessionToken(playerId, sessionToken)) {
+      next(new Error('AUTH_FAILED'));
+      return;
+    }
+
+    socket.data.playerId = playerId;
+    socket.data.roomCode = roomCode;
     next();
   });
 

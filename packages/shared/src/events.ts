@@ -21,7 +21,11 @@ export interface ClientToServerEvents {
     gameConfig?: Partial<GameConfig>;
   }) => void;
   join_room: (data: { roomCode: string; playerName: string }) => void;
-  rejoin_room: (data: { playerId: string; roomCode: string }) => void;
+  rejoin_room: (data: {
+    playerId: string;
+    roomCode: string;
+    sessionToken: string;
+  }) => void;
   leave_room: () => void;
   start_game: (data: { roomCode: string }) => void;
   start_round: (data: { roomCode: string }) => void;
@@ -41,11 +45,13 @@ export interface ServerToClientEvents {
   room_created: (data: {
     room: Room;
     playerId: string;
+    sessionToken: string;
     gameState: GameState;
   }) => void;
   room_joined: (data: {
     room: Room;
     playerId: string;
+    sessionToken: string;
     gameState: GameState;
   }) => void;
   room_error: (data: { code: string; message: string }) => void;
