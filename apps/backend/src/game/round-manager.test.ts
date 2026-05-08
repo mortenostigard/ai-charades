@@ -136,6 +136,28 @@ describe('RoundManager.startRound', () => {
     );
   });
 
+  it('starts the next round when the previous actor has left the room', () => {
+    // Round 1 was played with p2 as actor. p2 then left the room, so the
+    // current player list no longer contains them.
+    const remainingPlayers: Player[] = [
+      { id: 'p1', name: 'P1', connectionStatus: 'connected', joinedAt: 0 },
+      { id: 'p3', name: 'P3', connectionStatus: 'connected', joinedAt: 0 },
+    ];
+    const state = buildState({
+      room: { ...room, players: remainingPlayers },
+      scores: { p1: 0, p3: 0 },
+      roundHistory: [buildCompleted({ actorId: 'p2', directorId: 'p1' })],
+    });
+
+    const next = new RoundManager(state).startRound(prompt);
+
+    expect(next.currentRound).not.toBeNull();
+    // With 2 remaining players, the round-2 rotation lands on actor index
+    // 2 % 2 = 0 (p1) and director index 1 (p3).
+    expect(next.currentRound?.actorId).toBe('p1');
+    expect(next.currentRound?.directorId).toBe('p3');
+  });
+
   it('increments the round number from currentRound when present', () => {
     const currentRound: CurrentRound = {
       number: 5,

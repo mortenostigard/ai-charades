@@ -78,6 +78,26 @@ describe('ScoringEngine', () => {
     ]);
   });
 
+  it('skips score updates for players no longer in currentScores', () => {
+    // The actor left the room mid-round and has been removed from scores.
+    // Their slot should not be resurrected; only the remaining players update.
+    const data: ScoringData = {
+      winnerId: 'guesser',
+      currentRound: buildRound({ sabotagesDeployedCount: 1 }),
+    };
+    const { newScores, scoreChanges } = ScoringEngine.calculateScores(
+      { director: 0, guesser: 0 },
+      data
+    );
+
+    expect(newScores).toEqual({ director: -1, guesser: 1 });
+    expect(scoreChanges).toEqual([
+      { playerId: 'director', pointsEarned: -1, totalScore: -1 },
+      { playerId: 'guesser', pointsEarned: 1, totalScore: 1 },
+    ]);
+    expect('actor' in newScores).toBe(false);
+  });
+
   it('does not mutate the input scores object', () => {
     const original = { actor: 5, director: 5, guesser: 5 };
     const snapshot = { ...original };

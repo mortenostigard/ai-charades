@@ -38,14 +38,17 @@ export class ScoringEngine {
     const scoreChanges: PlayerScoreChange[] = [];
 
     const createUpdate = (playerId: string, points: number): void => {
-      if (points !== 0) {
-        newScores[playerId] = (newScores[playerId] || 0) + points;
-        scoreChanges.push({
-          playerId,
-          pointsEarned: points,
-          totalScore: newScores[playerId],
-        });
-      }
+      if (points === 0) return;
+      // Skip players who have left the room. RoomManager.leaveRoom deletes the
+      // player's score entry, so absence from currentScores is the signal that
+      // they're gone — don't resurrect them with a fresh score row.
+      if (!(playerId in currentScores)) return;
+      newScores[playerId] = (newScores[playerId] ?? 0) + points;
+      scoreChanges.push({
+        playerId,
+        pointsEarned: points,
+        totalScore: newScores[playerId],
+      });
     };
 
     if (winnerId) {
