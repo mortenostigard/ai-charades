@@ -158,6 +158,59 @@ describe('RoundManager.startRound', () => {
     expect(next.currentRound?.directorId).toBe('p3');
   });
 
+  it('rotates through every remaining player after a leave before completing', () => {
+    // 4 players. p2 acts in round 1 then leaves; the simulation must reach
+    // a complete state with p1, p3, p4 all having acted at least once.
+    const fourPlayers: Player[] = [
+      { id: 'p1', name: 'P1', connectionStatus: 'connected', joinedAt: 0 },
+      { id: 'p2', name: 'P2', connectionStatus: 'connected', joinedAt: 0 },
+      { id: 'p3', name: 'P3', connectionStatus: 'connected', joinedAt: 0 },
+      { id: 'p4', name: 'P4', connectionStatus: 'connected', joinedAt: 0 },
+    ];
+    let state: GameState = {
+      room: { ...room, players: fourPlayers },
+      currentRound: null,
+      scores: { p1: 0, p2: 0, p3: 0, p4: 0 },
+      gameConfig,
+      roundHistory: [],
+    };
+
+    // Round 1.
+    state = new RoundManager(state).startRound(prompt);
+    expect(state.currentRound?.actorId).toBe('p2');
+    state = new RoundManager(state).endRound().newGameState;
+
+    // p2 leaves (matches what RoomManager.leaveRoom does to players + scores).
+    state = {
+      ...state,
+      room: {
+        ...state.room,
+        players: state.room.players.filter(p => p.id !== 'p2'),
+      },
+      scores: {
+        p1: state.scores.p1!,
+        p3: state.scores.p3!,
+        p4: state.scores.p4!,
+      },
+    };
+
+    // Drive rounds until startRound returns a completed game.
+    for (let i = 0; i < 20; i++) {
+      const next = new RoundManager(state).startRound(prompt);
+      if (next.currentRound === null) {
+        state = next;
+        break;
+      }
+      state = new RoundManager(next).endRound().newGameState;
+    }
+
+    expect(state.room.status).toBe('complete');
+    const actors = new Set(state.roundHistory.map(r => r.actorId));
+    expect(actors.has('p1')).toBe(true);
+    expect(actors.has('p3')).toBe(true);
+    expect(actors.has('p4')).toBe(true);
+  });
+
   it('increments the round number from currentRound when present', () => {
     const currentRound: CurrentRound = {
       number: 5,
@@ -243,6 +296,27 @@ describe('RoundManager.isGameComplete', () => {
       ],
     });
     expect(new RoundManager(state).isGameComplete()).toBe(true);
+  });
+
+  it('does not count actors who have left the room', () => {
+    // history contains p2 (left), p3, p4 — but p2 is no longer in players.
+    // With 3 remaining players (p1, p3, p4), the game should not be complete
+    // yet because p1 has not acted.
+    const remaining: Player[] = [
+      { id: 'p1', name: 'P1', connectionStatus: 'connected', joinedAt: 0 },
+      { id: 'p3', name: 'P3', connectionStatus: 'connected', joinedAt: 0 },
+      { id: 'p4', name: 'P4', connectionStatus: 'connected', joinedAt: 0 },
+    ];
+    const state = buildState({
+      room: { ...room, players: remaining },
+      scores: { p1: 0, p3: 0, p4: 0 },
+      roundHistory: [
+        buildCompleted({ roundNumber: 1, actorId: 'p2' }),
+        buildCompleted({ roundNumber: 2, actorId: 'p3' }),
+        buildCompleted({ roundNumber: 3, actorId: 'p4' }),
+      ],
+    });
+    expect(new RoundManager(state).isGameComplete()).toBe(false);
   });
 
   it('counts the current actor towards completion', () => {

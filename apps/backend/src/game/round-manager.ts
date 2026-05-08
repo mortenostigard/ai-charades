@@ -112,16 +112,25 @@ export class RoundManager {
 
   /**
    * Checks if the game is complete.
-   * The game is considered complete when every player has had at least one turn as the Actor.
+   *
+   * Only counts actors who are still in the room. A leaver who already had
+   * their actor turn would otherwise inflate the count and end the game one
+   * round early, before every remaining player has had a chance to act.
    * @returns True if the game is complete, false otherwise.
    */
   public isGameComplete(): boolean {
-    const actorsSoFar = new Set(this.roundHistory.map(r => r.actorId));
-    // Add the current actor if a round is active
-    if (this.gameState.currentRound) {
-      actorsSoFar.add(this.gameState.currentRound.actorId);
+    const currentIds = new Set(this.players.map(p => p.id));
+    const actorsStillHere = new Set<string>();
+    for (const r of this.roundHistory) {
+      if (currentIds.has(r.actorId)) actorsStillHere.add(r.actorId);
     }
-    return actorsSoFar.size >= this.players.length;
+    if (
+      this.gameState.currentRound &&
+      currentIds.has(this.gameState.currentRound.actorId)
+    ) {
+      actorsStillHere.add(this.gameState.currentRound.actorId);
+    }
+    return actorsStillHere.size >= this.players.length;
   }
 
   /**
