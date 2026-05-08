@@ -63,7 +63,7 @@ const buildCompleted = (
 });
 
 describe('RoundManager.startRound', () => {
-  it('assigns p1 director and p2 actor on the first round', () => {
+  it('SAB-1.1 assigns p1 director and p2 actor on the first round', () => {
     const state = buildState();
     const next = new RoundManager(state).startRound(prompt);
 
