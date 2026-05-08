@@ -100,6 +100,7 @@ The Director can disrupt the Actor's performance during a round by deploying sho
 
 1. **SAB-4.1** — WHEN a sabotage is deployed THEN it SHALL remain in effect for 20 seconds.
 2. **SAB-4.2** — WHEN a sabotage's 20 seconds elapse THEN the system SHALL end it.
+3. **SAB-4.3** — IF a round ends while a sabotage is still active THEN that sabotage's pending expiry SHALL not affect any subsequent round.
 
 ### Requirement 5: Player Notifications
 

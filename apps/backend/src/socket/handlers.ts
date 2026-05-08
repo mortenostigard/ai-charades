@@ -608,22 +608,27 @@ export function handleDeploySabotage(
 
       roomStore.set(roomCode, newGameState);
 
-      const activeSabotage = newGameState.currentRound?.currentSabotage;
-      if (!activeSabotage) {
+      const currentRound = newGameState.currentRound;
+      const activeSabotage = currentRound?.currentSabotage;
+      if (!currentRound || !activeSabotage) {
         // This should not happen if deploySabotage succeeds, but it's a safe guard.
         throw new Error('Deployment failed to produce an active sabotage.');
       }
 
       io.to(roomCode).emit('sabotage_deployed', {
         sabotage: activeSabotage,
-        targetPlayerId: newGameState.currentRound?.actorId,
+        targetPlayerId: currentRound.actorId,
       });
 
+      // Capture the round number so a stale expiry timer from an ended
+      // round can't clear a sabotage in a subsequent round.
+      const deployedInRound = currentRound.number;
       setTimeout(() => {
         const currentGameState = roomStore.get(roomCode);
         if (
-          currentGameState?.currentRound?.currentSabotage?.action.id ===
-          sabotageId
+          currentGameState?.currentRound?.number === deployedInRound &&
+          currentGameState.currentRound.currentSabotage?.action.id ===
+            sabotageId
         ) {
           currentGameState.currentRound.currentSabotage = null;
           roomStore.set(roomCode, currentGameState);
