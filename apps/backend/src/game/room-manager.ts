@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 
 import {
   type Room,
@@ -73,9 +73,7 @@ export class RoomManager {
     gameState: GameState;
   } {
     const roomCode = this.generateUniqueRoomCode(existingRoomCodes);
-    const playerId = `player_${Date.now()}_${Math.random()
-      .toString(36)
-      .substring(2, 11)}`;
+    const playerId = `player_${randomUUID()}`;
     const sessionToken = this.generateSessionToken();
 
     const hostPlayer: Player = {
@@ -130,7 +128,7 @@ export class RoomManager {
     }
 
     const newPlayer: Player = {
-      id: `player_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+      id: `player_${randomUUID()}`,
       name: playerName,
       connectionStatus: 'connected',
       joinedAt: Date.now(),
