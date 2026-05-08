@@ -66,6 +66,7 @@ Event names are defined in `docs/api_spec.md` — that's the source of truth, do
 - **Imports**: ESLint enforces an `import/order` grouping (builtin → external → internal `@/` → parent → sibling → index) with newlines between groups.
 - **Console**: `no-console` is set to warn with `console.warn` / `console.error` allowed. The repo currently has many `console.log` warnings — don't add more, prefer `warn`/`error`.
 - **Types live in `@charades/shared`**: `Player`, `Room`, `GameState`, `CurrentRound`, `SabotageAction`, `GamePrompt`, `ScoreUpdate`, `CompletedRound`, `GameConfig`. Don't redefine these in app code; import them.
+- **Comments**: default to none — identifiers should do the explaining. Add one only when the _why_ is non-obvious (hidden constraint, subtle invariant, surprising choice, non-trivial workaround). Don't explain _what_ the code does, cite tasks/PRs/tickets ("added for X", "used by Y"), or include requirement IDs from `REQUIREMENTS.md` (those go on test descriptions, not source). Avoid naming identifiers that may be renamed; explain in domain terms. Single-line preferred.
 
 ## Pull requests
 

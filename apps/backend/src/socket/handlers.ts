@@ -541,11 +541,9 @@ export function handleStartRound(
 
       const roundManager = new RoundManager(currentGameState);
 
-      // The natural end-of-game path goes through processRoundCompletion,
-      // which sets room.status='complete' and emits game_state_update. By
-      // that point the host UI no longer surfaces a next-round affordance,
-      // so reaching this handler with isGameComplete() implies a stale
-      // client. Re-broadcast the completion so it converges.
+      // Defensive: the natural completion path runs elsewhere and hides
+      // the next-round affordance. Reaching this branch implies a stale
+      // client; re-broadcast so it converges.
       if (roundManager.isGameComplete()) {
         const finalGameState: GameState = {
           ...currentGameState,
