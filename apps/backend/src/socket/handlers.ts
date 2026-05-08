@@ -541,14 +541,19 @@ export function handleStartRound(
 
       const roundManager = new RoundManager(currentGameState);
 
+      // Defensive: the natural completion path runs elsewhere and hides
+      // the next-round affordance. Reaching this branch implies a stale
+      // client; re-broadcast so it converges.
       if (roundManager.isGameComplete()) {
         const finalGameState: GameState = {
           ...currentGameState,
           room: { ...currentGameState.room, status: 'complete' },
         };
         roomStore.set(roomCode, finalGameState);
-        io.to(roomCode).emit('game_complete', {
-          scores: finalGameState.scores,
+        io.to(roomCode).emit('game_state_update', {
+          gameState: finalGameState,
+          message: 'Game complete! All players have acted.',
+          shouldReconnect: false,
         });
         console.log(`Game completed in room ${roomCode}`);
       } else {
