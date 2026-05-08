@@ -112,59 +112,52 @@ export class RoundManager {
 
   /**
    * Checks if the game is complete.
-   * The game is considered complete when every player has had at least one turn as the Actor.
+   *
+   * Only counts actors who are still in the room. A leaver who already had
+   * their actor turn would otherwise inflate the count and end the game one
+   * round early, before every remaining player has had a chance to act.
    * @returns True if the game is complete, false otherwise.
    */
   public isGameComplete(): boolean {
-    const actorsSoFar = new Set(this.roundHistory.map(r => r.actorId));
-    // Add the current actor if a round is active
-    if (this.gameState.currentRound) {
-      actorsSoFar.add(this.gameState.currentRound.actorId);
+    const currentIds = new Set(this.players.map(p => p.id));
+    const actorsStillHere = new Set<string>();
+    for (const r of this.roundHistory) {
+      if (currentIds.has(r.actorId)) actorsStillHere.add(r.actorId);
     }
-    return actorsSoFar.size >= this.players.length;
+    if (
+      this.gameState.currentRound &&
+      currentIds.has(this.gameState.currentRound.actorId)
+    ) {
+      actorsStillHere.add(this.gameState.currentRound.actorId);
+    }
+    return actorsStillHere.size >= this.players.length;
   }
 
   /**
    * Calculates the next Actor and Director based on a clockwise rotation.
-   * The previous Actor becomes the new Director.
-   * The player after the previous Actor becomes the new Actor.
+   *
+   * Rotation is computed purely from the number of rounds played so far, not
+   * from the previous actor's id. That keeps the next round startable even if
+   * the player who was actor in the previous round has left the room.
    * @returns The Player objects for the new Actor and new Director.
    */
   private getNextRoles(): { newActor: Player; newDirector: Player } {
-    const lastRound =
-      this.roundHistory.length > 0
-        ? this.roundHistory[this.roundHistory.length - 1]
-        : null;
-
-    // Case 1: This is the first round of the game.
-    if (!lastRound) {
-      const newDirector = this.players[0];
-      const newActor = this.players[1];
-      if (!newDirector || !newActor) {
-        throw new Error('Not enough players to start the game.');
-      }
-      return { newActor, newDirector };
+    const numPlayers = this.players.length;
+    if (numPlayers < 2) {
+      throw new Error('Not enough players to start the game.');
     }
 
-    // Case 2: This is a subsequent round. Rotate roles.
-    const lastActorIndex = this.players.findIndex(
-      p => p.id === lastRound.actorId
-    );
-    if (lastActorIndex === -1) {
-      throw new Error(
-        `Last actor ${lastRound.actorId} no longer in player list`
-      );
-    }
+    // Round 1 places the director at index 0 and the actor at index 1; each
+    // subsequent round rotates one slot clockwise.
+    const nextRoundIndex = this.roundHistory.length;
+    const actorIndex = (nextRoundIndex + 1) % numPlayers;
+    const directorIndex = (actorIndex - 1 + numPlayers) % numPlayers;
 
-    // The new Director is the player who was just the Actor.
-    const newDirector = this.players[lastActorIndex];
-    // The new Actor is the next player in the list, wrapping around if necessary.
-    const newActorIndex = (lastActorIndex + 1) % this.players.length;
-    const newActor = this.players[newActorIndex];
-    if (!newDirector || !newActor) {
+    const newActor = this.players[actorIndex];
+    const newDirector = this.players[directorIndex];
+    if (!newActor || !newDirector) {
       throw new Error('Player index out of bounds during role rotation');
     }
-
     return { newActor, newDirector };
   }
 }
