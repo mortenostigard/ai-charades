@@ -232,10 +232,74 @@ A round is a 90-second performance. One player is the Actor performing a prompt,
 1. **ROUND-4.1** — WHEN every connected player has acted THEN the game SHALL transition to a complete state.
 2. **ROUND-4.2** — A player who reconnects after the game has completed SHALL see the completion screen rather than re-entering play.
 
-## SCORE — Scoring & game completion
+## SCORE — Scoring
 
-_Stub. To be migrated in a follow-up issue._
+Each round produces score changes for the players involved, following a risk/reward model: deploying sabotages costs the Director points if the audience still guesses, but pays out if the round times out without a guess.
+
+### Requirement 1: Round Scoring on a Correct Guess
+
+**Objective:** As a player, I want clear rewards when the audience successfully guesses, so that performing well as Actor and contributing as a guesser are recognized.
+
+**Acceptance Criteria:**
+
+1. **SCORE-1.1** — WHEN a round ends with a winning guess THEN the Actor SHALL gain 2 points.
+2. **SCORE-1.2** — WHEN a round ends with a winning guess THEN the named guesser SHALL gain 1 point.
+3. **SCORE-1.3** — WHEN a round ends with a winning guess THEN the Director SHALL lose 1 point for every sabotage they deployed in that round.
+
+### Requirement 2: Round Scoring on a Time-Up
+
+**Objective:** As the Director, I want a meaningful reward when the audience fails to guess, so that deploying sabotages is a real strategic option.
+
+**Acceptance Criteria:**
+
+1. **SCORE-2.1** — WHEN a round ends without a winning guess THEN the Director SHALL gain 2 points.
+2. **SCORE-2.2** — WHEN a round ends without a winning guess THEN no other player's score SHALL change.
+
+### Requirement 3: Score Integrity
+
+**Objective:** As a player, I want scores to belong only to players who are still in the game, so that a leaver doesn't reappear with a fresh score line.
+
+**Acceptance Criteria:**
+
+1. **SCORE-3.1** — IF a player has left the room THEN the system SHALL NOT update or resurrect their score from any subsequent round.
+
+---
 
 ## NET — Realtime protocol & state sync
 
-_Stub. To be migrated in a follow-up issue._
+Players' devices mirror authoritative game state from the server over a long-lived socket connection. The protocol guarantees how identity is established, how briefly-disconnected clients recover, and how state changes are communicated.
+
+### Requirement 1: Single Source of Truth
+
+**Objective:** As a player, I want the server to be the only thing deciding the game's state, so that every device in the room shows the same thing.
+
+**Acceptance Criteria:**
+
+1. **NET-1.1** — The server SHALL be the sole authority on game state.
+2. **NET-1.2** — Clients SHALL not advance game state (including the round timer) independently of messages from the server.
+
+### Requirement 2: Authenticated Actions
+
+**Objective:** As a player, I want privileged actions tied to my proven identity, so that another player can't impersonate me by guessing my id.
+
+**Acceptance Criteria:**
+
+1. **NET-2.1** — Privileged actions SHALL be authorized using the identity bound to the connection at join or reconnect, not identifiers passed in the action's payload.
+2. **NET-2.2** — A connection that cannot prove a valid identity SHALL be denied any privileged action.
+
+### Requirement 3: Resilient Reconnection
+
+**Objective:** As a player on a flaky connection, I want short blips to be invisible and longer drops to recover with minimal fuss, so that the game stays playable through normal network noise.
+
+**Acceptance Criteria:**
+
+1. **NET-3.1** — A client that reconnects within the connection-recovery window SHALL resume without the server re-broadcasting room state.
+2. **NET-3.2** — A client that reconnects beyond the recovery window SHALL re-bind to its room using the credential issued at join time.
+
+### Requirement 4: Event Contract Integrity
+
+**Objective:** As a player, I want each kind of game state change to arrive over a single channel, so that a forgotten handler can't silently drop a state update.
+
+**Acceptance Criteria:**
+
+1. **NET-4.1** — Each distinct game-state transition SHALL be communicated to clients via exactly one event path.

@@ -24,17 +24,7 @@ Behaviour rules for sabotage deployment, validation, broadcast, and expiry are n
 
 ## Scoring System (Risk/Reward)
 
-### If the Audience Guesses Correctly:
-
-- **Actor**: +2 points
-- **Director**: -1 point per sabotage used
-- **Correct Guesser**: +1 point (as chosen by the Director)
-
-### If No One Guesses Correctly (Timeout):
-
-- **Director**: +2 points (successful sabotage)
-- **Actor**: 0 points
-- **Everyone else**: 0 points
+Scoring rules are now specified as `SCORE-*` requirements in [`REQUIREMENTS.md`](../REQUIREMENTS.md). The implementation lives in [`apps/backend/src/game/scoring-engine.ts`](../apps/backend/src/game/scoring-engine.ts).
 
 ## Strategic Considerations
 
