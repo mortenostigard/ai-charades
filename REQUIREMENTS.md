@@ -25,6 +25,7 @@ Each system has multiple **Requirements**, each of which states a user-facing **
 - **IF … THEN … SHALL …** — unwanted behaviour or precondition.
 - **WHILE … THE … SHALL …** — state-driven, continuous.
 - **WHERE … THE … SHALL …** — feature- or context-driven.
+- **\<subject\> SHALL …** — ubiquitous; always-true invariants with no trigger (e.g. "A round SHALL last 90 seconds").
 - Combine with **AND** for compound conditions.
 
 ### Phrasing rules
