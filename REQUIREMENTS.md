@@ -189,9 +189,48 @@ Rooms gather players for a game session. They support brief disconnections witho
 2. **ROOM-6.2** — IF a player presents a credential that does not match the one issued to them THEN the system SHALL reject the connection.
 3. **ROOM-6.3** — WHILE other players are connected to a room THE system SHALL never expose another player's identity credential to them.
 
-## ROUND — Round lifecycle & timer
+## ROUND — Round lifecycle, rotation, timer
 
-_Stub. To be migrated in a follow-up issue._
+A round is a 90-second performance. One player is the Actor performing a prompt, one is the Director who can sabotage and judge the outcome, and the rest are Audience guessing verbally. Rounds rotate through the room until every player has acted.
+
+### Requirement 1: Role Assignment
+
+**Objective:** As a player, I want a clear rotation of roles, so that everyone gets a turn as Actor.
+
+**Acceptance Criteria:**
+
+1. **ROUND-1.1** — WHEN a round starts THEN the system SHALL assign exactly one Actor and one Director, both connected.
+2. **ROUND-1.2** — A player SHALL act at most once per game.
+3. **ROUND-1.3** — IF the player whose turn is next is disconnected THEN the system SHALL choose the next eligible connected player instead.
+
+### Requirement 2: Round Lifecycle
+
+**Objective:** As a player, I want each round to have a fixed duration measured the same way for everyone, so that the game has predictable pacing and no device disagrees about how much time is left.
+
+**Acceptance Criteria:**
+
+1. **ROUND-2.1** — A round SHALL last 90 seconds from its start.
+2. **ROUND-2.2** — Round duration SHALL be measured by the server, not by client clocks.
+3. **ROUND-2.3** — WHILE a round is active THE system SHALL broadcast the time remaining to every player in the room at least once per second.
+
+### Requirement 3: Director's Verdict
+
+**Objective:** As the Director, I want to declare a winner or let the timer expire, so that the round outcome reflects what actually happened in the room.
+
+**Acceptance Criteria:**
+
+1. **ROUND-3.1** — WHEN the Director declares a correct guess THEN the round SHALL end immediately and the chosen audience member SHALL be recorded as the winner.
+2. **ROUND-3.2** — IF a player who is not the Director attempts to declare a winner or end the round THEN the system SHALL reject the attempt.
+3. **ROUND-3.3** — IF the round timer expires with no winner declared THEN the round SHALL end with no winner.
+
+### Requirement 4: Game Completion
+
+**Objective:** As a player, I want the game to end after everyone has had their turn, so that we know when to stop.
+
+**Acceptance Criteria:**
+
+1. **ROUND-4.1** — WHEN every connected player has acted THEN the game SHALL transition to a complete state.
+2. **ROUND-4.2** — A player who reconnects after the game has completed SHALL see the completion screen rather than re-entering play.
 
 ## SCORE — Scoring & game completion
 

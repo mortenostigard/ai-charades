@@ -63,7 +63,7 @@ const buildCompleted = (
 });
 
 describe('RoundManager.startRound', () => {
-  it('SAB-1.1 assigns p1 director and p2 actor on the first round', () => {
+  it('ROUND-1.1 SAB-1.1 assigns p1 director and p2 actor on the first round', () => {
     const state = buildState();
     const next = new RoundManager(state).startRound(prompt);
 
@@ -79,7 +79,7 @@ describe('RoundManager.startRound', () => {
     expect(next.room.status).toBe('playing');
   });
 
-  it('rotates roles based on the previous round', () => {
+  it('ROUND-1.1 rotates roles based on the previous round', () => {
     // Previous round had p2 as actor → p2 becomes director, p3 becomes actor.
     const state = buildState({
       roundHistory: [buildCompleted({ actorId: 'p2', directorId: 'p1' })],
@@ -92,7 +92,7 @@ describe('RoundManager.startRound', () => {
     expect(next.currentRound?.actorId).toBe('p3');
   });
 
-  it('wraps the actor index around to the start', () => {
+  it('ROUND-1.1 wraps the actor index around to the start', () => {
     // Last actor was p3 (index 2 of 3) → next actor wraps to p1.
     const state = buildState({
       roundHistory: [
@@ -107,7 +107,7 @@ describe('RoundManager.startRound', () => {
     expect(next.currentRound?.actorId).toBe('p1');
   });
 
-  it('marks the room complete and clears currentRound when every player has acted', () => {
+  it('ROUND-4.1 marks the room complete and clears currentRound when every player has acted', () => {
     const state = buildState({
       roundHistory: [
         buildCompleted({ roundNumber: 1, actorId: 'p1' }),
@@ -158,7 +158,7 @@ describe('RoundManager.startRound', () => {
     expect(next.currentRound?.directorId).toBe('p3');
   });
 
-  it('rotates through every remaining player after a leave before completing', () => {
+  it('ROUND-1.2 ROUND-4.1 rotates through every remaining player after a leave before completing', () => {
     // 4 players. p2 acts in round 1 then leaves; the simulation must reach
     // a complete state with p1, p3, p4 all having acted at least once.
     const fourPlayers: Player[] = [
@@ -245,7 +245,7 @@ describe('RoundManager.endRound', () => {
     status: 'active',
   };
 
-  it('records correct_guess, applies scoring, and pushes to history', () => {
+  it('ROUND-3.1 records correct_guess, applies scoring, and pushes to history', () => {
     const state = buildState({ currentRound: activeRound });
     const { newGameState } = new RoundManager(state).endRound('p3');
 
@@ -262,7 +262,7 @@ describe('RoundManager.endRound', () => {
     expect(newGameState.scores).toEqual({ p1: -1, p2: 2, p3: 1 });
   });
 
-  it('records time_up and gives the director +2 when no winner is provided', () => {
+  it('ROUND-3.3 records time_up and gives the director +2 when no winner is provided', () => {
     const state = buildState({ currentRound: activeRound });
     const { newGameState } = new RoundManager(state).endRound();
 
@@ -287,7 +287,7 @@ describe('RoundManager.isGameComplete', () => {
     expect(new RoundManager(buildState()).isGameComplete()).toBe(false);
   });
 
-  it('is true once every player has been actor across history', () => {
+  it('ROUND-4.1 is true once every player has been actor across history', () => {
     const state = buildState({
       roundHistory: [
         buildCompleted({ roundNumber: 1, actorId: 'p1' }),
@@ -298,7 +298,7 @@ describe('RoundManager.isGameComplete', () => {
     expect(new RoundManager(state).isGameComplete()).toBe(true);
   });
 
-  it('does not count actors who have left the room', () => {
+  it('ROUND-4.1 does not count actors who have left the room', () => {
     // history contains p2 (left), p3, p4 — but p2 is no longer in players.
     // With 3 remaining players (p1, p3, p4), the game should not be complete
     // yet because p1 has not acted.
@@ -319,7 +319,7 @@ describe('RoundManager.isGameComplete', () => {
     expect(new RoundManager(state).isGameComplete()).toBe(false);
   });
 
-  it('counts the current actor towards completion', () => {
+  it('ROUND-4.1 counts the current actor towards completion', () => {
     const currentRound: CurrentRound = {
       number: 3,
       actorId: 'p3',
