@@ -1,13 +1,5 @@
 import { type GameState } from '@charades/shared';
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  vi,
-  afterAll,
-} from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import { RoomManager } from './room-manager.js';
 import { roomStore } from './room-store.js';
@@ -26,12 +18,6 @@ describe('roomStore', () => {
 
   afterEach(() => {
     vi.useRealTimers();
-    for (const code of roomStore.codes()) {
-      roomStore.evict(code);
-    }
-  });
-
-  afterAll(() => {
     for (const code of roomStore.codes()) {
       roomStore.evict(code);
     }

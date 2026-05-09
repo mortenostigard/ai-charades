@@ -265,7 +265,7 @@ async function rejoinPlayerToRoom(
   }
 
   if (roomStore.cancelAbandonment(roomCode)) {
-    console.log(`Cancelled pending abandonment for room ${roomCode}`);
+    console.warn(`Cancelled pending abandonment for room ${roomCode}`);
   }
 
   bindSocketIdentity(socket, playerId, roomCode);
@@ -424,6 +424,12 @@ export function handleDisconnect(io: TypedServer, socket: TypedSocket) {
         disconnectedPlayerId,
         roomCode,
         () => {
+          // The room may have transitioned to a game in progress between
+          // this timer being scheduled and now. The slot-preservation rule
+          // applies once that happens, so the lobby-removal must not fire.
+          const current = roomStore.get(roomCode);
+          if (!current || current.room.status !== 'waiting') return;
+
           console.log(`Removing player ${disconnectedPlayerId} after timeout`);
           const result = roomStore.removePlayer(roomCode, disconnectedPlayerId);
           if (result.status === 'removed') {
@@ -457,7 +463,7 @@ export function handleDisconnect(io: TypedServer, socket: TypedSocket) {
           if (!stillAbandoned) return;
           gameLoopManager.removeLoop(roomCode);
           roomStore.evict(roomCode);
-          console.log(`Room ${roomCode} evicted after long-tail abandonment`);
+          console.warn(`Room ${roomCode} evicted after long-tail abandonment`);
         },
         ABANDONMENT_TIMEOUT_MS
       );
