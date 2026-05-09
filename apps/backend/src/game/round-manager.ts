@@ -113,33 +113,40 @@ export class RoundManager {
   /**
    * Checks if the game is complete.
    *
-   * Only counts actors who are still in the room. A leaver who already had
-   * their actor turn would otherwise inflate the count and end the game one
-   * round early, before every remaining player has had a chance to act.
+   * The game ends once every currently-connected player has had a turn as
+   * Actor. Disconnected players are skipped from rotation (see
+   * `getNextRoles`); waiting indefinitely for them would let one offline
+   * player block the rest of the room. A player who reconnects while the
+   * game is still in progress slots back into the queue and unblocks
+   * completion until they've acted.
    * @returns True if the game is complete, false otherwise.
    */
   public isGameComplete(): boolean {
-    const currentIds = new Set(this.players.map(p => p.id));
-    const actorsStillHere = new Set<string>();
-    for (const r of this.roundHistory) {
-      if (currentIds.has(r.actorId)) actorsStillHere.add(r.actorId);
+    const connected = this.players.filter(
+      p => p.connectionStatus === 'connected'
+    );
+    if (connected.length === 0) return false;
+
+    const acted = new Set(this.roundHistory.map(r => r.actorId));
+    if (this.gameState.currentRound) {
+      acted.add(this.gameState.currentRound.actorId);
     }
-    if (
-      this.gameState.currentRound &&
-      currentIds.has(this.gameState.currentRound.actorId)
-    ) {
-      actorsStillHere.add(this.gameState.currentRound.actorId);
-    }
-    return actorsStillHere.size >= this.players.length;
+    return connected.every(p => acted.has(p.id));
   }
 
   /**
-   * Calculates the next Actor and Director based on a clockwise rotation.
+   * Calculates the next Actor and Director based on a clockwise rotation,
+   * advancing past any slot that's currently ineligible.
    *
-   * Rotation is computed purely from the number of rounds played so far, not
-   * from the previous actor's id. That keeps the next round startable even if
-   * the player who was actor in the previous round has left the room.
+   * Rotation starts from the same slot the original index-based scheme
+   * would have picked — `(roundHistory.length + 1) % numPlayers` — but
+   * advances forward (clockwise) past disconnected players and players
+   * who have already acted to find the next eligible Actor. The Director
+   * is the nearest connected player counter-clockwise from the Actor;
+   * they may have already acted (Director can be anyone who isn't the
+   * Actor).
    * @returns The Player objects for the new Actor and new Director.
+   * @throws If no eligible Actor or Director can be found.
    */
   private getNextRoles(): { newActor: Player; newDirector: Player } {
     const numPlayers = this.players.length;
@@ -147,11 +154,40 @@ export class RoundManager {
       throw new Error('Not enough players to start the game.');
     }
 
-    // Round 1 places the director at index 0 and the actor at index 1; each
-    // subsequent round rotates one slot clockwise.
-    const nextRoundIndex = this.roundHistory.length;
-    const actorIndex = (nextRoundIndex + 1) % numPlayers;
-    const directorIndex = (actorIndex - 1 + numPlayers) % numPlayers;
+    const acted = new Set(this.roundHistory.map(r => r.actorId));
+    const startIndex = (this.roundHistory.length + 1) % numPlayers;
+
+    let actorIndex = -1;
+    for (let offset = 0; offset < numPlayers; offset++) {
+      const idx = (startIndex + offset) % numPlayers;
+      const candidate = this.players[idx];
+      if (
+        candidate &&
+        candidate.connectionStatus === 'connected' &&
+        !acted.has(candidate.id)
+      ) {
+        actorIndex = idx;
+        break;
+      }
+    }
+    if (actorIndex === -1) {
+      throw new Error('No eligible actor available.');
+    }
+
+    let directorIndex = -1;
+    const directorStart = (actorIndex - 1 + numPlayers) % numPlayers;
+    for (let offset = 0; offset < numPlayers; offset++) {
+      const idx = (directorStart - offset + numPlayers) % numPlayers;
+      if (idx === actorIndex) continue;
+      const candidate = this.players[idx];
+      if (candidate && candidate.connectionStatus === 'connected') {
+        directorIndex = idx;
+        break;
+      }
+    }
+    if (directorIndex === -1) {
+      throw new Error('No eligible director available.');
+    }
 
     const newActor = this.players[actorIndex];
     const newDirector = this.players[directorIndex];

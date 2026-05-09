@@ -63,7 +63,7 @@ const buildCompleted = (
 });
 
 describe('RoundManager.startRound', () => {
-  it('SAB-1.1 assigns p1 director and p2 actor on the first round', () => {
+  it('ROUND-1.1 SAB-1.1 assigns p1 director and p2 actor on the first round', () => {
     const state = buildState();
     const next = new RoundManager(state).startRound(prompt);
 
@@ -79,7 +79,7 @@ describe('RoundManager.startRound', () => {
     expect(next.room.status).toBe('playing');
   });
 
-  it('rotates roles based on the previous round', () => {
+  it('ROUND-1.1 rotates roles based on the previous round', () => {
     // Previous round had p2 as actor → p2 becomes director, p3 becomes actor.
     const state = buildState({
       roundHistory: [buildCompleted({ actorId: 'p2', directorId: 'p1' })],
@@ -92,7 +92,113 @@ describe('RoundManager.startRound', () => {
     expect(next.currentRound?.actorId).toBe('p3');
   });
 
-  it('wraps the actor index around to the start', () => {
+  it('ROUND-1.3 skips a disconnected player when picking the next actor', () => {
+    // Round 1 actor was p2; round 2's natural slot is p3. p3 is disconnected
+    // so the rotation must advance past them to p1.
+    const state = buildState({
+      room: {
+        ...room,
+        players: [
+          { ...players[0]!, connectionStatus: 'connected' },
+          { ...players[1]!, connectionStatus: 'connected' },
+          { ...players[2]!, connectionStatus: 'disconnected' },
+        ],
+      },
+      roundHistory: [buildCompleted({ actorId: 'p2', directorId: 'p1' })],
+    });
+
+    const next = new RoundManager(state).startRound(prompt);
+
+    expect(next.currentRound?.actorId).toBe('p1');
+    // Director is the next connected player walking backward from the actor.
+    expect(next.currentRound?.directorId).toBe('p2');
+  });
+
+  it('ROUND-1.3 skips a disconnected player when picking the director', () => {
+    // Round 2 starts with p3 as the natural actor. The director slot would
+    // normally land on p2 (the previous actor), but p2 is disconnected, so
+    // the rotation walks back to p1.
+    const state = buildState({
+      room: {
+        ...room,
+        players: [
+          { ...players[0]!, connectionStatus: 'connected' },
+          { ...players[1]!, connectionStatus: 'disconnected' },
+          { ...players[2]!, connectionStatus: 'connected' },
+        ],
+      },
+      roundHistory: [buildCompleted({ actorId: 'p2', directorId: 'p1' })],
+    });
+
+    const next = new RoundManager(state).startRound(prompt);
+
+    expect(next.currentRound?.actorId).toBe('p3');
+    expect(next.currentRound?.directorId).toBe('p1');
+  });
+
+  it('ROUND-1.2 ROUND-1.3 picks up a reconnected player who was skipped while disconnected', () => {
+    // p3 was offline during round 2 so the rotation jumped them and round 2
+    // landed on p1 instead. p3 is now back; round 3's target lands on p1 —
+    // who has already acted — so the loop advances past p1 and p2 (also
+    // acted) and assigns p3, keeping the at-most-once-per-game invariant.
+    const state = buildState({
+      roundHistory: [
+        buildCompleted({ roundNumber: 1, actorId: 'p2', directorId: 'p1' }),
+        buildCompleted({ roundNumber: 2, actorId: 'p1', directorId: 'p2' }),
+      ],
+    });
+
+    const next = new RoundManager(state).startRound(prompt);
+
+    expect(next.currentRound?.actorId).toBe('p3');
+    expect(next.currentRound?.directorId).toBe('p2');
+  });
+
+  it('ROUND-1.3 throws when no connected player is left to direct', () => {
+    // Two-player game where one player has gone offline. The connected
+    // player can fill the Actor slot but there's no second connected
+    // player to direct.
+    const state = buildState({
+      room: {
+        ...room,
+        players: [
+          { ...players[0]!, connectionStatus: 'connected' },
+          { ...players[1]!, connectionStatus: 'disconnected' },
+          { ...players[2]!, connectionStatus: 'disconnected' },
+        ],
+      },
+    });
+
+    expect(() => new RoundManager(state).startRound(prompt)).toThrow(
+      'No eligible director'
+    );
+  });
+
+  it('ROUND-1.3 throws when no connected player is left to act', () => {
+    // p1 and p2 already acted; p3 is the only player without a turn but
+    // they're disconnected — and the others have already had theirs, so
+    // there's no eligible Actor anywhere in the rotation.
+    const state = buildState({
+      room: {
+        ...room,
+        players: [
+          { ...players[0]!, connectionStatus: 'disconnected' },
+          { ...players[1]!, connectionStatus: 'disconnected' },
+          { ...players[2]!, connectionStatus: 'disconnected' },
+        ],
+      },
+      roundHistory: [
+        buildCompleted({ roundNumber: 1, actorId: 'p1' }),
+        buildCompleted({ roundNumber: 2, actorId: 'p2' }),
+      ],
+    });
+
+    expect(() => new RoundManager(state).startRound(prompt)).toThrow(
+      'No eligible actor'
+    );
+  });
+
+  it('ROUND-1.1 wraps the actor index around to the start', () => {
     // Last actor was p3 (index 2 of 3) → next actor wraps to p1.
     const state = buildState({
       roundHistory: [
@@ -107,7 +213,7 @@ describe('RoundManager.startRound', () => {
     expect(next.currentRound?.actorId).toBe('p1');
   });
 
-  it('marks the room complete and clears currentRound when every player has acted', () => {
+  it('ROUND-4.1 marks the room complete and clears currentRound when every player has acted', () => {
     const state = buildState({
       roundHistory: [
         buildCompleted({ roundNumber: 1, actorId: 'p1' }),
@@ -158,7 +264,7 @@ describe('RoundManager.startRound', () => {
     expect(next.currentRound?.directorId).toBe('p3');
   });
 
-  it('rotates through every remaining player after a leave before completing', () => {
+  it('ROUND-1.2 ROUND-4.1 rotates through every remaining player after a leave before completing', () => {
     // 4 players. p2 acts in round 1 then leaves; the simulation must reach
     // a complete state with p1, p3, p4 all having acted at least once.
     const fourPlayers: Player[] = [
@@ -245,7 +351,7 @@ describe('RoundManager.endRound', () => {
     status: 'active',
   };
 
-  it('records correct_guess, applies scoring, and pushes to history', () => {
+  it('ROUND-3.1 records correct_guess, applies scoring, and pushes to history', () => {
     const state = buildState({ currentRound: activeRound });
     const { newGameState } = new RoundManager(state).endRound('p3');
 
@@ -262,7 +368,7 @@ describe('RoundManager.endRound', () => {
     expect(newGameState.scores).toEqual({ p1: -1, p2: 2, p3: 1 });
   });
 
-  it('records time_up and gives the director +2 when no winner is provided', () => {
+  it('ROUND-3.3 records time_up and gives the director +2 when no winner is provided', () => {
     const state = buildState({ currentRound: activeRound });
     const { newGameState } = new RoundManager(state).endRound();
 
@@ -287,7 +393,7 @@ describe('RoundManager.isGameComplete', () => {
     expect(new RoundManager(buildState()).isGameComplete()).toBe(false);
   });
 
-  it('is true once every player has been actor across history', () => {
+  it('ROUND-4.1 is true once every player has been actor across history', () => {
     const state = buildState({
       roundHistory: [
         buildCompleted({ roundNumber: 1, actorId: 'p1' }),
@@ -298,7 +404,7 @@ describe('RoundManager.isGameComplete', () => {
     expect(new RoundManager(state).isGameComplete()).toBe(true);
   });
 
-  it('does not count actors who have left the room', () => {
+  it('ROUND-4.1 does not count actors who have left the room', () => {
     // history contains p2 (left), p3, p4 — but p2 is no longer in players.
     // With 3 remaining players (p1, p3, p4), the game should not be complete
     // yet because p1 has not acted.
@@ -319,7 +425,50 @@ describe('RoundManager.isGameComplete', () => {
     expect(new RoundManager(state).isGameComplete()).toBe(false);
   });
 
-  it('counts the current actor towards completion', () => {
+  it('ROUND-4.1 completes when every connected player has acted, ignoring disconnected slots', () => {
+    // p3 is disconnected and never acted; p1 and p2 (the only connected
+    // players) have both acted. The game is over for the connected players.
+    const state = buildState({
+      room: {
+        ...room,
+        players: [
+          { ...players[0]!, connectionStatus: 'connected' },
+          { ...players[1]!, connectionStatus: 'connected' },
+          { ...players[2]!, connectionStatus: 'disconnected' },
+        ],
+      },
+      roundHistory: [
+        buildCompleted({ roundNumber: 1, actorId: 'p1' }),
+        buildCompleted({ roundNumber: 2, actorId: 'p2' }),
+      ],
+    });
+
+    expect(new RoundManager(state).isGameComplete()).toBe(true);
+  });
+
+  it('ROUND-4.1 reverts to incomplete when a disconnected player reconnects with a turn still owed', () => {
+    // p1 and p2 have acted. p3 was disconnected (which would have ended the
+    // game) but reconnects, so they're owed a turn and the game is no
+    // longer complete.
+    const state = buildState({
+      room: {
+        ...room,
+        players: [
+          { ...players[0]!, connectionStatus: 'connected' },
+          { ...players[1]!, connectionStatus: 'connected' },
+          { ...players[2]!, connectionStatus: 'connected' },
+        ],
+      },
+      roundHistory: [
+        buildCompleted({ roundNumber: 1, actorId: 'p1' }),
+        buildCompleted({ roundNumber: 2, actorId: 'p2' }),
+      ],
+    });
+
+    expect(new RoundManager(state).isGameComplete()).toBe(false);
+  });
+
+  it('ROUND-4.1 counts the current actor towards completion', () => {
     const currentRound: CurrentRound = {
       number: 3,
       actorId: 'p3',
