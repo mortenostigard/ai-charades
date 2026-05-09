@@ -142,9 +142,9 @@ export class RoundManager {
    * would have picked — `(roundHistory.length + 1) % numPlayers` — but
    * advances forward (clockwise) past disconnected players and players
    * who have already acted to find the next eligible Actor. The Director
-   * is the next-most-recent connected player ahead of the Actor in the
-   * rotation; they may have already acted (Director can be anyone who
-   * isn't the Actor).
+   * is the nearest connected player counter-clockwise from the Actor;
+   * they may have already acted (Director can be anyone who isn't the
+   * Actor).
    * @returns The Player objects for the new Actor and new Director.
    * @throws If no eligible Actor or Director can be found.
    */
