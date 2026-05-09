@@ -92,6 +92,71 @@ describe('RoundManager.startRound', () => {
     expect(next.currentRound?.actorId).toBe('p3');
   });
 
+  it('ROUND-1.3 skips a disconnected player when picking the next actor', () => {
+    // Round 1 actor was p2; round 2's natural slot is p3. p3 is disconnected
+    // so the rotation must advance past them to p1.
+    const state = buildState({
+      room: {
+        ...room,
+        players: [
+          { ...players[0]!, connectionStatus: 'connected' },
+          { ...players[1]!, connectionStatus: 'connected' },
+          { ...players[2]!, connectionStatus: 'disconnected' },
+        ],
+      },
+      roundHistory: [buildCompleted({ actorId: 'p2', directorId: 'p1' })],
+    });
+
+    const next = new RoundManager(state).startRound(prompt);
+
+    expect(next.currentRound?.actorId).toBe('p1');
+    // Director is the next connected player walking backward from the actor.
+    expect(next.currentRound?.directorId).toBe('p2');
+  });
+
+  it('ROUND-1.3 skips a disconnected player when picking the director', () => {
+    // Round 2 starts with p3 as the natural actor. The director slot would
+    // normally land on p2 (the previous actor), but p2 is disconnected, so
+    // the rotation walks back to p1.
+    const state = buildState({
+      room: {
+        ...room,
+        players: [
+          { ...players[0]!, connectionStatus: 'connected' },
+          { ...players[1]!, connectionStatus: 'disconnected' },
+          { ...players[2]!, connectionStatus: 'connected' },
+        ],
+      },
+      roundHistory: [buildCompleted({ actorId: 'p2', directorId: 'p1' })],
+    });
+
+    const next = new RoundManager(state).startRound(prompt);
+
+    expect(next.currentRound?.actorId).toBe('p3');
+    expect(next.currentRound?.directorId).toBe('p1');
+  });
+
+  it('ROUND-1.3 picks a reconnected player whose turn it is even if they were skipped earlier', () => {
+    // 3 connected players, p3 disconnected during round 1, comes back before
+    // their natural slot. They should still be the actor for round 2.
+    const state = buildState({
+      room: {
+        ...room,
+        players: [
+          { ...players[0]!, connectionStatus: 'connected' },
+          { ...players[1]!, connectionStatus: 'connected' },
+          { ...players[2]!, connectionStatus: 'connected' },
+        ],
+      },
+      roundHistory: [buildCompleted({ actorId: 'p2', directorId: 'p1' })],
+    });
+
+    const next = new RoundManager(state).startRound(prompt);
+
+    expect(next.currentRound?.actorId).toBe('p3');
+    expect(next.currentRound?.directorId).toBe('p2');
+  });
+
   it('ROUND-1.1 wraps the actor index around to the start', () => {
     // Last actor was p3 (index 2 of 3) → next actor wraps to p1.
     const state = buildState({
@@ -316,6 +381,49 @@ describe('RoundManager.isGameComplete', () => {
         buildCompleted({ roundNumber: 3, actorId: 'p4' }),
       ],
     });
+    expect(new RoundManager(state).isGameComplete()).toBe(false);
+  });
+
+  it('ROUND-4.1 completes when every connected player has acted, ignoring disconnected slots', () => {
+    // p3 is disconnected and never acted; p1 and p2 (the only connected
+    // players) have both acted. The game is over for the connected players.
+    const state = buildState({
+      room: {
+        ...room,
+        players: [
+          { ...players[0]!, connectionStatus: 'connected' },
+          { ...players[1]!, connectionStatus: 'connected' },
+          { ...players[2]!, connectionStatus: 'disconnected' },
+        ],
+      },
+      roundHistory: [
+        buildCompleted({ roundNumber: 1, actorId: 'p1' }),
+        buildCompleted({ roundNumber: 2, actorId: 'p2' }),
+      ],
+    });
+
+    expect(new RoundManager(state).isGameComplete()).toBe(true);
+  });
+
+  it('ROUND-4.1 reverts to incomplete when a disconnected player reconnects with a turn still owed', () => {
+    // p1 and p2 have acted. p3 was disconnected (which would have ended the
+    // game) but reconnects, so they're owed a turn and the game is no
+    // longer complete.
+    const state = buildState({
+      room: {
+        ...room,
+        players: [
+          { ...players[0]!, connectionStatus: 'connected' },
+          { ...players[1]!, connectionStatus: 'connected' },
+          { ...players[2]!, connectionStatus: 'connected' },
+        ],
+      },
+      roundHistory: [
+        buildCompleted({ roundNumber: 1, actorId: 'p1' }),
+        buildCompleted({ roundNumber: 2, actorId: 'p2' }),
+      ],
+    });
+
     expect(new RoundManager(state).isGameComplete()).toBe(false);
   });
 
