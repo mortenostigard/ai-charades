@@ -13,6 +13,9 @@ import { SabotageManager } from '@/game/sabotage-manager.js';
 import { gameLoopManager } from '@/game/game-loop.js';
 import { roomStore } from '@/game/room-store.js';
 
+const LOBBY_DISCONNECT_REMOVAL_MS = 30_000;
+const ABANDONMENT_TIMEOUT_MS = 30 * 60 * 1000;
+
 type TypedServer = Server<
   ClientToServerEvents,
   ServerToClientEvents,
@@ -261,6 +264,10 @@ async function rejoinPlayerToRoom(
     console.log(`Cancelled pending removal for player ${playerId}`);
   }
 
+  if (roomStore.cancelAbandonment(roomCode)) {
+    console.warn(`Cancelled pending abandonment for room ${roomCode}`);
+  }
+
   bindSocketIdentity(socket, playerId, roomCode);
   await socket.join(roomCode);
 
@@ -412,25 +419,55 @@ export function handleDisconnect(io: TypedServer, socket: TypedSocket) {
       room: update.state.room,
     });
 
-    roomStore.scheduleRemoval(
-      disconnectedPlayerId,
-      roomCode,
-      () => {
-        console.log(`Removing player ${disconnectedPlayerId} after timeout`);
-        const result = roomStore.removePlayer(roomCode, disconnectedPlayerId);
-        if (result.status === 'removed') {
-          io.to(roomCode).emit('player_left', {
-            playerId: disconnectedPlayerId,
-            room: result.state.room,
-          });
-        }
-      },
-      30000
-    );
+    if (update.state.room.status === 'waiting') {
+      roomStore.scheduleRemoval(
+        disconnectedPlayerId,
+        roomCode,
+        () => {
+          // The room may have transitioned to a game in progress between
+          // this timer being scheduled and now. The slot-preservation rule
+          // applies once that happens, so the lobby-removal must not fire.
+          const current = roomStore.get(roomCode);
+          if (!current || current.room.status !== 'waiting') return;
 
-    console.log(
-      `Player ${disconnectedPlayerId} marked as disconnected, will be removed in 30 seconds if not reconnected`
+          console.log(`Removing player ${disconnectedPlayerId} after timeout`);
+          const result = roomStore.removePlayer(roomCode, disconnectedPlayerId);
+          if (result.status === 'removed') {
+            io.to(roomCode).emit('player_left', {
+              playerId: disconnectedPlayerId,
+              room: result.state.room,
+            });
+          }
+        },
+        LOBBY_DISCONNECT_REMOVAL_MS
+      );
+      return;
+    }
+
+    // Past the lobby the slot persists for the rest of the game so the
+    // player can come back and resume play. Only the room-wide safety net
+    // applies: if every player has been disconnected for the abandonment
+    // window, the room evicts.
+    const anyConnected = update.state.room.players.some(
+      p => p.connectionStatus === 'connected'
     );
+    if (!anyConnected) {
+      roomStore.scheduleAbandonment(
+        roomCode,
+        () => {
+          const state = roomStore.get(roomCode);
+          if (!state) return;
+          const stillAbandoned = state.room.players.every(
+            p => p.connectionStatus !== 'connected'
+          );
+          if (!stillAbandoned) return;
+          gameLoopManager.removeLoop(roomCode);
+          roomStore.evict(roomCode);
+          console.warn(`Room ${roomCode} evicted after long-tail abandonment`);
+        },
+        ABANDONMENT_TIMEOUT_MS
+      );
+    }
   };
 }
 
@@ -462,18 +499,15 @@ export function handleStartGame(
       let newGameState: GameState;
 
       if (gameState.room.status === 'complete') {
-        // Play Again: Reset game state while keeping players
-        newGameState = {
-          ...gameState,
-          room: { ...gameState.room, status: 'waiting' },
-          currentRound: null,
-          scores: Object.fromEntries(
-            gameState.room.players.map(player => [player.id, 0])
-          ),
-          roundHistory: [],
-        };
+        const reset = RoomManager.resetForPlayAgain(gameState);
+        newGameState = reset.newGameState;
 
         roomStore.set(roomCode, newGameState);
+        for (const id of reset.removedPlayerIds) {
+          roomStore.cancelRemoval(id);
+        }
+        roomStore.dropSessionTokens(reset.removedPlayerIds);
+
         io.to(roomCode).emit('game_state_update', {
           gameState: newGameState,
           message: 'Game reset. Ready to play again!',

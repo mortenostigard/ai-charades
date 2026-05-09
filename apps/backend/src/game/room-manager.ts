@@ -147,6 +147,43 @@ export class RoomManager {
   }
 
   /**
+   * Reset a completed game back to the lobby for a "play again" round, and
+   * drop any players who never reconnected. Returning to the lobby is the
+   * natural cleanup boundary for the slot-preservation that runs while the
+   * game is in progress; without it, fully-departed players would
+   * permanently occupy a slot.
+   * @param gameState The current game state (expected to be in 'complete').
+   * @returns The reset state and the ids of the players that were dropped.
+   */
+  public static resetForPlayAgain(gameState: GameState): {
+    newGameState: GameState;
+    removedPlayerIds: string[];
+  } {
+    const remainingPlayers = gameState.room.players.filter(
+      p => p.connectionStatus === 'connected'
+    );
+    const removedPlayerIds = gameState.room.players
+      .filter(p => p.connectionStatus !== 'connected')
+      .map(p => p.id);
+
+    const newGameState: GameState = {
+      ...gameState,
+      room: {
+        ...gameState.room,
+        players: remainingPlayers,
+        status: 'waiting',
+      },
+      currentRound: null,
+      scores: Object.fromEntries(
+        remainingPlayers.map(player => [player.id, 0])
+      ),
+      roundHistory: [],
+    };
+
+    return { newGameState, removedPlayerIds };
+  }
+
+  /**
    * Removes a player from a game state.
    * @param gameState The current game state.
    * @param playerId The ID of the player to remove.

@@ -125,7 +125,69 @@ The Director can disrupt the Actor's performance during a round by deploying sho
 
 ## ROOM — Rooms & player sessions
 
-_Stub. To be migrated in a follow-up issue._
+Rooms gather players for a game session. They support brief disconnections without ejecting players from in-progress games, and identity continuity so a returning player slots back into the same role.
+
+### Requirement 1: Creating a Room
+
+**Objective:** As a host, I want to create a room with a code I can share, so that my friends can join the same game.
+
+**Acceptance Criteria:**
+
+1. **ROOM-1.1** — WHEN a host creates a room THEN the system SHALL produce a 4-digit code that is not currently in use.
+2. **ROOM-1.2** — WHEN a host creates a room THEN the host SHALL be added as the first player and the room SHALL start in the lobby.
+
+### Requirement 2: Joining a Room
+
+**Objective:** As a player, I want to join a friend's room with the code they share, so that we can play together.
+
+**Acceptance Criteria:**
+
+1. **ROOM-2.1** — WHEN a player joins a lobby with a valid code THEN the system SHALL add them to the room.
+2. **ROOM-2.2** — IF a player joins with a code that does not match an existing room THEN the system SHALL reject the attempt.
+3. **ROOM-2.3** — IF a player joins a room that already has 8 players THEN the system SHALL reject the attempt.
+4. **ROOM-2.4** — IF a player joins a room with a name another player there is already using THEN the system SHALL reject the attempt regardless of letter casing.
+5. **ROOM-2.5** — IF a player joins a room whose game has already started THEN the system SHALL reject the attempt.
+6. **ROOM-2.6** — IF a player joins with a name shorter than 2 characters THEN the system SHALL reject the attempt.
+
+### Requirement 3: Leaving a Room
+
+**Objective:** As a player, I want to leave a room when I'm done, so that I'm no longer associated with the game.
+
+**Acceptance Criteria:**
+
+1. **ROOM-3.1** — WHEN a player leaves a room THEN the system SHALL remove them and their score.
+2. **ROOM-3.2** — WHEN the last player leaves a room THEN the system SHALL clean up the room.
+
+### Requirement 4: Host Privileges
+
+**Objective:** As the host, I want to be the only one who can start the game, so that game flow doesn't fragment under multiple authorities.
+
+**Acceptance Criteria:**
+
+1. **ROOM-4.1** — IF a player who is not the host attempts to start the game or start the next round THEN the system SHALL reject the attempt.
+
+### Requirement 5: Tolerating Brief Absences
+
+**Objective:** As a player at a party, I want the system to tolerate my phone briefly dropping off (locking, walking away, taking a call), so that a 30-second absence doesn't kick me out of an in-progress game.
+
+**Acceptance Criteria:**
+
+1. **ROOM-5.1** — WHEN a player's connection drops THEN every other player in the room SHALL see them flagged as disconnected.
+2. **ROOM-5.2** — WHILE a room is in the lobby AND a player has been disconnected for 30 seconds THE system SHALL remove them.
+3. **ROOM-5.3** — WHILE a game is in progress THE system SHALL keep a disconnected player's slot for the duration of the game.
+4. **ROOM-5.4** — WHEN a disconnected player reconnects to their room THEN the system SHALL restore them to their slot and update peers' view of their connection status without any further announcement.
+5. **ROOM-5.5** — WHEN a game completes and the room returns to the lobby THEN any players still disconnected SHALL be removed.
+6. **ROOM-5.6** — WHILE every player in a room has been disconnected for 30 minutes THE system SHALL clean up the room.
+
+### Requirement 6: Identity Continuity
+
+**Objective:** As a returning player, I want to come back as the same player, so that my score and slot are preserved and nobody else can impersonate me.
+
+**Acceptance Criteria:**
+
+1. **ROOM-6.1** — WHEN a player joins or creates a room THEN the system SHALL issue them a credential that proves their identity on subsequent reconnections.
+2. **ROOM-6.2** — IF a player presents a credential that does not match the one issued to them THEN the system SHALL reject the connection.
+3. **ROOM-6.3** — WHILE other players are connected to a room THE system SHALL never expose another player's identity credential to them.
 
 ## ROUND — Round lifecycle & timer
 
