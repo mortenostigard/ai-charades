@@ -32,6 +32,7 @@ Each system has multiple **Requirements**, each of which states a user-facing **
 
 - Phrase at the domain level. Don't reference event names, internal state field names, error codes, or formulas — those are implementation. The requirement should make sense to a player or a non-engineer.
 - Pick a concrete subject (e.g. "the Director", "the Actor's device", "every player in the round", "the system") rather than a generic one.
+- Frame the **benefit** clause in language the role would actually use — what they'd notice when the rule is violated, not the architectural concept. ("we'd argue about whose timer is right" beats "no device disagrees on remaining duration".)
 
 ### Test linkage
 
@@ -161,7 +162,7 @@ Rooms gather players for a game session. They support brief disconnections witho
 
 ### Requirement 4: Host Privileges
 
-**Objective:** As the host, I want to be the only one who can start the game, so that game flow doesn't fragment under multiple authorities.
+**Objective:** As the host, I want to be the only one who can start the game, so that nobody else triggers a start before we're ready.
 
 **Acceptance Criteria:**
 
@@ -206,7 +207,7 @@ A round is a 90-second performance. One player is the Actor performing a prompt,
 
 ### Requirement 2: Round Lifecycle
 
-**Objective:** As a player, I want each round to have a fixed duration measured the same way for everyone, so that the game has predictable pacing and no device disagrees about how much time is left.
+**Objective:** As a player, I want each round to have a fixed duration measured the same way for everyone, so that we agree on when the round ends.
 
 **Acceptance Criteria:**
 
@@ -258,7 +259,7 @@ Each round produces score changes for the players involved, following a risk/rew
 
 ### Requirement 3: Score Integrity
 
-**Objective:** As a player, I want scores to belong only to players who are still in the game, so that a leaver doesn't reappear with a fresh score line.
+**Objective:** As a player, I want the scoreboard to reflect only the people still in the game, so that someone who left isn't still listed with their points.
 
 **Acceptance Criteria:**
 
@@ -272,7 +273,7 @@ Players' devices mirror authoritative game state from the server over a long-liv
 
 ### Requirement 1: Single Source of Truth
 
-**Objective:** As a player, I want the server to be the only thing deciding the game's state, so that every device in the room shows the same thing.
+**Objective:** As a player, I want every phone in the room to show the same thing, so that we don't argue about whose screen is right when they disagree.
 
 **Acceptance Criteria:**
 
@@ -281,7 +282,7 @@ Players' devices mirror authoritative game state from the server over a long-liv
 
 ### Requirement 2: Authenticated Actions
 
-**Objective:** As a player, I want privileged actions tied to my proven identity, so that another player can't impersonate me by guessing my id.
+**Objective:** As a player, I want only me to be able to act on my behalf, so that nobody else can sabotage as me or end my round.
 
 **Acceptance Criteria:**
 
@@ -299,7 +300,7 @@ Players' devices mirror authoritative game state from the server over a long-liv
 
 ### Requirement 4: Event Contract Integrity
 
-**Objective:** As a player, I want each kind of game state change to arrive over a single channel, so that a forgotten handler can't silently drop a state update.
+**Objective:** As a player, I want my screen to stay in sync with what's happening, so that I don't get stuck on a stale view when a round starts or ends.
 
 **Acceptance Criteria:**
 
