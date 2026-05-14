@@ -232,7 +232,7 @@ A round is a 90-second performance. One player is the Actor performing a prompt,
 **Acceptance Criteria:**
 
 1. **ROUND-4.1** — WHEN every connected player has acted THEN the game SHALL transition to a complete state.
-2. **ROUND-4.2** — A player who reconnects after the game has completed SHALL see the completion screen rather than re-entering play.
+2. **ROUND-4.2** — WHEN a player reconnects after the game has completed THEN they SHALL see the completion screen rather than re-entering play.
 
 ## SCORE — Scoring
 
@@ -286,8 +286,8 @@ Players' devices mirror authoritative game state from the server over a long-liv
 
 **Acceptance Criteria:**
 
-1. **NET-2.1** — Privileged actions SHALL be authorized using the identity bound to the connection at join or reconnect, not identifiers passed in the action's payload.
-2. **NET-2.2** — A connection that cannot prove a valid identity SHALL be denied any privileged action.
+1. **NET-2.1** — WHEN a privileged action is received THEN the system SHALL authorize it using the identity bound to the connection at join or reconnect, not identifiers passed in the action's payload.
+2. **NET-2.2** — IF a connection cannot prove a valid identity THEN the system SHALL deny any privileged action from it.
 
 ### Requirement 3: Resilient Reconnection
 
@@ -295,8 +295,8 @@ Players' devices mirror authoritative game state from the server over a long-liv
 
 **Acceptance Criteria:**
 
-1. **NET-3.1** — A client that reconnects within the connection-recovery window SHALL resume without the server re-broadcasting room state.
-2. **NET-3.2** — A client that reconnects beyond the recovery window SHALL re-bind to its room using the credential issued at join time.
+1. **NET-3.1** — WHEN a client reconnects within the connection-recovery window THEN it SHALL resume without the server re-broadcasting room state.
+2. **NET-3.2** — WHEN a client reconnects beyond the recovery window THEN it SHALL re-bind to its room using the credential issued at join time.
 
 ### Requirement 4: Event Contract Integrity
 
