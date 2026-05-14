@@ -74,6 +74,8 @@ PR descriptions and commit messages stand on their own — no references to chat
 
 Branch names follow conventional-commit prefixes: `feat/`, `fix/`, `chore/`, `refactor/`, `docs/`, `build/`, `ci/`, `test/`, `perf/`. Use a short kebab-case description after the prefix (e.g. `fix/vercel-shared-package-resolution`, `refactor/shared-types-only`). Do not use tool- or session-scoped prefixes like `claude/...`.
 
+When squash-merging, always supply a custom `commit_title` and `commit_message` — never fall back to GitHub's default, which concatenates every commit message on the branch. Title format: `<type>(<scope>): <description> (#<pr>)`. Body: a short summary that stands on its own, the way the PR description does.
+
 ### Reviewing PRs
 
 Check out the branch first, then read locally and run `pnpm type-check` / `test` / `lint`. Don't use `get_diff` — it truncates and duplicates what checkout gives you.
