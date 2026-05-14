@@ -351,7 +351,7 @@ describe('RoundManager.endRound', () => {
     status: 'active',
   };
 
-  it('ROUND-3.1 records correct_guess, applies scoring, and pushes to history', () => {
+  it('ROUND-3.1 SCORE-1.1 SCORE-1.2 SCORE-1.3 records correct_guess, applies scoring, and pushes to history', () => {
     const state = buildState({ currentRound: activeRound });
     const { newGameState } = new RoundManager(state).endRound('p3');
 
@@ -368,7 +368,7 @@ describe('RoundManager.endRound', () => {
     expect(newGameState.scores).toEqual({ p1: -1, p2: 2, p3: 1 });
   });
 
-  it('ROUND-3.3 records time_up and gives the director +2 when no winner is provided', () => {
+  it('ROUND-3.3 SCORE-2.1 SCORE-2.2 records time_up and gives the director +2 when no winner is provided', () => {
     const state = buildState({ currentRound: activeRound });
     const { newGameState } = new RoundManager(state).endRound();
 

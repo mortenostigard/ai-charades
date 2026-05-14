@@ -29,7 +29,7 @@ const buildRound = (overrides: Partial<CurrentRound> = {}): CurrentRound => ({
 });
 
 describe('ScoringEngine', () => {
-  it('awards +2 actor / +1 guesser / -N director when a guess wins', () => {
+  it('SCORE-1.1 SCORE-1.2 SCORE-1.3 awards +2 actor / +1 guesser / -N director when a guess wins', () => {
     const data: ScoringData = {
       winnerId: 'guesser',
       currentRound: buildRound({ sabotagesDeployedCount: 2 }),
@@ -47,7 +47,7 @@ describe('ScoringEngine', () => {
     ]);
   });
 
-  it('omits the director from scoreChanges when no sabotages were used', () => {
+  it('SCORE-1.3 omits the director from scoreChanges when no sabotages were used', () => {
     const data: ScoringData = {
       winnerId: 'guesser',
       currentRound: buildRound({ sabotagesDeployedCount: 0 }),
@@ -62,7 +62,7 @@ describe('ScoringEngine', () => {
     expect(scoreChanges).toHaveLength(2);
   });
 
-  it('awards the director +2 on timeout and omits the actor from scoreChanges', () => {
+  it('SCORE-2.1 SCORE-2.2 awards the director +2 on timeout and omits the actor from scoreChanges', () => {
     const data: ScoringData = {
       winnerId: null,
       currentRound: buildRound({ sabotagesDeployedCount: 1 }),
@@ -78,7 +78,7 @@ describe('ScoringEngine', () => {
     ]);
   });
 
-  it('skips score updates for players no longer in currentScores', () => {
+  it('SCORE-3.1 skips score updates for players no longer in currentScores', () => {
     // The actor left the room mid-round and has been removed from scores.
     // Their slot should not be resurrected; only the remaining players update.
     const data: ScoringData = {

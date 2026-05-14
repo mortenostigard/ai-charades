@@ -25,12 +25,14 @@ Each system has multiple **Requirements**, each of which states a user-facing **
 - **IF … THEN … SHALL …** — unwanted behaviour or precondition.
 - **WHILE … THE … SHALL …** — state-driven, continuous.
 - **WHERE … THE … SHALL …** — feature- or context-driven.
+- **\<subject\> SHALL …** — ubiquitous; always-true invariants with no trigger (e.g. "A round SHALL last 90 seconds").
 - Combine with **AND** for compound conditions.
 
 ### Phrasing rules
 
 - Phrase at the domain level. Don't reference event names, internal state field names, error codes, or formulas — those are implementation. The requirement should make sense to a player or a non-engineer.
 - Pick a concrete subject (e.g. "the Director", "the Actor's device", "every player in the round", "the system") rather than a generic one.
+- Frame the **benefit** clause in language the role would actually use — what they'd notice when the rule is violated, not the architectural concept. ("we'd argue about whose timer is right" beats "no device disagrees on remaining duration".)
 
 ### Test linkage
 
@@ -160,7 +162,7 @@ Rooms gather players for a game session. They support brief disconnections witho
 
 ### Requirement 4: Host Privileges
 
-**Objective:** As the host, I want to be the only one who can start the game, so that game flow doesn't fragment under multiple authorities.
+**Objective:** As the host, I want to be the only one who can start the game, so that nobody else triggers a start before we're ready.
 
 **Acceptance Criteria:**
 
@@ -205,7 +207,7 @@ A round is a 90-second performance. One player is the Actor performing a prompt,
 
 ### Requirement 2: Round Lifecycle
 
-**Objective:** As a player, I want each round to have a fixed duration measured the same way for everyone, so that the game has predictable pacing and no device disagrees about how much time is left.
+**Objective:** As a player, I want each round to have a fixed duration measured the same way for everyone, so that we agree on when the round ends.
 
 **Acceptance Criteria:**
 
@@ -230,12 +232,76 @@ A round is a 90-second performance. One player is the Actor performing a prompt,
 **Acceptance Criteria:**
 
 1. **ROUND-4.1** — WHEN every connected player has acted THEN the game SHALL transition to a complete state.
-2. **ROUND-4.2** — A player who reconnects after the game has completed SHALL see the completion screen rather than re-entering play.
+2. **ROUND-4.2** — WHEN a player reconnects after the game has completed THEN they SHALL see the completion screen rather than re-entering play.
 
-## SCORE — Scoring & game completion
+## SCORE — Scoring
 
-_Stub. To be migrated in a follow-up issue._
+Each round produces score changes for the players involved, following a risk/reward model: deploying sabotages costs the Director points if the audience still guesses, but pays out if the round times out without a guess.
+
+### Requirement 1: Round Scoring on a Correct Guess
+
+**Objective:** As a player, I want clear rewards when the audience successfully guesses, so that performing well as Actor and contributing as a guesser are recognized.
+
+**Acceptance Criteria:**
+
+1. **SCORE-1.1** — WHEN a round ends with a winning guess THEN the Actor SHALL gain 2 points.
+2. **SCORE-1.2** — WHEN a round ends with a winning guess THEN the named guesser SHALL gain 1 point.
+3. **SCORE-1.3** — WHEN a round ends with a winning guess THEN the Director SHALL lose 1 point for every sabotage they deployed in that round.
+
+### Requirement 2: Round Scoring on a Time-Up
+
+**Objective:** As the Director, I want a meaningful reward when the audience fails to guess, so that deploying sabotages is a real strategic option.
+
+**Acceptance Criteria:**
+
+1. **SCORE-2.1** — WHEN a round ends without a winning guess THEN the Director SHALL gain 2 points.
+2. **SCORE-2.2** — WHEN a round ends without a winning guess THEN no other player's score SHALL change.
+
+### Requirement 3: Score Integrity
+
+**Objective:** As a player, I want the scoreboard to reflect only the people still in the game, so that someone who left isn't still listed with their points.
+
+**Acceptance Criteria:**
+
+1. **SCORE-3.1** — IF a player has left the room THEN the system SHALL NOT update or resurrect their score from any subsequent round.
+
+---
 
 ## NET — Realtime protocol & state sync
 
-_Stub. To be migrated in a follow-up issue._
+Players' devices mirror authoritative game state from the server over a long-lived socket connection. The protocol guarantees how identity is established, how briefly-disconnected clients recover, and how state changes are communicated.
+
+### Requirement 1: Single Source of Truth
+
+**Objective:** As a player, I want every phone in the room to show the same thing, so that we don't argue about whose screen is right when they disagree.
+
+**Acceptance Criteria:**
+
+1. **NET-1.1** — The server SHALL be the sole authority on game state.
+2. **NET-1.2** — Clients SHALL not advance game state (including the round timer) independently of messages from the server.
+
+### Requirement 2: Authenticated Actions
+
+**Objective:** As a player, I want only me to be able to act on my behalf, so that nobody else can sabotage as me or end my round.
+
+**Acceptance Criteria:**
+
+1. **NET-2.1** — WHEN a privileged action is received THEN the system SHALL authorize it using the identity bound to the connection at join or reconnect, not identifiers passed in the action's payload.
+2. **NET-2.2** — IF a connection cannot prove a valid identity THEN the system SHALL deny any privileged action from it.
+
+### Requirement 3: Resilient Reconnection
+
+**Objective:** As a player on a flaky connection, I want short blips to be invisible and longer drops to recover with minimal fuss, so that the game stays playable through normal network noise.
+
+**Acceptance Criteria:**
+
+1. **NET-3.1** — WHEN a client reconnects within the connection-recovery window THEN it SHALL resume without the server re-broadcasting room state.
+2. **NET-3.2** — WHEN a client reconnects beyond the recovery window THEN it SHALL re-bind to its room using the credential issued at join time.
+
+### Requirement 4: Event Contract Integrity
+
+**Objective:** As a player, I want my screen to stay in sync with what's happening, so that I don't get stuck on a stale view when a round starts or ends.
+
+**Acceptance Criteria:**
+
+1. **NET-4.1** — Each distinct game-state transition SHALL be communicated to clients via exactly one event path.
