@@ -108,6 +108,15 @@ class GameLoopManager {
       this.loops.delete(roomCode);
     }
   }
+
+  public reset() {
+    for (const loop of this.loops.values()) {
+      loop.stop();
+    }
+    this.loops.clear();
+    this.io = null;
+    this.onRoundEnd = null;
+  }
 }
 
 export const gameLoopManager = GameLoopManager.getInstance();
