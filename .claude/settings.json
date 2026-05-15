@@ -2,5 +2,28 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "permissions": {
     "ask": ["mcp__github__merge_pull_request"]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__github__create_pull_request|mcp__github__update_pull_request",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"REMINDER: PR descriptions and commit messages must stand alone (project CLAUDE.md). No references to chat context such as the audit, as we discussed, you asked, our chat, earlier. Re-read the body/message argument before proceeding.\"}}'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git commit *)",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"additionalContext\":\"REMINDER: PR descriptions and commit messages must stand alone (project CLAUDE.md). No references to chat context such as the audit, as we discussed, you asked, our chat, earlier. Re-read the body/message argument before proceeding.\"}}'"
+          }
+        ]
+      }
+    ]
   }
 }
