@@ -13,8 +13,18 @@ import { SabotageManager } from '@/game/sabotage-manager.js';
 import { gameLoopManager } from '@/game/game-loop.js';
 import { roomStore } from '@/game/room-store.js';
 
-const LOBBY_DISCONNECT_REMOVAL_MS = 30_000;
-const ABANDONMENT_TIMEOUT_MS = 30 * 60 * 1000;
+const DEFAULT_LOBBY_DISCONNECT_REMOVAL_MS = 30_000;
+const DEFAULT_ABANDONMENT_TIMEOUT_MS = 30 * 60 * 1000;
+
+export type HandlerTimings = {
+  lobbyDisconnectRemovalMs: number;
+  abandonmentTimeoutMs: number;
+};
+
+const defaultTimings: HandlerTimings = {
+  lobbyDisconnectRemovalMs: DEFAULT_LOBBY_DISCONNECT_REMOVAL_MS,
+  abandonmentTimeoutMs: DEFAULT_ABANDONMENT_TIMEOUT_MS,
+};
 
 type TypedServer = Server<
   ClientToServerEvents,
@@ -400,7 +410,11 @@ export function handleRequestGameState(
   };
 }
 
-export function handleDisconnect(io: TypedServer, socket: TypedSocket) {
+export function handleDisconnect(
+  io: TypedServer,
+  socket: TypedSocket,
+  timings: HandlerTimings = defaultTimings
+) {
   return async () => {
     console.log(`Client disconnected: ${socket.id}`);
 
@@ -439,7 +453,7 @@ export function handleDisconnect(io: TypedServer, socket: TypedSocket) {
             });
           }
         },
-        LOBBY_DISCONNECT_REMOVAL_MS
+        timings.lobbyDisconnectRemovalMs
       );
       return;
     }
@@ -465,7 +479,7 @@ export function handleDisconnect(io: TypedServer, socket: TypedSocket) {
           roomStore.evict(roomCode);
           console.warn(`Room ${roomCode} evicted after long-tail abandonment`);
         },
-        ABANDONMENT_TIMEOUT_MS
+        timings.abandonmentTimeoutMs
       );
     }
   };
@@ -725,7 +739,12 @@ export function handleEndRound(
   };
 }
 
-export function initializeSocketHandlers(io: TypedServer) {
+export function initializeSocketHandlers(
+  io: TypedServer,
+  options: Partial<HandlerTimings> = {}
+) {
+  const timings: HandlerTimings = { ...defaultTimings, ...options };
+
   // Initialize the game loop manager with the server instance
   gameLoopManager.init(io, (roomCode: string) => {
     // This is the callback for when a round timer runs out
@@ -808,7 +827,7 @@ export function initializeSocketHandlers(io: TypedServer) {
     socket.on('deploy_sabotage', handleDeploySabotage(io, socket));
     socket.on('request_game_state', handleRequestGameState(socket));
     socket.on('end_round', handleEndRound(io, socket));
-    socket.on('disconnecting', handleDisconnect(io, socket));
+    socket.on('disconnecting', handleDisconnect(io, socket, timings));
 
     if (!socket.recovered && socket.data.playerId && socket.data.roomCode) {
       const { playerId, roomCode } = socket.data;
